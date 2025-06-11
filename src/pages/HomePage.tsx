@@ -50,36 +50,6 @@ const HomePage: React.FC<HomePageProps> = ({ userMinutes = 0 }) => {
           </div>
         </div>
 
-        {/* Join Our Community */}
-        <div className="bg-black/40 backdrop-blur-sm border border-neonGreen/30 rounded-xl p-6 text-white shadow-[0_0_15px_rgba(0,255,136,0.3)]">
-          <div className="flex items-center gap-3 mb-4">
-            <Users className="w-6 h-6 text-neonGreen" />
-            <h2 className="text-xl font-semibold">
-              {language === 'ar' ? 'انضم إلى مجتمعنا' : 'Join Our Community'}
-            </h2>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <a
-              href="https://t.me/LYRACoinBot"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center justify-center gap-2 bg-[#0088cc] text-white py-3 px-4 rounded-lg font-medium hover:brightness-110 transition"
-            >
-              <FaTelegram className="w-5 h-5" />
-              Telegram
-            </a>
-            <a
-              href="https://twitter.com/LYRACoin"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center justify-center gap-2 bg-black text-white py-3 px-4 rounded-lg font-medium hover:bg-gray-900 transition"
-            >
-              <Twitter className="w-5 h-5" />
-              Twitter
-            </a>
-          </div>
-        </div>
-
         {/* Wallet Connect */}
         <div className="bg-black/40 backdrop-blur-sm border border-neonGreen/30 rounded-xl p-6 text-white shadow-[0_0_15px_rgba(0,255,136,0.3)]">
           <div className="flex items-center gap-3 mb-4">
@@ -136,6 +106,36 @@ const HomePage: React.FC<HomePageProps> = ({ userMinutes = 0 }) => {
               {language === 'ar' ? 'شارك واربح' : 'Share and earn'}
             </p>
           </button>
+        </div>
+
+        {/* Join Our Community - Moved to bottom */}
+        <div className="bg-black/40 backdrop-blur-sm border border-neonGreen/30 rounded-xl p-6 text-white shadow-[0_0_15px_rgba(0,255,136,0.3)]">
+          <div className="flex items-center gap-3 mb-4">
+            <Users className="w-6 h-6 text-neonGreen" />
+            <h2 className="text-xl font-semibold">
+              {language === 'ar' ? 'انضم إلى مجتمعنا' : 'Join Our Community'}
+            </h2>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <a
+              href="https://t.me/LYRACoinBot"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center gap-2 bg-[#0088cc] text-white py-3 px-4 rounded-lg font-medium hover:brightness-110 transition"
+            >
+              <FaTelegram className="w-5 h-5" />
+              Telegram
+            </a>
+            <a
+              href="https://twitter.com/LYRACoin"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center gap-2 bg-black text-white py-3 px-4 rounded-lg font-medium hover:bg-gray-900 transition"
+            >
+              <Twitter className="w-5 h-5" />
+              Twitter
+            </a>
+          </div>
         </div>
       </div>
     </div>
