@@ -39,13 +39,13 @@ export function TelegramProvider({ children }: { children: React.ReactNode }) {
     const initTelegram = async () => {
       try {
         // Wait for Telegram WebApp to be available
-        await new Promise(resolve => {
+        await new Promise<void>(resolve => {
           if (window.Telegram?.WebApp) {
-            resolve(true);
+            resolve();
           } else {
             const checkTelegram = () => {
               if (window.Telegram?.WebApp) {
-                resolve(true);
+                resolve();
               } else {
                 setTimeout(checkTelegram, 100);
               }
@@ -68,22 +68,36 @@ export function TelegramProvider({ children }: { children: React.ReactNode }) {
         // Allow development mode without Telegram WebApp
         if (import.meta.env.DEV && (!webApp || !telegramUser?.id)) {
           console.log('Running in development mode with mock user');
-          const { success, user: registeredUser, error: registerError } = await registerUser(
-            mockUser.id.toString(),
-            mockUser.username
-          );
+          
+          // Use a more robust approach for dev registration
+          try {
+            const { success, user: registeredUser, error: registerError } = await registerUser(
+              mockUser.id.toString(),
+              mockUser.username
+            );
 
-          if (!success || registerError) {
-            console.error('Dev mode registration failed:', registerError);
-            throw new Error(registerError?.message || 'Failed to register mock user');
+            if (!success || registerError) {
+              console.error('Dev mode registration failed:', registerError);
+              // Don't throw error in dev mode, just log it
+              console.warn('Continuing with mock user despite registration error');
+            }
+
+            setUser(mockUser);
+            setIsDev(true);
+            setIsAuthenticated(true);
+            setError(null);
+            setIsLoading(false);
+            return;
+          } catch (devError) {
+            console.error('Dev mode error:', devError);
+            // Still continue with mock user
+            setUser(mockUser);
+            setIsDev(true);
+            setIsAuthenticated(true);
+            setError(null);
+            setIsLoading(false);
+            return;
           }
-
-          setUser(mockUser);
-          setIsDev(true);
-          setIsAuthenticated(true);
-          setError(null);
-          setIsLoading(false);
-          return;
         }
 
         // Check if we have valid Telegram data
