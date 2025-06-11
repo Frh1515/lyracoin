@@ -25,13 +25,21 @@ export async function registerUser(
       };
     }
 
-    // Call the secure RPC function to register/update user
+    // Use upsert to handle both new registrations and updates
     const { data, error } = await supabase
-      .rpc('register_telegram_user', {
-        p_telegram_id: telegramId,
-        p_username: username || null,
-        p_level: level
+      .from('users')
+      .upsert({
+        telegram_id: telegramId,
+        username: username || null,
+        level: level,
+        referral_count: 0,
+        total_minutes: 0,
+        points: 0
+      }, {
+        onConflict: 'telegram_id',
+        ignoreDuplicates: false
       })
+      .select()
       .single();
 
     if (error) {

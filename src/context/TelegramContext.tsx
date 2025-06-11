@@ -38,16 +38,31 @@ export function TelegramProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const initTelegram = async () => {
       try {
-        // Check if running in Telegram WebApp
+        // Wait for Telegram WebApp to be available
+        await new Promise(resolve => {
+          if (window.Telegram?.WebApp) {
+            resolve(true);
+          } else {
+            const checkTelegram = () => {
+              if (window.Telegram?.WebApp) {
+                resolve(true);
+              } else {
+                setTimeout(checkTelegram, 100);
+              }
+            };
+            checkTelegram();
+          }
+        });
+
         const webApp = window.Telegram?.WebApp;
         const telegramUser = webApp?.initDataUnsafe?.user;
 
-        // Debug log
         console.log('Telegram WebApp initialization:', {
           webApp: !!webApp,
           user: telegramUser,
           platform: webApp?.platform,
-          isDev: import.meta.env.DEV
+          isDev: import.meta.env.DEV,
+          initData: webApp?.initData
         });
 
         // Allow development mode without Telegram WebApp
@@ -71,7 +86,7 @@ export function TelegramProvider({ children }: { children: React.ReactNode }) {
           return;
         }
 
-        // Enforce strict Telegram WebApp initialization in production
+        // Check if we have valid Telegram data
         if (!webApp || !telegramUser?.id) {
           throw new Error('Telegram WebApp not initialized correctly. Please open from Telegram bot button.');
         }
@@ -79,6 +94,11 @@ export function TelegramProvider({ children }: { children: React.ReactNode }) {
         // Initialize Telegram WebApp
         webApp.ready();
         webApp.expand();
+        
+        // Set theme
+        if (webApp.colorScheme === 'dark') {
+          document.documentElement.classList.add('dark');
+        }
 
         // Register user with Supabase using string ID
         const { success, user: registeredUser, error: registerError } = await registerUser(
