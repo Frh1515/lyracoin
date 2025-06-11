@@ -1,0 +1,49 @@
+export interface User {
+  id: string;
+  telegram_id: string;
+  username: string | null;
+  level: number;
+  wallet_address: string | null;
+  registered_at: string;
+  referral_count: number;
+  preferred_exchange: string | null;
+  total_minutes: number;
+  points: number;
+}
+
+export interface Task {
+  id: string;
+  platform: string;
+  title: string;
+  description: string;
+  minutes_reward: number;
+  points_reward: number;
+  type: string;
+  is_daily: boolean;
+  created_at: string;
+}
+
+export interface UserTask {
+  id: string;
+  user_id: string;
+  task_id: string;
+  completed_at: string;
+  minutes_earned: number;
+  points_earned: number;
+}
+
+export interface Referral {
+  id: string;
+  inviter_id: string;
+  invitee_id: string;
+  invite_code: string;
+  created_at: string;
+}
+
+export type UserStats = {
+  total_points: number;
+  level: number;
+  registration_date: string;
+  current_balance: number;
+  referral_count: number;
+}
