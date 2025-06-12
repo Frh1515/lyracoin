@@ -25,74 +25,81 @@ export async function registerUser(
       };
     }
 
-    // First, try to insert the user
-    const { data, error } = await supabase
+    // First, check if user already exists
+    const { data: existingUser, error: selectError } = await supabase
       .from('users')
-      .insert({
-        telegram_id: telegramId,
-        username: username || null,
-        level: level,
-        referral_count: 0,
-        total_minutes: 0,
-        points: 0,
-        referral_tier: 'bronze'
-      })
-      .select()
+      .select('*')
+      .eq('telegram_id', telegramId)
       .single();
 
-    if (error) {
-      // If user already exists, try to update
-      if (error.code === '23505') { // Unique violation
-        try {
-          // First, perform the update operation
-          const { error: updateError } = await supabase
-            .from('users')
-            .update({
-              username: username || null,
-              level: level
-            })
-            .eq('telegram_id', telegramId);
+    if (selectError && selectError.code !== 'PGRST116') {
+      // PGRST116 is "not found" error, which is expected for new users
+      console.error('Error checking existing user:', selectError);
+      return {
+        success: false,
+        user: null,
+        error: selectError
+      };
+    }
 
-          if (updateError) {
-            console.error('Update error:', updateError);
-            return {
-              success: false,
-              user: null,
-              error: updateError
-            };
-          }
+    if (existingUser) {
+      // User exists, update their information
+      const { error: updateError } = await supabase
+        .from('users')
+        .update({
+          username: username || null,
+          level: level
+        })
+        .eq('telegram_id', telegramId);
 
-          // Then, separately fetch the updated user data
-          const { data: selectData, error: selectError } = await supabase
-            .from('users')
-            .select('*')
-            .eq('telegram_id', telegramId)
-            .single();
+      if (updateError) {
+        console.error('Update error:', updateError);
+        return {
+          success: false,
+          user: null,
+          error: updateError
+        };
+      }
 
-          if (selectError) {
-            console.error('Select error:', selectError);
-            return {
-              success: false,
-              user: null,
-              error: selectError
-            };
-          }
+      // Fetch the updated user data
+      const { data: updatedUser, error: fetchError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('telegram_id', telegramId)
+        .single();
 
-          console.log('User updated successfully:', selectData);
-          return {
-            success: true,
-            user: selectData,
-            error: null
-          };
-        } catch (updateCatchError) {
-          console.error('Error during update process:', updateCatchError);
-          return {
-            success: false,
-            user: null,
-            error: updateCatchError as Error
-          };
-        }
-      } else {
+      if (fetchError) {
+        console.error('Fetch updated user error:', fetchError);
+        return {
+          success: false,
+          user: null,
+          error: fetchError
+        };
+      }
+
+      console.log('User updated successfully:', updatedUser);
+      return {
+        success: true,
+        user: updatedUser,
+        error: null
+      };
+    } else {
+      // User doesn't exist, create new user
+      const { data, error } = await supabase
+        .from('users')
+        .insert({
+          telegram_id: telegramId,
+          username: username || null,
+          level: level,
+          referral_count: 0,
+          total_minutes: 0,
+          points: 0,
+          referral_tier: 'bronze'
+        })
+        .select()
+        .single();
+
+      if (error) {
         console.error('Insert error:', error);
         return {
           success: false,
@@ -100,14 +107,14 @@ export async function registerUser(
           error: error
         };
       }
-    }
 
-    console.log('User registered successfully:', data);
-    return {
-      success: true,
-      user: data,
-      error: null
-    };
+      console.log('User registered successfully:', data);
+      return {
+        success: true,
+        user: data,
+        error: null
+      };
+    }
   } catch (error) {
     console.error('Error registering user:', error);
     return {
