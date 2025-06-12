@@ -43,41 +43,62 @@ export async function registerUser(
     if (error) {
       // If user already exists, try to update
       if (error.code === '23505') { // Unique violation
-        // First, perform the update operation
-        const { error: updateError } = await supabase
-          .from('users')
-          .update({
-            username: username || null,
-            level: level
-          })
-          .eq('telegram_id', telegramId);
+        try {
+          // First, perform the update operation
+          const { error: updateError } = await supabase
+            .from('users')
+            .update({
+              username: username || null,
+              level: level
+            })
+            .eq('telegram_id', telegramId);
 
-        if (updateError) {
-          console.error('Update error:', updateError);
-          throw updateError;
+          if (updateError) {
+            console.error('Update error:', updateError);
+            return {
+              success: false,
+              user: null,
+              error: updateError
+            };
+          }
+
+          // Then, separately fetch the updated user data
+          const { data: selectData, error: selectError } = await supabase
+            .from('users')
+            .select('*')
+            .eq('telegram_id', telegramId)
+            .single();
+
+          if (selectError) {
+            console.error('Select error:', selectError);
+            return {
+              success: false,
+              user: null,
+              error: selectError
+            };
+          }
+
+          console.log('User updated successfully:', selectData);
+          return {
+            success: true,
+            user: selectData,
+            error: null
+          };
+        } catch (updateCatchError) {
+          console.error('Error during update process:', updateCatchError);
+          return {
+            success: false,
+            user: null,
+            error: updateCatchError as Error
+          };
         }
-
-        // Then, separately fetch the updated user data
-        const { data: selectData, error: selectError } = await supabase
-          .from('users')
-          .select('*')
-          .eq('telegram_id', telegramId)
-          .single();
-
-        if (selectError) {
-          console.error('Select error:', selectError);
-          throw selectError;
-        }
-
-        console.log('User updated successfully:', selectData);
-        return {
-          success: true,
-          user: selectData,
-          error: null
-        };
       } else {
         console.error('Insert error:', error);
-        throw error;
+        return {
+          success: false,
+          user: null,
+          error: error
+        };
       }
     }
 
