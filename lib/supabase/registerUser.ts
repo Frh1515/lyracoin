@@ -43,25 +43,36 @@ export async function registerUser(
     if (error) {
       // If user already exists, try to update
       if (error.code === '23505') { // Unique violation
-        const { data: updateData, error: updateError } = await supabase
+        // First, perform the update operation
+        const { error: updateError } = await supabase
           .from('users')
           .update({
             username: username || null,
             level: level
           })
-          .eq('telegram_id', telegramId)
-          .select()
-          .single();
+          .eq('telegram_id', telegramId);
 
         if (updateError) {
           console.error('Update error:', updateError);
           throw updateError;
         }
 
-        console.log('User updated successfully:', updateData);
+        // Then, separately fetch the updated user data
+        const { data: selectData, error: selectError } = await supabase
+          .from('users')
+          .select('*')
+          .eq('telegram_id', telegramId)
+          .single();
+
+        if (selectError) {
+          console.error('Select error:', selectError);
+          throw selectError;
+        }
+
+        console.log('User updated successfully:', selectData);
         return {
           success: true,
-          user: updateData,
+          user: selectData,
           error: null
         };
       } else {
