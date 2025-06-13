@@ -25,21 +25,6 @@ export async function registerUser(
       };
     }
 
-    // First, authenticate with Supabase using anonymous auth
-    const { data: authData, error: authError } = await supabase.auth.signInAnonymously();
-    
-    if (authError || !authData.user) {
-      console.error('Auth error:', authError);
-      return {
-        success: false,
-        user: null,
-        error: authError || new Error('Failed to authenticate')
-      };
-    }
-
-    const supabaseAuthId = authData.user.id;
-    console.log('Authenticated with Supabase:', supabaseAuthId);
-
     // Check if user already exists with this telegram_id
     const { data: existingUser, error: selectError } = await supabase
       .from('users')
@@ -58,35 +43,104 @@ export async function registerUser(
     }
 
     if (existingUser) {
-      // User exists, update their supabase_auth_id and other info
-      const { data: updatedUser, error: updateError } = await supabase
-        .from('users')
-        .update({
-          supabase_auth_id: supabaseAuthId,
-          username: username || existingUser.username,
-          level: level
-        })
-        .eq('telegram_id', telegramId)
-        .select()
-        .single();
+      // User exists, check if they have a supabase_auth_id
+      if (!existingUser.supabase_auth_id) {
+        // Create auth user for existing user
+        const email = `${telegramId}@telegram.local`;
+        const password = `telegram_${telegramId}_${Date.now()}`;
 
-      if (updateError) {
-        console.error('Update error:', updateError);
+        const { data: authData, error: authError } = await supabase.auth.signUp({
+          email,
+          password,
+        });
+
+        if (authError || !authData.user) {
+          console.error('Auth creation error:', authError);
+          return {
+            success: false,
+            user: null,
+            error: authError || new Error('Failed to create authentication')
+          };
+        }
+
+        // Update user with auth ID
+        const { data: updatedUser, error: updateError } = await supabase
+          .from('users')
+          .update({
+            supabase_auth_id: authData.user.id,
+            username: username || existingUser.username,
+            level: level
+          })
+          .eq('telegram_id', telegramId)
+          .select()
+          .single();
+
+        if (updateError) {
+          console.error('Update error:', updateError);
+          return {
+            success: false,
+            user: null,
+            error: updateError
+          };
+        }
+
+        console.log('User updated with auth successfully:', updatedUser);
+        return {
+          success: true,
+          user: updatedUser,
+          error: null
+        };
+      } else {
+        // User exists with auth, just update other info
+        const { data: updatedUser, error: updateError } = await supabase
+          .from('users')
+          .update({
+            username: username || existingUser.username,
+            level: level
+          })
+          .eq('telegram_id', telegramId)
+          .select()
+          .single();
+
+        if (updateError) {
+          console.error('Update error:', updateError);
+          return {
+            success: false,
+            user: null,
+            error: updateError
+          };
+        }
+
+        console.log('User updated successfully:', updatedUser);
+        return {
+          success: true,
+          user: updatedUser,
+          error: null
+        };
+      }
+    } else {
+      // User doesn't exist, create new user with auth
+      const email = `${telegramId}@telegram.local`;
+      const password = `telegram_${telegramId}_${Date.now()}`;
+
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email,
+        password,
+      });
+
+      if (authError || !authData.user) {
+        console.error('Auth error:', authError);
         return {
           success: false,
           user: null,
-          error: updateError
+          error: authError || new Error('Failed to authenticate')
         };
       }
 
-      console.log('User updated successfully:', updatedUser);
-      return {
-        success: true,
-        user: updatedUser,
-        error: null
-      };
-    } else {
-      // User doesn't exist, create new user
+      const supabaseAuthId = authData.user.id;
+      console.log('Authenticated with Supabase:', supabaseAuthId);
+
+      // Create new user
       const { data, error } = await supabase
         .from('users')
         .insert({
