@@ -6,6 +6,7 @@ import { useLanguage } from '../context/LanguageContext';
 
 interface CandyCrushGameProps {
   onClose: () => void;
+  onMinutesEarned?: (minutes: number) => void;
 }
 
 type CandyType = 'red' | 'yellow' | 'green' | 'blue' | 'purple';
@@ -22,7 +23,7 @@ const CANDY_COLORS = {
   purple: 'bg-purple-500'
 };
 
-const CandyCrushGame: React.FC<CandyCrushGameProps> = ({ onClose }) => {
+const CandyCrushGame: React.FC<CandyCrushGameProps> = ({ onClose, onMinutesEarned }) => {
   const [board, setBoard] = useState<GameBoard>([]);
   const [selectedCell, setSelectedCell] = useState<{ row: number; col: number } | null>(null);
   const [totalMinutes, setTotalMinutes] = useState(0);
@@ -347,6 +348,11 @@ const CandyCrushGame: React.FC<CandyCrushGameProps> = ({ onClose }) => {
       const result = await updateUserMinutes(totalMinutes);
       
       if (result.success) {
+        // Update the homepage minutes display
+        if (onMinutesEarned) {
+          onMinutesEarned(totalMinutes);
+        }
+        
         toast.success(
           language === 'ar' 
             ? `🎉 تم حفظ ${totalMinutes} دقيقة بنجاح!` 

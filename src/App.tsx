@@ -13,12 +13,31 @@ import { LanguageProvider } from './context/LanguageContext';
 import { TelegramProvider, useTelegram } from './context/TelegramContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import LanguageSelector from './components/LanguageSelector';
+import { getUserProfile } from '../lib/supabase/getUserProfile';
 
 function AppContent() {
   const [showSplash, setShowSplash] = useState(true);
   const [showTelegramTask, setShowTelegramTask] = useState(false);
   const [userMinutes, setUserMinutes] = useState(0);
-  const { user, isLoading, error, isDev } = useTelegram();
+  const { user, isLoading, error, isDev, isAuthenticated } = useTelegram();
+
+  // Fetch user profile and set initial minutes
+  useEffect(() => {
+    const fetchUserMinutes = async () => {
+      if (isAuthenticated) {
+        try {
+          const { data } = await getUserProfile();
+          if (data) {
+            setUserMinutes(data.total_minutes);
+          }
+        } catch (error) {
+          console.error('Error fetching user profile:', error);
+        }
+      }
+    };
+
+    fetchUserMinutes();
+  }, [isAuthenticated]);
 
   useEffect(() => {
     const splashTimer = setTimeout(() => {
@@ -36,6 +55,11 @@ function AppContent() {
   const handleTelegramReward = () => {
     setUserMinutes(prev => prev + 60);
     handleTelegramTaskClose();
+  };
+
+  // Function to update minutes when earned from games
+  const handleMinutesEarned = (minutesEarned: number) => {
+    setUserMinutes(prev => prev + minutesEarned);
   };
 
   if (isLoading) {
@@ -76,7 +100,7 @@ function AppContent() {
       )}
       <Routes>
         <Route path="/" element={<HomePage userMinutes={userMinutes} />} />
-        <Route path="/tasks" element={<ProtectedRoute><TasksPage /></ProtectedRoute>} />
+        <Route path="/tasks" element={<ProtectedRoute><TasksPage onMinutesEarned={handleMinutesEarned} /></ProtectedRoute>} />
         <Route path="/prices" element={<PricesPage />} />
         <Route path="/referrals" element={<ProtectedRoute><ReferralsPage /></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />

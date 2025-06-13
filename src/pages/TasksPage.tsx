@@ -4,7 +4,11 @@ import { Gamepad2 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import CandyCrushGame from '../components/CandyCrushGame';
 
-const TasksPage: React.FC = () => {
+interface TasksPageProps {
+  onMinutesEarned?: (minutes: number) => void;
+}
+
+const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned }) => {
   const [completedTasks, setCompletedTasks] = useState(4);
   const [showCandyCrushGame, setShowCandyCrushGame] = useState(false);
   const totalTasks = 10;
@@ -64,7 +68,10 @@ const TasksPage: React.FC = () => {
     <div className="min-h-screen pb-24 bg-gradient-to-b from-[#041e11] via-[#051a13] to-[#040d0c]">
       {/* Candy Crush Game Modal */}
       {showCandyCrushGame && (
-        <CandyCrushGame onClose={handleGameClose} />
+        <CandyCrushGame 
+          onClose={handleGameClose} 
+          onMinutesEarned={onMinutesEarned}
+        />
       )}
 
       {/* Task Progress Section */}
