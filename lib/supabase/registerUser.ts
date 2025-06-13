@@ -45,21 +45,15 @@ export async function registerUser(
     if (existingUser) {
       // User exists, check if they have a supabase_auth_id
       if (!existingUser.supabase_auth_id) {
-        // Create auth user for existing user
-        const email = `${telegramId}@example.com`;
-        const password = `telegram_${telegramId}_${Date.now()}`;
-
-        const { data: authData, error: authError } = await supabase.auth.signUp({
-          email,
-          password,
-        });
+        // Create anonymous auth session for existing user
+        const { data: authData, error: authError } = await supabase.auth.signInAnonymously();
 
         if (authError || !authData.user) {
-          console.error('Auth creation error:', authError);
+          console.error('Anonymous auth creation error:', authError);
           return {
             success: false,
             user: null,
-            error: authError || new Error('Failed to create authentication')
+            error: authError || new Error('Failed to create anonymous authentication')
           };
         }
 
@@ -84,7 +78,7 @@ export async function registerUser(
           };
         }
 
-        console.log('User updated with auth successfully:', updatedUser);
+        console.log('User updated with anonymous auth successfully:', updatedUser);
         return {
           success: true,
           user: updatedUser,
@@ -119,26 +113,20 @@ export async function registerUser(
         };
       }
     } else {
-      // User doesn't exist, create new user with auth
-      const email = `${telegramId}@example.com`;
-      const password = `telegram_${telegramId}_${Date.now()}`;
-
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email,
-        password,
-      });
+      // User doesn't exist, create new user with anonymous auth
+      const { data: authData, error: authError } = await supabase.auth.signInAnonymously();
 
       if (authError || !authData.user) {
-        console.error('Auth error:', authError);
+        console.error('Anonymous auth error:', authError);
         return {
           success: false,
           user: null,
-          error: authError || new Error('Failed to authenticate')
+          error: authError || new Error('Failed to authenticate anonymously')
         };
       }
 
       const supabaseAuthId = authData.user.id;
-      console.log('Authenticated with Supabase:', supabaseAuthId);
+      console.log('Authenticated anonymously with Supabase:', supabaseAuthId);
 
       // Create new user
       const { data, error } = await supabase
@@ -167,7 +155,7 @@ export async function registerUser(
         };
       }
 
-      console.log('User registered successfully:', data);
+      console.log('User registered successfully with anonymous auth:', data);
       return {
         success: true,
         user: data,
