@@ -57,7 +57,7 @@ function AppContent() {
     handleTelegramTaskClose();
   };
 
-  // Function to update minutes when earned from games
+  // Function to update minutes when earned from games or referrals
   const handleMinutesEarned = (minutesEarned: number) => {
     setUserMinutes(prev => prev + minutesEarned);
   };
@@ -102,7 +102,7 @@ function AppContent() {
         <Route path="/" element={<HomePage userMinutes={userMinutes} />} />
         <Route path="/tasks" element={<ProtectedRoute><TasksPage onMinutesEarned={handleMinutesEarned} /></ProtectedRoute>} />
         <Route path="/prices" element={<PricesPage />} />
-        <Route path="/referrals" element={<ProtectedRoute><ReferralsPage /></ProtectedRoute>} />
+        <Route path="/referrals" element={<ProtectedRoute><ReferralsPage onMinutesEarned={handleMinutesEarned} /></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
       </Routes>
       <BottomNavbar />

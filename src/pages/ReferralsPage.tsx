@@ -1,18 +1,35 @@
 import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import { getReferralStats, type ReferralStats } from '../../lib/supabase/getReferralStats';
-import { Share2, X } from 'lucide-react';
+import { claimReferralReward } from '../../lib/supabase/claimReferralReward';
+import { supabase } from '../../lib/supabase/client';
+import { Share2, X, Gift } from 'lucide-react';
 import toast from 'react-hot-toast';
 
-const ReferralsPage: React.FC = () => {
+interface ReferralPageProps {
+  onMinutesEarned?: (minutes: number) => void;
+}
+
+interface Referral {
+  id: string;
+  referred_id: string;
+  status: string;
+  reward_claimed: boolean;
+  created_at: string;
+}
+
+const ReferralsPage: React.FC<ReferralPageProps> = ({ onMinutesEarned }) => {
   const [stats, setStats] = useState<ReferralStats | null>(null);
+  const [referrals, setReferrals] = useState<Referral[]>([]);
   const [loading, setLoading] = useState(true);
   const [showShareModal, setShowShareModal] = useState(false);
+  const [claimingReward, setClaimingReward] = useState<string | null>(null);
   const { language } = useLanguage();
   const referralLink = 'https://t.me/LyraCoinBot';
 
   useEffect(() => {
     fetchStats();
+    fetchReferrals();
   }, []);
 
   const fetchStats = async () => {
@@ -28,6 +45,106 @@ const ReferralsPage: React.FC = () => {
       toast.error(language === 'ar' ? 'حدث خطأ' : 'An error occurred');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchReferrals = async () => {
+    try {
+      // Get current authenticated user
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      
+      if (authError || !user) {
+        console.error('User not authenticated');
+        return;
+      }
+
+      // Get user's telegram_id first
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('telegram_id')
+        .eq('supabase_auth_id', user.id)
+        .single();
+
+      if (userError || !userData) {
+        console.error('User not found');
+        return;
+      }
+
+      // Fetch referrals where current user is the referrer
+      const { data: referralsData, error: referralsError } = await supabase
+        .from('referrals')
+        .select('id, referred_id, status, reward_claimed, created_at')
+        .eq('referrer_id', userData.telegram_id)
+        .eq('status', 'verified')
+        .eq('reward_claimed', false);
+
+      if (referralsError) {
+        console.error('Error fetching referrals:', referralsError);
+      } else {
+        setReferrals(referralsData || []);
+      }
+    } catch (error) {
+      console.error('Error fetching referrals:', error);
+    }
+  };
+
+  const handleClaim = async (referralId: string) => {
+    try {
+      setClaimingReward(referralId);
+      
+      // Get current authenticated user
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      
+      if (authError || !user) {
+        toast.error(language === 'ar' ? 'يرجى تسجيل الدخول أولاً' : 'Please login first');
+        return;
+      }
+
+      // Get user's telegram_id
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('telegram_id')
+        .eq('supabase_auth_id', user.id)
+        .single();
+
+      if (userError || !userData) {
+        toast.error(language === 'ar' ? 'المستخدم غير موجود' : 'User not found');
+        return;
+      }
+
+      const result = await claimReferralReward(referralId, userData.telegram_id);
+      
+      if (result.success) {
+        toast.success(
+          language === 'ar'
+            ? `🎉 تم إضافة ${result.minutes_earned} دقيقة إلى رصيدك!`
+            : `🎉 +${result.minutes_earned} minutes added to your balance!`,
+          { 
+            duration: 4000,
+            style: {
+              background: '#00FFAA',
+              color: '#000',
+              fontWeight: 'bold'
+            }
+          }
+        );
+        
+        // Update the homepage minutes display
+        if (onMinutesEarned && result.minutes_earned) {
+          onMinutesEarned(result.minutes_earned);
+        }
+        
+        // Refresh data
+        fetchStats();
+        fetchReferrals();
+      } else {
+        toast.error(result.message);
+      }
+    } catch (error) {
+      console.error('Error claiming reward:', error);
+      toast.error(language === 'ar' ? 'فشل المطالبة بالمكافأة' : 'Failed to claim reward');
+    } finally {
+      setClaimingReward(null);
     }
   };
 
@@ -130,6 +247,46 @@ const ReferralsPage: React.FC = () => {
             <h2 className="text-xl font-bold text-white">
               {language === 'ar' ? `مستوى ${stats.referral_tier}` : `${stats.referral_tier.charAt(0).toUpperCase() + stats.referral_tier.slice(1)} Tier`}
             </h2>
+          </div>
+        )}
+
+        {/* Unclaimed Rewards Section */}
+        {referrals.length > 0 && (
+          <div className="bg-white/5 border border-neonGreen/30 rounded-xl p-6 mb-8">
+            <div className="flex items-center gap-3 mb-4">
+              <Gift className="w-6 h-6 text-neonGreen" />
+              <h2 className="text-lg font-semibold text-white">
+                {language === 'ar' ? 'مكافآت غير مطالب بها' : 'Unclaimed Rewards'}
+              </h2>
+            </div>
+            
+            <div className="space-y-3">
+              {referrals.map((referral) => (
+                <div key={referral.id} className="bg-black/30 rounded-lg p-4 flex items-center justify-between">
+                  <div>
+                    <p className="text-white font-medium">
+                      {language === 'ar' ? 'إحالة مؤكدة' : 'Verified Referral'}
+                    </p>
+                    <p className="text-white/60 text-sm">
+                      {language === 'ar' ? 'المكافأة: 60 دقيقة' : 'Reward: 60 minutes'}
+                    </p>
+                    <p className="text-white/40 text-xs">
+                      {new Date(referral.created_at).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => handleClaim(referral.id)}
+                    disabled={claimingReward === referral.id}
+                    className="bg-neonGreen text-black px-4 py-2 rounded-lg font-medium hover:brightness-110 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {claimingReward === referral.id
+                      ? (language === 'ar' ? 'جاري المطالبة...' : 'Claiming...')
+                      : (language === 'ar' ? 'مطالبة' : 'Claim')
+                    }
+                  </button>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
