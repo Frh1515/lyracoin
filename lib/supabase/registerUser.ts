@@ -46,7 +46,7 @@ export async function registerUser(
       // User exists, check if they have a supabase_auth_id
       if (!existingUser.supabase_auth_id) {
         // Create auth user for existing user
-        const email = `${telegramId}@telegram.local`;
+        const email = `${telegramId}@example.com`;
         const password = `telegram_${telegramId}_${Date.now()}`;
 
         const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -120,7 +120,7 @@ export async function registerUser(
       }
     } else {
       // User doesn't exist, create new user with auth
-      const email = `${telegramId}@telegram.local`;
+      const email = `${telegramId}@example.com`;
       const password = `telegram_${telegramId}_${Date.now()}`;
 
       const { data: authData, error: authError } = await supabase.auth.signUp({
