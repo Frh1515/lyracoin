@@ -8,16 +8,35 @@ export interface ReferralStats {
   referral_tier: string;
 }
 
-export async function getReferralStats(
-  telegram_id: string
-): Promise<{
+export async function getReferralStats(): Promise<{
   data: ReferralStats | null;
   error: Error | null;
 }> {
   try {
+    // Get current authenticated user
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    
+    if (authError || !user) {
+      return {
+        data: null,
+        error: new Error('User not authenticated')
+      };
+    }
+
+    // Get user's telegram_id first
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('telegram_id')
+      .eq('supabase_auth_id', user.id)
+      .single();
+
+    if (userError || !userData) {
+      throw new Error('User not found');
+    }
+
     const { data, error } = await supabase
       .rpc('get_referral_stats', {
-        p_telegram_id: telegram_id
+        p_telegram_id: userData.telegram_id
       });
 
     if (error) throw error;

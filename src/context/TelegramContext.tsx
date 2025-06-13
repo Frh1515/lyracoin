@@ -69,7 +69,6 @@ export function TelegramProvider({ children }: { children: React.ReactNode }) {
         if (import.meta.env.DEV && (!webApp || !telegramUser?.id)) {
           console.log('Running in development mode with mock user');
           
-          // Use a more robust approach for dev registration
           try {
             const { success, user: registeredUser, error: registerError } = await registerUser(
               mockUser.id.toString(),

@@ -1,11 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useLanguage } from '../context/LanguageContext';
-import { Pencil, Check, X } from 'lucide-react';
+import { Pencil, Check, X, Upload } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { updateUserProfile } from '../../lib/supabase/updateUserProfile';
 import { updatePreferredExchange } from '../../lib/supabase/updatePreferredExchange';
 import { getUserProfile, type UserProfile } from '../../lib/supabase/getUserProfile';
-import { supabase } from '../../lib/supabase/client';
 
 interface Exchange {
   id: string;
@@ -68,49 +67,35 @@ const ProfilePage: React.FC = () => {
   const [newUsername, setNewUsername] = useState('');
   const [preferredExchange, setPreferredExchange] = useState<string>('');
   const [isUpdating, setIsUpdating] = useState(false);
-  const [retryCount, setRetryCount] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    const fetchProfile = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        
-        if (!user) {
-          setError(language === 'ar' ? 'يرجى تسجيل الدخول أولاً' : 'Please login first');
-          return;
-        }
-
-        const { data, error } = await getUserProfile(user.id);
-        
-        if (error) {
-          throw error;
-        }
-
-        if (!data && retryCount < 3) {
-          // If no data found, retry up to 3 times
-          setRetryCount(prev => prev + 1);
-          setTimeout(fetchProfile, 1000);
-          return;
-        }
-
-        if (data) {
-          setProfile(data);
-          setNewUsername(data.username || '');
-          setPreferredExchange(data.preferred_exchange || '');
-        } else {
-          setError(language === 'ar' ? 'لم يتم العثور على الملف الشخصي' : 'Profile not found');
-        }
-      } catch (err) {
-        console.error('Error fetching profile:', err);
-        setError(language === 'ar' ? 'فشل في تحميل الملف الشخصي' : 'Failed to load profile');
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchProfile();
-  }, [language, retryCount]);
+  }, []);
+
+  const fetchProfile = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await getUserProfile();
+      
+      if (error) {
+        throw error;
+      }
+
+      if (data) {
+        setProfile(data);
+        setNewUsername(data.username || '');
+        setPreferredExchange(data.preferred_exchange || '');
+      } else {
+        setError(language === 'ar' ? 'لم يتم العثور على الملف الشخصي' : 'Profile not found');
+      }
+    } catch (err) {
+      console.error('Error fetching profile:', err);
+      setError(language === 'ar' ? 'فشل في تحميل الملف الشخصي' : 'Failed to load profile');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleNameEdit = async () => {
     if (!profile) return;
@@ -127,10 +112,7 @@ const ProfilePage: React.FC = () => {
 
     setIsUpdating(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('User not authenticated');
-
-      const result = await updateUserProfile(user.id, {
+      const result = await updateUserProfile({
         username: newUsername.trim()
       });
 
@@ -160,40 +142,38 @@ const ProfilePage: React.FC = () => {
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      const base64Image = e.target?.result as string;
-      setIsUpdating(true);
-      
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) throw new Error('User not authenticated');
+    // Check file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error(language === 'ar' ? 'حجم الصورة كبير جداً (الحد الأقصى 5MB)' : 'Image size too large (max 5MB)');
+      return;
+    }
 
-        const result = await updateUserProfile(user.id, {
-          profile_image: base64Image
-        });
+    setIsUpdating(true);
+    
+    try {
+      const result = await updateUserProfile({
+        profile_image: file
+      });
 
-        if (result.success) {
-          setProfile(prev => prev ? { ...prev, profileImage: base64Image } : null);
-          toast.success(
-            language === 'ar' 
-              ? 'تم تحديث الصورة الشخصية بنجاح' 
-              : 'Profile picture updated successfully'
-          );
-        } else {
-          throw new Error(result.message);
-        }
-      } catch (error) {
-        toast.error(
+      if (result.success && result.profile_image_url) {
+        setProfile(prev => prev ? { ...prev, profile_image: result.profile_image_url! } : null);
+        toast.success(
           language === 'ar' 
-            ? 'فشل تحديث الصورة الشخصية' 
-            : 'Failed to update profile picture'
+            ? 'تم تحديث الصورة الشخصية بنجاح' 
+            : 'Profile picture updated successfully'
         );
-      } finally {
-        setIsUpdating(false);
+      } else {
+        throw new Error(result.message);
       }
-    };
-    reader.readAsDataURL(file);
+    } catch (error) {
+      toast.error(
+        language === 'ar' 
+          ? 'فشل تحديث الصورة الشخصية' 
+          : 'Failed to update profile picture'
+      );
+    } finally {
+      setIsUpdating(false);
+    }
   };
 
   const handlePreferredExchange = async (exchangeId: string) => {
@@ -201,10 +181,7 @@ const ProfilePage: React.FC = () => {
     
     setIsUpdating(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('User not authenticated');
-
-      const result = await updatePreferredExchange(user.id, exchangeId);
+      const result = await updatePreferredExchange(exchangeId);
       
       if (result.success) {
         setPreferredExchange(exchangeId);
@@ -230,7 +207,7 @@ const ProfilePage: React.FC = () => {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-[#041e11] via-[#051a13] to-[#040d0c]">
-        <div className="text-white">
+        <div className="text-white animate-pulse">
           {language === 'ar' ? 'جاري التحميل...' : 'Loading...'}
         </div>
       </div>
@@ -240,8 +217,14 @@ const ProfilePage: React.FC = () => {
   if (error) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-[#041e11] via-[#051a13] to-[#040d0c]">
-        <div className="text-red-500">
-          {error}
+        <div className="text-center">
+          <div className="text-red-500 mb-4">{error}</div>
+          <button
+            onClick={fetchProfile}
+            className="bg-neonGreen text-black px-4 py-2 rounded-lg font-medium hover:brightness-110 transition"
+          >
+            {language === 'ar' ? 'إعادة المحاولة' : 'Retry'}
+          </button>
         </div>
       </div>
     );
@@ -268,19 +251,24 @@ const ProfilePage: React.FC = () => {
           >
             <div className="absolute inset-0 rounded-full overflow-hidden border-2 border-neonGreen shadow-[0_0_15px_rgba(0,255,136,0.3)]">
               <img
-                src={`https://t.me/i/userpic/320/${profile.username || 'default'}.jpg`}
+                src={profile.profile_image || `https://ui-avatars.com/api/?name=${encodeURIComponent(profile.username || 'User')}&background=00ff88&color=000&size=80`}
                 alt="profile"
                 className="w-full h-full object-cover"
                 onError={(e) => {
-                  (e.target as HTMLImageElement).src = 'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y';
+                  (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(profile.username || 'User')}&background=00ff88&color=000&size=80`;
                 }}
               />
               <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                <span className="text-xs">
-                  {language === 'ar' ? 'تغيير الصورة' : 'Change Photo'}
-                </span>
+                <Upload className="w-5 h-5" />
               </div>
             </div>
+            {isUpdating && (
+              <div className="absolute inset-0 rounded-full bg-black/70 flex items-center justify-center">
+                <div className="animate-pulse text-xs">
+                  {language === 'ar' ? 'جاري التحديث...' : 'Updating...'}
+                </div>
+              </div>
+            )}
           </div>
           <input
             ref={fileInputRef}
@@ -288,6 +276,7 @@ const ProfilePage: React.FC = () => {
             accept="image/*"
             className="hidden"
             onChange={handleImageUpload}
+            disabled={isUpdating}
           />
 
           <div className="flex items-center justify-center gap-2">
@@ -324,6 +313,7 @@ const ProfilePage: React.FC = () => {
                 <button
                   onClick={() => setIsEditingName(true)}
                   className="text-white/50 hover:text-white transition"
+                  disabled={isUpdating}
                 >
                   <Pencil className="w-4 h-4" />
                 </button>
@@ -332,9 +322,29 @@ const ProfilePage: React.FC = () => {
           </div>
 
           <p className="text-sm text-white/50">@{profile.username || 'unnamed'}</p>
-          <span className="inline-block mt-2 text-sm bg-neonGreen/20 text-neonGreen px-2 py-1 rounded-full">
-            {language === 'ar' ? `المستوى ${profile.level}` : `Level ${profile.level}`}
-          </span>
+          <div className="flex items-center justify-center gap-4 mt-2">
+            <span className="inline-block text-sm bg-neonGreen/20 text-neonGreen px-2 py-1 rounded-full">
+              {language === 'ar' ? `المستوى ${profile.level}` : `Level ${profile.level}`}
+            </span>
+            <span className="inline-block text-sm bg-purple-500/20 text-purple-400 px-2 py-1 rounded-full">
+              {profile.membership_level.charAt(0).toUpperCase() + profile.membership_level.slice(1)}
+            </span>
+          </div>
+        </div>
+
+        {/* LYRA Balance */}
+        <div className="bg-black/40 backdrop-blur-sm border border-neonGreen/30 rounded-xl p-6 mb-8 text-white shadow-[0_0_15px_rgba(0,255,136,0.3)]">
+          <h2 className="text-lg font-semibold mb-4">
+            {language === 'ar' ? 'رصيد LYRA COIN' : 'LYRA COIN Balance'}
+          </h2>
+          <div className="text-center">
+            <div className="text-3xl font-bold text-neonGreen mb-2">
+              {profile.lyra_balance.toLocaleString()}
+            </div>
+            <p className="text-sm text-white/60">
+              {language === 'ar' ? 'عملة LYRA' : 'LYRA Coins'}
+            </p>
+          </div>
         </div>
 
         {/* Exchange Cards */}
@@ -401,18 +411,25 @@ const ProfilePage: React.FC = () => {
 
         {/* Stats */}
         <div className="mt-8 bg-black/40 backdrop-blur-sm border border-neonGreen/30 rounded-xl p-6 shadow-[0_0_15px_rgba(0,255,136,0.3)]">
+          <h2 className="text-lg font-semibold text-white mb-4">
+            {language === 'ar' ? 'الإحصائيات' : 'Statistics'}
+          </h2>
           <ul className="space-y-4 text-sm text-white">
             <li className="flex justify-between items-center py-2 border-b border-white/10">
               <span>{language === 'ar' ? 'النقاط' : 'Points'}</span>
-              <span className="text-neonGreen font-medium">{profile.points}</span>
+              <span className="text-neonGreen font-medium">{profile.points.toLocaleString()}</span>
             </li>
             <li className="flex justify-between items-center py-2 border-b border-white/10">
               <span>{language === 'ar' ? 'الدقائق المكتسبة' : 'Minutes Earned'}</span>
-              <span className="text-neonGreen font-medium">{profile.total_minutes}</span>
+              <span className="text-neonGreen font-medium">{profile.total_minutes.toLocaleString()}</span>
             </li>
-            <li className="flex justify-between items-center py-2">
+            <li className="flex justify-between items-center py-2 border-b border-white/10">
               <span>{language === 'ar' ? 'الإحالات' : 'Referrals'}</span>
               <span className="text-neonGreen font-medium">{profile.referral_count}</span>
+            </li>
+            <li className="flex justify-between items-center py-2">
+              <span>{language === 'ar' ? 'مستوى الإحالة' : 'Referral Tier'}</span>
+              <span className="text-neonGreen font-medium capitalize">{profile.referral_tier}</span>
             </li>
           </ul>
         </div>

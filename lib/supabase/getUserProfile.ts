@@ -8,19 +8,41 @@ export interface UserProfile {
   total_minutes: number;
   points: number;
   referral_tier: string;
+  lyra_balance: number;
+  membership_level: string;
+  profile_image: string | null;
 }
 
-export async function getUserProfile(
-  telegram_id: string
-): Promise<{
+export async function getUserProfile(): Promise<{
   data: UserProfile | null;
   error: Error | null;
 }> {
   try {
+    // Get current authenticated user
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    
+    if (authError || !user) {
+      return {
+        data: null,
+        error: new Error('User not authenticated')
+      };
+    }
+
     const { data, error } = await supabase
       .from('users')
-      .select('username, level, referral_count, preferred_exchange, total_minutes, points, referral_tier')
-      .eq('telegram_id', telegram_id)
+      .select(`
+        username, 
+        level, 
+        referral_count, 
+        preferred_exchange, 
+        total_minutes, 
+        points, 
+        referral_tier,
+        lyra_balance,
+        membership_level,
+        profile_image
+      `)
+      .eq('supabase_auth_id', user.id)
       .single();
 
     if (error) {

@@ -25,7 +25,22 @@ export async function registerUser(
       };
     }
 
-    // First, check if user already exists
+    // First, authenticate with Supabase using anonymous auth
+    const { data: authData, error: authError } = await supabase.auth.signInAnonymously();
+    
+    if (authError || !authData.user) {
+      console.error('Auth error:', authError);
+      return {
+        success: false,
+        user: null,
+        error: authError || new Error('Failed to authenticate')
+      };
+    }
+
+    const supabaseAuthId = authData.user.id;
+    console.log('Authenticated with Supabase:', supabaseAuthId);
+
+    // Check if user already exists with this telegram_id
     const { data: existingUser, error: selectError } = await supabase
       .from('users')
       .select('*')
@@ -43,14 +58,17 @@ export async function registerUser(
     }
 
     if (existingUser) {
-      // User exists, update their information
-      const { error: updateError } = await supabase
+      // User exists, update their supabase_auth_id and other info
+      const { data: updatedUser, error: updateError } = await supabase
         .from('users')
         .update({
-          username: username || null,
+          supabase_auth_id: supabaseAuthId,
+          username: username || existingUser.username,
           level: level
         })
-        .eq('telegram_id', telegramId);
+        .eq('telegram_id', telegramId)
+        .select()
+        .single();
 
       if (updateError) {
         console.error('Update error:', updateError);
@@ -58,22 +76,6 @@ export async function registerUser(
           success: false,
           user: null,
           error: updateError
-        };
-      }
-
-      // Fetch the updated user data
-      const { data: updatedUser, error: fetchError } = await supabase
-        .from('users')
-        .select('*')
-        .eq('telegram_id', telegramId)
-        .single();
-
-      if (fetchError) {
-        console.error('Fetch updated user error:', fetchError);
-        return {
-          success: false,
-          user: null,
-          error: fetchError
         };
       }
 
@@ -89,12 +91,15 @@ export async function registerUser(
         .from('users')
         .insert({
           telegram_id: telegramId,
+          supabase_auth_id: supabaseAuthId,
           username: username || null,
           level: level,
           referral_count: 0,
           total_minutes: 0,
           points: 0,
-          referral_tier: 'bronze'
+          referral_tier: 'bronze',
+          lyra_balance: 0,
+          membership_level: 'bronze'
         })
         .select()
         .single();

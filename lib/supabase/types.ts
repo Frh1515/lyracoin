@@ -1,6 +1,7 @@
 export interface User {
   id: string;
   telegram_id: string;
+  supabase_auth_id: string;
   username: string | null;
   level: number;
   wallet_address: string | null;
@@ -9,6 +10,10 @@ export interface User {
   preferred_exchange: string | null;
   total_minutes: number;
   points: number;
+  referral_tier: string;
+  lyra_balance: number;
+  membership_level: string;
+  profile_image: string | null;
 }
 
 export interface Task {

@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import { getReferralStats, type ReferralStats } from '../../lib/supabase/getReferralStats';
-import { claimReferralReward } from '../../lib/supabase/claimReferralReward';
-import { supabase } from '../../lib/supabase/client';
 import { Share2, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -19,13 +17,7 @@ const ReferralsPage: React.FC = () => {
 
   const fetchStats = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        toast.error(language === 'ar' ? 'يرجى تسجيل الدخول أولاً' : 'Please login first');
-        return;
-      }
-
-      const { data, error } = await getReferralStats(user.id);
+      const { data, error } = await getReferralStats();
       if (error) {
         toast.error(language === 'ar' ? 'فشل تحميل الإحصائيات' : 'Failed to load statistics');
       } else if (data) {
@@ -36,31 +28,6 @@ const ReferralsPage: React.FC = () => {
       toast.error(language === 'ar' ? 'حدث خطأ' : 'An error occurred');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleClaim = async (referralId: string) => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        toast.error(language === 'ar' ? 'يرجى تسجيل الدخول أولاً' : 'Please login first');
-        return;
-      }
-
-      const result = await claimReferralReward(referralId, user.id);
-      if (result.success) {
-        toast.success(
-          language === 'ar'
-            ? `تم إضافة ${result.minutes_earned} دقيقة إلى رصيدك!`
-            : `+${result.minutes_earned} minutes added to your balance!`
-        );
-        fetchStats();
-      } else {
-        toast.error(result.message);
-      }
-    } catch (error) {
-      console.error('Error claiming reward:', error);
-      toast.error(language === 'ar' ? 'فشل المطالبة بالمكافأة' : 'Failed to claim reward');
     }
   };
 
