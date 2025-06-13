@@ -79,6 +79,8 @@ export function TelegramProvider({ children }: { children: React.ReactNode }) {
               console.error('Dev mode registration failed:', registerError);
               // Don't throw error in dev mode, just log it
               console.warn('Continuing with mock user despite registration error');
+            } else {
+              console.log('Dev user registered successfully:', registeredUser);
             }
 
             setUser(mockUser);
@@ -113,7 +115,7 @@ export function TelegramProvider({ children }: { children: React.ReactNode }) {
           document.documentElement.classList.add('dark');
         }
 
-        // Register user with Supabase using string ID
+        // Register user with Supabase using RPC function
         const { success, user: registeredUser, error: registerError } = await registerUser(
           telegramUser.id.toString(),
           telegramUser.username

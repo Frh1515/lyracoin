@@ -25,143 +25,44 @@ export async function registerUser(
       };
     }
 
-    // Check if user already exists with this telegram_id
-    const { data: existingUser, error: selectError } = await supabase
-      .from('users')
-      .select('*')
-      .eq('telegram_id', telegramId)
-      .single();
+    // Create anonymous auth session to get supabase_auth_id
+    const { data: authData, error: authError } = await supabase.auth.signInAnonymously();
 
-    if (selectError && selectError.code !== 'PGRST116') {
-      // PGRST116 is "not found" error, which is expected for new users
-      console.error('Error checking existing user:', selectError);
+    if (authError || !authData.user) {
+      console.error('Anonymous auth error:', authError);
       return {
         success: false,
         user: null,
-        error: selectError
+        error: authError || new Error('Failed to authenticate anonymously')
       };
     }
 
-    if (existingUser) {
-      // User exists, check if they have a supabase_auth_id
-      if (!existingUser.supabase_auth_id) {
-        // Create anonymous auth session for existing user
-        const { data: authData, error: authError } = await supabase.auth.signInAnonymously();
+    const supabaseAuthId = authData.user.id;
+    console.log('Authenticated anonymously with Supabase:', supabaseAuthId);
 
-        if (authError || !authData.user) {
-          console.error('Anonymous auth creation error:', authError);
-          return {
-            success: false,
-            user: null,
-            error: authError || new Error('Failed to create anonymous authentication')
-          };
-        }
+    // Use RPC function to register/update user atomically
+    const { data, error } = await supabase.rpc('register_telegram_user', {
+      p_telegram_id: telegramId,
+      p_supabase_auth_id: supabaseAuthId,
+      p_username: username || null,
+      p_level: level
+    });
 
-        // Update user with auth ID
-        const { data: updatedUser, error: updateError } = await supabase
-          .from('users')
-          .update({
-            supabase_auth_id: authData.user.id,
-            username: username || existingUser.username,
-            level: level
-          })
-          .eq('telegram_id', telegramId)
-          .select()
-          .single();
-
-        if (updateError) {
-          console.error('Update error:', updateError);
-          return {
-            success: false,
-            user: null,
-            error: updateError
-          };
-        }
-
-        console.log('User updated with anonymous auth successfully:', updatedUser);
-        return {
-          success: true,
-          user: updatedUser,
-          error: null
-        };
-      } else {
-        // User exists with auth, just update other info
-        const { data: updatedUser, error: updateError } = await supabase
-          .from('users')
-          .update({
-            username: username || existingUser.username,
-            level: level
-          })
-          .eq('telegram_id', telegramId)
-          .select()
-          .single();
-
-        if (updateError) {
-          console.error('Update error:', updateError);
-          return {
-            success: false,
-            user: null,
-            error: updateError
-          };
-        }
-
-        console.log('User updated successfully:', updatedUser);
-        return {
-          success: true,
-          user: updatedUser,
-          error: null
-        };
-      }
-    } else {
-      // User doesn't exist, create new user with anonymous auth
-      const { data: authData, error: authError } = await supabase.auth.signInAnonymously();
-
-      if (authError || !authData.user) {
-        console.error('Anonymous auth error:', authError);
-        return {
-          success: false,
-          user: null,
-          error: authError || new Error('Failed to authenticate anonymously')
-        };
-      }
-
-      const supabaseAuthId = authData.user.id;
-      console.log('Authenticated anonymously with Supabase:', supabaseAuthId);
-
-      // Create new user
-      const { data, error } = await supabase
-        .from('users')
-        .insert({
-          telegram_id: telegramId,
-          supabase_auth_id: supabaseAuthId,
-          username: username || null,
-          level: level,
-          referral_count: 0,
-          total_minutes: 0,
-          points: 0,
-          referral_tier: 'bronze',
-          lyra_balance: 0,
-          membership_level: 'bronze'
-        })
-        .select()
-        .single();
-
-      if (error) {
-        console.error('Insert error:', error);
-        return {
-          success: false,
-          user: null,
-          error: error
-        };
-      }
-
-      console.log('User registered successfully with anonymous auth:', data);
+    if (error) {
+      console.error('RPC registration error:', error);
       return {
-        success: true,
-        user: data,
-        error: null
+        success: false,
+        user: null,
+        error: error
       };
     }
+
+    console.log('User registered successfully via RPC:', data);
+    return {
+      success: true,
+      user: data,
+      error: null
+    };
   } catch (error) {
     console.error('Error registering user:', error);
     return {
