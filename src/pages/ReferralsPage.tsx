@@ -1,90 +1,85 @@
 import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../context/LanguageContext';
-import { getReferralStats, type ReferralStats } from '../../lib/supabase/getReferralStats';
-import { claimReferralReward } from '../../lib/supabase/claimReferralReward';
-import { supabase } from '../../lib/supabase/client';
-import { Share2, X, Gift } from 'lucide-react';
+import { getReferralStatsSecure, type ReferralStatsSecure } from '../../lib/supabase/getReferralStatsSecure';
+import { claimReferralRewardSecure } from '../../lib/supabase/claimReferralRewardSecure';
+import { generateReferralCode } from '../../lib/supabase/generateReferralCode';
+import { Share2, X, Gift, Copy, ExternalLink } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 interface ReferralPageProps {
   onMinutesEarned?: (minutes: number) => void;
 }
 
-interface Referral {
-  id: string;
-  referred_id: string;
-  status: string;
-  reward_claimed: boolean;
-  created_at: string;
-}
-
 const ReferralsPage: React.FC<ReferralPageProps> = ({ onMinutesEarned }) => {
-  const [stats, setStats] = useState<ReferralStats | null>(null);
-  const [referrals, setReferrals] = useState<Referral[]>([]);
+  const [stats, setStats] = useState<ReferralStatsSecure | null>(null);
   const [loading, setLoading] = useState(true);
   const [showShareModal, setShowShareModal] = useState(false);
   const [claimingReward, setClaimingReward] = useState<string | null>(null);
+  const [referralLink, setReferralLink] = useState<string>('');
+  const [loadingReferralLink, setLoadingReferralLink] = useState(true);
   const { language } = useLanguage();
-  const referralLink = 'https://t.me/LyraCoinBot';
 
   useEffect(() => {
     fetchStats();
-    fetchReferrals();
+    fetchReferralLink();
   }, []);
 
   const fetchStats = async () => {
     try {
-      const { data, error } = await getReferralStats();
+      setLoading(true);
+      console.log('🔄 Fetching referral stats...');
+      
+      const { data, error } = await getReferralStatsSecure();
+      
       if (error) {
-        toast.error(language === 'ar' ? 'فشل تحميل الإحصائيات' : 'Failed to load statistics');
+        console.error('❌ Error fetching stats:', error);
+        toast.error(
+          language === 'ar' 
+            ? `فشل تحميل الإحصائيات: ${error.message}` 
+            : `Failed to load statistics: ${error.message}`
+        );
       } else if (data) {
+        console.log('✅ Stats loaded successfully:', data);
         setStats(data);
+      } else {
+        console.warn('⚠️ No stats data returned');
+        toast.warning(
+          language === 'ar' 
+            ? 'لا توجد بيانات إحصائية' 
+            : 'No statistics data available'
+        );
       }
     } catch (error) {
-      console.error('Error fetching stats:', error);
-      toast.error(language === 'ar' ? 'حدث خطأ' : 'An error occurred');
+      console.error('❌ Unexpected error fetching stats:', error);
+      toast.error(
+        language === 'ar' 
+          ? 'حدث خطأ غير متوقع' 
+          : 'An unexpected error occurred'
+      );
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchReferrals = async () => {
+  const fetchReferralLink = async () => {
     try {
-      // Get current authenticated user
-      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      setLoadingReferralLink(true);
+      const { success, referralLink: link, error } = await generateReferralCode();
       
-      if (authError || !user) {
-        console.error('User not authenticated');
-        return;
-      }
-
-      // Get user's telegram_id first
-      const { data: userData, error: userError } = await supabase
-        .from('users')
-        .select('telegram_id')
-        .eq('supabase_auth_id', user.id)
-        .single();
-
-      if (userError || !userData) {
-        console.error('User not found');
-        return;
-      }
-
-      // Fetch referrals where current user is the referrer
-      const { data: referralsData, error: referralsError } = await supabase
-        .from('referrals')
-        .select('id, referred_id, status, reward_claimed, created_at')
-        .eq('referrer_id', userData.telegram_id)
-        .eq('status', 'verified')
-        .eq('reward_claimed', false);
-
-      if (referralsError) {
-        console.error('Error fetching referrals:', referralsError);
+      if (success && link) {
+        setReferralLink(link);
       } else {
-        setReferrals(referralsData || []);
+        console.error('Error generating referral link:', error);
+        toast.error(
+          language === 'ar' 
+            ? 'فشل في إنشاء رابط الإحالة' 
+            : 'Failed to generate referral link'
+        );
       }
     } catch (error) {
-      console.error('Error fetching referrals:', error);
+      console.error('Error fetching referral link:', error);
+    } finally {
+      setLoadingReferralLink(false);
     }
   };
 
@@ -92,33 +87,13 @@ const ReferralsPage: React.FC<ReferralPageProps> = ({ onMinutesEarned }) => {
     try {
       setClaimingReward(referralId);
       
-      // Get current authenticated user
-      const { data: { user }, error: authError } = await supabase.auth.getUser();
-      
-      if (authError || !user) {
-        toast.error(language === 'ar' ? 'يرجى تسجيل الدخول أولاً' : 'Please login first');
-        return;
-      }
-
-      // Get user's telegram_id
-      const { data: userData, error: userError } = await supabase
-        .from('users')
-        .select('telegram_id')
-        .eq('supabase_auth_id', user.id)
-        .single();
-
-      if (userError || !userData) {
-        toast.error(language === 'ar' ? 'المستخدم غير موجود' : 'User not found');
-        return;
-      }
-
-      const result = await claimReferralReward(referralId, userData.telegram_id);
+      const result = await claimReferralRewardSecure(referralId);
       
       if (result.success) {
         toast.success(
           language === 'ar'
-            ? `🎉 تم إضافة ${result.minutes_earned} دقيقة إلى رصيدك!`
-            : `🎉 +${result.minutes_earned} minutes added to your balance!`,
+            ? `🎉 تم إضافة ${result.minutesEarned} دقيقة إلى رصيدك!`
+            : `🎉 +${result.minutesEarned} minutes added to your balance!`,
           { 
             duration: 4000,
             style: {
@@ -130,13 +105,12 @@ const ReferralsPage: React.FC<ReferralPageProps> = ({ onMinutesEarned }) => {
         );
         
         // Update the homepage minutes display
-        if (onMinutesEarned && result.minutes_earned) {
-          onMinutesEarned(result.minutes_earned);
+        if (onMinutesEarned && result.minutesEarned) {
+          onMinutesEarned(result.minutesEarned);
         }
         
         // Refresh data
         fetchStats();
-        fetchReferrals();
       } else {
         toast.error(result.message);
       }
@@ -158,8 +132,13 @@ const ReferralsPage: React.FC<ReferralPageProps> = ({ onMinutesEarned }) => {
   };
 
   const shareMessage = language === 'ar'
-    ? `انضم الآن وساعدني في الكسب! 🪙 أنا فقط من سيحصل على النقاط عند تسجيلك 😉\n${referralLink}`
-    : `Join now and help me earn! 🪙 Only I get points for your signup 😉\n${referralLink}`;
+    ? `🚀 انضم إلى LYRA COIN وساعدني في كسب المكافآت!\n💰 ستحصل على مكافآت عند التسجيل وأنا أيضاً!\n🔗 ${referralLink}`
+    : `🚀 Join LYRA COIN and help me earn rewards!\n💰 You'll get rewards for signing up and so will I!\n🔗 ${referralLink}`;
+
+  const copyToClipboard = (text: string, successMessage: string) => {
+    navigator.clipboard.writeText(text);
+    toast.success(successMessage);
+  };
 
   const ShareModal = () => (
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
@@ -172,7 +151,7 @@ const ReferralsPage: React.FC<ReferralPageProps> = ({ onMinutesEarned }) => {
         </button>
 
         <h3 className="text-xl font-bold text-white mb-6">
-          {language === 'ar' ? 'مشاركة الرابط' : 'Share Link'}
+          {language === 'ar' ? 'مشاركة رابط الإحالة' : 'Share Referral Link'}
         </h3>
 
         <div className="space-y-4">
@@ -187,6 +166,7 @@ const ReferralsPage: React.FC<ReferralPageProps> = ({ onMinutesEarned }) => {
               rel="noopener noreferrer"
               className="flex items-center justify-center gap-2 bg-[#0088cc] text-white py-3 px-4 rounded-lg font-medium hover:brightness-110 transition"
             >
+              <ExternalLink className="w-4 h-4" />
               Telegram
             </a>
             <a
@@ -195,17 +175,16 @@ const ReferralsPage: React.FC<ReferralPageProps> = ({ onMinutesEarned }) => {
               rel="noopener noreferrer"
               className="flex items-center justify-center gap-2 bg-[#25D366] text-white py-3 px-4 rounded-lg font-medium hover:brightness-110 transition"
             >
+              <ExternalLink className="w-4 h-4" />
               WhatsApp
             </a>
           </div>
 
           <button
-            onClick={() => {
-              navigator.clipboard.writeText(shareMessage);
-              toast.success(language === 'ar' ? 'تم النسخ!' : 'Copied!');
-            }}
-            className="w-full bg-white/10 text-white py-3 rounded-lg font-medium hover:bg-white/20 transition"
+            onClick={() => copyToClipboard(shareMessage, language === 'ar' ? 'تم نسخ الرسالة!' : 'Message copied!')}
+            className="w-full bg-white/10 text-white py-3 rounded-lg font-medium hover:bg-white/20 transition flex items-center justify-center gap-2"
           >
+            <Copy className="w-4 h-4" />
             {language === 'ar' ? 'نسخ الرسالة' : 'Copy Message'}
           </button>
         </div>
@@ -245,13 +224,15 @@ const ReferralsPage: React.FC<ReferralPageProps> = ({ onMinutesEarned }) => {
         {stats && (
           <div className={`mb-8 p-4 rounded-xl text-center ${getTierColor(stats.referral_tier)}`}>
             <h2 className="text-xl font-bold text-white">
-              {language === 'ar' ? `مستوى ${stats.referral_tier}` : `${stats.referral_tier.charAt(0).toUpperCase() + stats.referral_tier.slice(1)} Tier`}
+              {language === 'ar' 
+                ? `مستوى ${stats.referral_tier}` 
+                : `${stats.referral_tier.charAt(0).toUpperCase() + stats.referral_tier.slice(1)} Tier`}
             </h2>
           </div>
         )}
 
         {/* Unclaimed Rewards Section */}
-        {referrals.length > 0 && (
+        {stats && stats.unclaimed_referrals && stats.unclaimed_referrals.length > 0 && (
           <div className="bg-white/5 border border-neonGreen/30 rounded-xl p-6 mb-8">
             <div className="flex items-center gap-3 mb-4">
               <Gift className="w-6 h-6 text-neonGreen" />
@@ -261,7 +242,7 @@ const ReferralsPage: React.FC<ReferralPageProps> = ({ onMinutesEarned }) => {
             </div>
             
             <div className="space-y-3">
-              {referrals.map((referral) => (
+              {stats.unclaimed_referrals.map((referral) => (
                 <div key={referral.id} className="bg-black/30 rounded-lg p-4 flex items-center justify-between">
                   <div>
                     <p className="text-white font-medium">
@@ -295,25 +276,25 @@ const ReferralsPage: React.FC<ReferralPageProps> = ({ onMinutesEarned }) => {
           <h2 className="text-lg font-semibold text-white mb-4">
             {language === 'ar' ? 'رابط الإحالة الخاص بك' : 'Your Referral Link'}
           </h2>
-          <div className="flex flex-col sm:flex-row gap-2">
-            <input
-              type="text"
-              value={referralLink}
-              readOnly
-              className="flex-1 bg-black/30 border border-white/10 rounded px-4 py-2 text-white text-sm"
-            />
-            <button
-              onClick={() => {
-                navigator.clipboard.writeText(referralLink);
-                toast.success(
-                  language === 'ar' ? 'تم نسخ الرابط!' : 'Link copied!'
-                );
-              }}
-              className="bg-neonGreen text-black px-6 py-2 rounded font-semibold hover:brightness-110 transition"
-            >
-              {language === 'ar' ? 'نسخ' : 'Copy'}
-            </button>
-          </div>
+          {loadingReferralLink ? (
+            <div className="animate-pulse bg-black/30 h-10 rounded"></div>
+          ) : (
+            <div className="flex flex-col sm:flex-row gap-2">
+              <input
+                type="text"
+                value={referralLink}
+                readOnly
+                className="flex-1 bg-black/30 border border-white/10 rounded px-4 py-2 text-white text-sm"
+              />
+              <button
+                onClick={() => copyToClipboard(referralLink, language === 'ar' ? 'تم نسخ الرابط!' : 'Link copied!')}
+                className="bg-neonGreen text-black px-6 py-2 rounded font-semibold hover:brightness-110 transition flex items-center justify-center gap-2"
+              >
+                <Copy className="w-4 h-4" />
+                {language === 'ar' ? 'نسخ' : 'Copy'}
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Stats Grid */}
@@ -363,6 +344,51 @@ const ReferralsPage: React.FC<ReferralPageProps> = ({ onMinutesEarned }) => {
                 </div>
               );
             })}
+          </div>
+        </div>
+
+        {/* How it Works */}
+        <div className="bg-white/5 border border-neonGreen/30 rounded-xl p-6 mt-8">
+          <h2 className="text-lg font-semibold text-white mb-4">
+            {language === 'ar' ? 'كيف يعمل النظام' : 'How It Works'}
+          </h2>
+          <div className="space-y-3 text-sm text-white/80">
+            <div className="flex items-start gap-3">
+              <span className="text-neonGreen font-bold">1.</span>
+              <p>
+                {language === 'ar' 
+                  ? 'شارك رابط الإحالة الخاص بك مع الأصدقاء'
+                  : 'Share your unique referral link with friends'
+                }
+              </p>
+            </div>
+            <div className="flex items-start gap-3">
+              <span className="text-neonGreen font-bold">2.</span>
+              <p>
+                {language === 'ar' 
+                  ? 'عندما ينضم صديق باستخدام رابطك، ستحصل على إحالة'
+                  : 'When a friend joins using your link, you get a referral'
+                }
+              </p>
+            </div>
+            <div className="flex items-start gap-3">
+              <span className="text-neonGreen font-bold">3.</span>
+              <p>
+                {language === 'ar' 
+                  ? 'اضغط على "مطالبة" لكسب 60 دقيقة لكل إحالة مؤكدة'
+                  : 'Click "Claim" to earn 60 minutes for each verified referral'
+                }
+              </p>
+            </div>
+            <div className="flex items-start gap-3">
+              <span className="text-neonGreen font-bold">4.</span>
+              <p>
+                {language === 'ar' 
+                  ? 'كلما زادت إحالاتك، ارتقيت في المستويات وحصلت على مكافآت أكبر'
+                  : 'The more referrals you get, the higher your tier and bigger rewards'
+                }
+              </p>
+            </div>
           </div>
         </div>
       </div>

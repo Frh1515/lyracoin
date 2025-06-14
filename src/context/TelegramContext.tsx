@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { registerUser } from '../../lib/supabase/registerUser';
+import { processReferral } from '../../lib/supabase/processReferral';
 import toast from 'react-hot-toast';
 
 interface TelegramUser {
@@ -56,10 +57,12 @@ export function TelegramProvider({ children }: { children: React.ReactNode }) {
 
         const webApp = window.Telegram?.WebApp;
         const telegramUser = webApp?.initDataUnsafe?.user;
+        const startParam = webApp?.initDataUnsafe?.start_param;
 
         console.log('Telegram WebApp initialization:', {
           webApp: !!webApp,
           user: telegramUser,
+          startParam,
           platform: webApp?.platform,
           isDev: import.meta.env.DEV,
           initData: webApp?.initData
@@ -77,7 +80,6 @@ export function TelegramProvider({ children }: { children: React.ReactNode }) {
 
             if (!success || registerError) {
               console.error('Dev mode registration failed:', registerError);
-              // Don't throw error in dev mode, just log it
               console.warn('Continuing with mock user despite registration error');
             } else {
               console.log('Dev user registered successfully:', registeredUser);
@@ -91,7 +93,6 @@ export function TelegramProvider({ children }: { children: React.ReactNode }) {
             return;
           } catch (devError) {
             console.error('Dev mode error:', devError);
-            // Still continue with mock user
             setUser(mockUser);
             setIsDev(true);
             setIsAuthenticated(true);
@@ -127,6 +128,38 @@ export function TelegramProvider({ children }: { children: React.ReactNode }) {
         }
 
         console.log('User registered successfully:', registeredUser);
+
+        // Handle referral if start parameter exists
+        if (startParam) {
+          console.log('Processing referral with start param:', startParam);
+          
+          try {
+            const referralResult = await processReferral(
+              startParam, // referrer's telegram_id
+              telegramUser.id.toString() // referred user's telegram_id
+            );
+
+            if (referralResult.success) {
+              toast.success(
+                '🎉 Welcome! You\'ve been successfully referred!',
+                { 
+                  duration: 5000,
+                  style: {
+                    background: '#00FFAA',
+                    color: '#000',
+                    fontWeight: 'bold'
+                  }
+                }
+              );
+            } else {
+              console.log('Referral processing result:', referralResult.message);
+              // Don't show error toast for referral issues, just log them
+            }
+          } catch (referralError) {
+            console.error('Error processing referral:', referralError);
+            // Don't show error for referral processing failures
+          }
+        }
 
         // Update context state
         setUser(telegramUser);
