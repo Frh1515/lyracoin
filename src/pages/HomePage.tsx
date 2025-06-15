@@ -28,6 +28,23 @@ const HomePage: React.FC<HomePageProps> = ({ userMinutes = 0 }) => {
     ]
   };
 
+  const promotionalText = {
+    en: [
+      'LYRA COIN – Your golden opportunity to invest in the promising cryptocurrency!',
+      'Be among the first owners and benefit from the exclusive founding price before the official launch.',
+      'Pre-sale is limited and quantities are running out fast.',
+      'Don\'t miss this unique opportunity to be part of the digital future.',
+      'Secure your investment now at the best price!'
+    ],
+    ar: [
+      'LYRA COIN – فرصتك الذهبية للاستثمار في العملة الرقمية الواعدة!',
+      'كن من أوائل المالكين واستفد من السعر التأسيسي الحصري قبل الإطلاق الرسمي.',
+      'البيع المسبق محدود والكميات تنتهي بسرعة.',
+      'لا تفوت هذه الفرصة الفريدة لتكون جزءاً من المستقبل الرقمي.',
+      'احجز استثمارك الآن بأفضل سعر!'
+    ]
+  };
+
   return (
     <div className="min-h-screen pb-24 bg-gradient-to-b from-[#041e11] via-[#051a13] to-[#040d0c] px-4 py-8">
       <div className="max-w-2xl mx-auto space-y-8">
@@ -58,6 +75,25 @@ const HomePage: React.FC<HomePageProps> = ({ userMinutes = 0 }) => {
               {language === 'ar' ? 'محفظة TON' : 'TON Wallet'}
             </h2>
           </div>
+          
+          {/* Promotional Text */}
+          <div className="mb-6 space-y-3">
+            {promotionalText[language === 'ar' ? 'ar' : 'en'].map((line, index) => (
+              <p
+                key={index}
+                className={`${
+                  index === 0 
+                    ? 'text-lg font-bold text-neonGreen' 
+                    : index === promotionalText[language === 'ar' ? 'ar' : 'en'].length - 1
+                    ? 'text-base font-semibold text-yellow-400'
+                    : 'text-sm text-white/90'
+                }`}
+              >
+                {line}
+              </p>
+            ))}
+          </div>
+          
           <WalletConnect />
         </div>
 
