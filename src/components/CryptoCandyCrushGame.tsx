@@ -723,48 +723,48 @@ const CryptoCandyCrushGame: React.FC<CryptoCandyCrushGameProps> = ({ onClose, on
   };
 
   return (
-    <div className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-darkGreen border-2 border-neonGreen rounded-xl p-4 w-full h-full max-w-4xl max-h-screen relative shadow-glow blockchain-background overflow-y-auto">
+    <div className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-50 p-2">
+      <div className="bg-darkGreen border-2 border-neonGreen rounded-xl p-3 w-full h-full max-w-lg max-h-screen relative shadow-glow blockchain-background overflow-y-auto">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div className={`text-white font-bold text-3xl ${showMinutesAnimation ? 'scale-110 text-neonGreen score-animation' : ''} transition-all duration-300`}>
-            {language === 'ar' ? 'إجمالي الدقائق:' : 'Total Minutes:'} {totalMinutes}
+        <div className="flex items-center justify-between mb-4">
+          <div className={`text-white font-bold text-lg ${showMinutesAnimation ? 'scale-110 text-neonGreen score-animation' : ''} transition-all duration-300`}>
+            {language === 'ar' ? 'الدقائق:' : 'Minutes:'} {totalMinutes}
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={() => setSoundEnabled(!soundEnabled)}
               className="text-white/60 hover:text-white transition"
             >
-              {soundEnabled ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
+              {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
             </button>
             <button
               onClick={onClose}
               className="text-white/60 hover:text-white transition"
             >
-              <X className="w-6 h-6" />
+              <X className="w-5 h-5" />
             </button>
           </div>
         </div>
 
         {/* LYRA Status Indicator */}
         {gameStarted && (
-          <div className="mb-4 text-center">
-            <div className={`inline-block px-4 py-2 rounded-lg font-semibold ${
+          <div className="mb-3 text-center">
+            <div className={`inline-block px-3 py-1 rounded-lg font-semibold text-xs ${
               lyraUsed 
                 ? 'bg-red-500/20 border border-red-500/30 text-red-400' 
                 : 'bg-yellow-400/20 border border-yellow-400/30 text-yellow-400'
             }`}>
               {language === 'ar' 
-                ? (lyraUsed ? '❌ تم استخدام LYRA COIN' : '⭐ LYRA COIN متاح للاستخدام')
-                : (lyraUsed ? '❌ LYRA COIN Used' : '⭐ LYRA COIN Available')
+                ? (lyraUsed ? '❌ تم استخدام LYRA' : '⭐ LYRA متاح')
+                : (lyraUsed ? '❌ LYRA Used' : '⭐ LYRA Available')
               }
             </div>
           </div>
         )}
 
         {/* Game Board */}
-        <div className="mb-6 flex justify-center">
-          <div className="grid grid-cols-8 gap-1 bg-black/30 p-2 rounded-lg border border-neonGreen/30 max-w-2xl">
+        <div className="mb-4 flex justify-center">
+          <div className="grid grid-cols-8 gap-0.5 bg-black/30 p-1 rounded-lg border border-neonGreen/30">
             {board.map((row, rowIndex) =>
               row.map((crypto, colIndex) => {
                 const cryptoLogo = getCryptoLogo(crypto);
@@ -779,7 +779,7 @@ const CryptoCandyCrushGame: React.FC<CryptoCandyCrushGameProps> = ({ onClose, on
                   <div
                     key={cellKey}
                     className={`
-                      w-12 h-12 rounded border-2 cursor-pointer transition-all duration-200 relative
+                      w-8 h-8 rounded border cursor-pointer transition-all duration-200 relative
                       ${crypto ? 'bg-white/10' : 'bg-gray-800'}
                       ${isDragging ? 'border-white scale-110 z-10' : 'border-gray-600 hover:border-white/50'}
                       ${gameStarted && !isProcessing && !isLyraDisabled ? 'hover:scale-105' : ''}
@@ -798,7 +798,7 @@ const CryptoCandyCrushGame: React.FC<CryptoCandyCrushGameProps> = ({ onClose, on
                         src={cryptoLogo.imagePath}
                         alt={cryptoLogo.name}
                         className={`
-                          w-full h-full object-contain p-1 rounded
+                          w-full h-full object-contain p-0.5 rounded
                           ${cryptoLogo.effectClass}
                           ${isDragging ? 'dragging-effect' : ''}
                           ${isMatching ? 'matching-effect' : ''}
@@ -816,20 +816,20 @@ const CryptoCandyCrushGame: React.FC<CryptoCandyCrushGameProps> = ({ onClose, on
         </div>
 
         {/* Game Controls */}
-        <div className="space-y-3 max-w-md mx-auto">
+        <div className="space-y-2">
           {!gameStarted ? (
             <button
               onClick={handleStartGame}
-              className="w-full bg-neonGreen text-black font-bold py-3 rounded-lg hover:brightness-110 transition duration-300 shadow-glow text-lg"
+              className="w-full bg-neonGreen text-black font-bold py-2 rounded-lg hover:brightness-110 transition duration-300 shadow-glow text-sm"
             >
               {language === 'ar' ? 'ابدأ اللعبة' : 'Start Game'}
             </button>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-2">
               <button
                 onClick={handleEndGame}
                 disabled={isProcessing}
-                className="w-full bg-neonGreen text-black font-bold py-3 rounded-lg hover:brightness-110 transition duration-300 shadow-glow text-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full bg-neonGreen text-black font-bold py-2 rounded-lg hover:brightness-110 transition duration-300 shadow-glow text-sm disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isProcessing 
                   ? (language === 'ar' ? 'جاري الحفظ...' : 'Saving...')
@@ -840,9 +840,9 @@ const CryptoCandyCrushGame: React.FC<CryptoCandyCrushGameProps> = ({ onClose, on
               <button
                 onClick={shuffleBoard}
                 disabled={isProcessing}
-                className="w-full bg-transparent border border-white/30 text-white/70 py-2 rounded-lg hover:bg-white/5 transition duration-300 flex items-center justify-center gap-2"
+                className="w-full bg-transparent border border-white/30 text-white/70 py-1.5 rounded-lg hover:bg-white/5 transition duration-300 flex items-center justify-center gap-2 text-xs"
               >
-                <RotateCcw className="w-4 h-4" />
+                <RotateCcw className="w-3 h-3" />
                 {language === 'ar' ? 'إعادة خلط' : 'Reshuffle'}
               </button>
             </div>
@@ -850,23 +850,23 @@ const CryptoCandyCrushGame: React.FC<CryptoCandyCrushGameProps> = ({ onClose, on
         </div>
 
         {/* Game Instructions */}
-        <div className="mt-4 text-center text-white/60 text-base space-y-2 max-w-2xl mx-auto">
+        <div className="mt-3 text-center text-white/60 text-xs space-y-1">
           <p>
             {language === 'ar' 
-              ? 'اسحب وأفلت لتجميع 3 أو أكثر من نفس العملة الرقمية!'
-              : 'Drag and drop to match 3 or more of the same cryptocurrency!'
+              ? 'اسحب وأفلت لتجميع 3+ من نفس العملة!'
+              : 'Drag & drop to match 3+ same cryptos!'
             }
           </p>
           <p className="text-yellow-400 font-semibold">
             {language === 'ar' 
-              ? '🌟 LYRA COIN: استخدام واحد فقط! اسحبه إلى أي عملة لمسح جميع مثيلاتها!'
-              : '🌟 LYRA COIN: Single use only! Drag it to any crypto to clear all instances!'
+              ? '🌟 LYRA: استخدام واحد! اسحبه لأي عملة لمسح الكل!'
+              : '🌟 LYRA: Single use! Drag to any crypto to clear all!'
             }
           </p>
-          <p className="text-neonGreen text-sm">
+          <p className="text-neonGreen">
             {language === 'ar' 
-              ? 'اجمع 4+ عملات متشابهة لإنتاج LYRA COIN جديد'
-              : 'Match 4+ same cryptos to generate new LYRA COIN'
+              ? 'اجمع 4+ لإنتاج LYRA جديد'
+              : 'Match 4+ to generate new LYRA'
             }
           </p>
         </div>
