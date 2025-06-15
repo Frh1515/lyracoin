@@ -182,6 +182,32 @@ const CryptoCandyCrushGame: React.FC<CryptoCandyCrushGameProps> = ({ onClose, on
     return newBoard;
   }, []);
 
+  // Clear all matching crypto types when LYRA is swapped
+  const clearAllMatchingCrypto = (gameBoard: GameBoard, cryptoTypeToClear: CryptoType): number => {
+    let clearedCount = 0;
+    const affectedCells = new Set<string>();
+    
+    for (let row = 0; row < BOARD_SIZE; row++) {
+      for (let col = 0; col < BOARD_SIZE; col++) {
+        if (gameBoard[row][col] === cryptoTypeToClear) {
+          gameBoard[row][col] = null;
+          affectedCells.add(`${row}-${col}`);
+          clearedCount++;
+        }
+      }
+    }
+    
+    // Add visual effect for cleared cells
+    setSpecialEffectCells(prev => new Set([...prev, ...affectedCells]));
+    
+    // Clear special effect cells after animation
+    setTimeout(() => {
+      setSpecialEffectCells(new Set());
+    }, 1000);
+    
+    return clearedCount * 100; // 100 minutes per cleared crypto
+  };
+
   // Create LYRA special square after 4+ matches
   const createLyraSpecial = (gameBoard: GameBoard, matchCount: number) => {
     if (matchCount >= 4) {
@@ -214,115 +240,6 @@ const CryptoCandyCrushGame: React.FC<CryptoCandyCrushGameProps> = ({ onClose, on
         );
       }
     }
-  };
-
-  // Handle LYRA special effects
-  const handleLyraSpecialEffects = (gameBoard: GameBoard, matches: { row: number; col: number }[]): number => {
-    let bonusMinutes = 0;
-    const lyraMatches = matches.filter(match => gameBoard[match.row][match.col] === 'lyra');
-    
-    if (lyraMatches.length === 0) return bonusMinutes;
-
-    // Group LYRA matches by direction
-    const horizontalLyraMatches: { row: number; col: number }[] = [];
-    const verticalLyraMatches: { row: number; col: number }[] = [];
-    
-    lyraMatches.forEach(match => {
-      // Check if this LYRA is part of a horizontal match
-      let horizontalCount = 1;
-      for (let col = match.col - 1; col >= 0 && gameBoard[match.row][col] === 'lyra'; col--) {
-        horizontalCount++;
-      }
-      for (let col = match.col + 1; col < BOARD_SIZE && gameBoard[match.row][col] === 'lyra'; col++) {
-        horizontalCount++;
-      }
-      
-      // Check if this LYRA is part of a vertical match
-      let verticalCount = 1;
-      for (let row = match.row - 1; row >= 0 && gameBoard[row][match.col] === 'lyra'; row--) {
-        verticalCount++;
-      }
-      for (let row = match.row + 1; row < BOARD_SIZE && gameBoard[row][match.col] === 'lyra'; row++) {
-        verticalCount++;
-      }
-      
-      if (horizontalCount >= 3) {
-        horizontalLyraMatches.push(match);
-      }
-      if (verticalCount >= 3) {
-        verticalLyraMatches.push(match);
-      }
-    });
-
-    // Handle horizontal LYRA matches - clear entire row
-    horizontalLyraMatches.forEach(match => {
-      playBoomSound();
-      const affectedCells = new Set<string>();
-      
-      for (let col = 0; col < BOARD_SIZE; col++) {
-        if (gameBoard[match.row][col] !== null) {
-          gameBoard[match.row][col] = null;
-          affectedCells.add(`${match.row}-${col}`);
-        }
-      }
-      
-      setSpecialEffectCells(prev => new Set([...prev, ...affectedCells]));
-      bonusMinutes += 200; // 200 minutes for row clearance
-      
-      toast.success(
-        language === 'ar' 
-          ? '💥 LYRA COIN مسح الصف بالكامل! +200 دقيقة!' 
-          : '💥 LYRA COIN cleared entire row! +200 minutes!',
-        { 
-          duration: 3000,
-          style: {
-            background: '#FF6B35',
-            color: '#fff',
-            fontWeight: 'bold'
-          }
-        }
-      );
-    });
-
-    // Handle vertical LYRA matches - 3x3 explosion
-    verticalLyraMatches.forEach(match => {
-      playBoomSound();
-      const affectedCells = new Set<string>();
-      
-      // Clear 3x3 area around the match
-      for (let row = Math.max(0, match.row - 1); row <= Math.min(BOARD_SIZE - 1, match.row + 1); row++) {
-        for (let col = Math.max(0, match.col - 1); col <= Math.min(BOARD_SIZE - 1, match.col + 1); col++) {
-          if (gameBoard[row][col] !== null) {
-            gameBoard[row][col] = null;
-            affectedCells.add(`${row}-${col}`);
-          }
-        }
-      }
-      
-      setSpecialEffectCells(prev => new Set([...prev, ...affectedCells]));
-      bonusMinutes += 300; // 300 minutes for 3x3 explosion
-      
-      toast.success(
-        language === 'ar' 
-          ? '💥 LYRA COIN انفجار 3x3! +300 دقيقة!' 
-          : '💥 LYRA COIN 3x3 explosion! +300 minutes!',
-        { 
-          duration: 3000,
-          style: {
-            background: '#8A2BE2',
-            color: '#fff',
-            fontWeight: 'bold'
-          }
-        }
-      );
-    });
-
-    // Clear special effect cells after animation
-    setTimeout(() => {
-      setSpecialEffectCells(new Set());
-    }, 1000);
-
-    return bonusMinutes;
   };
 
   // Check for matches (3 or more in a row/column)
@@ -390,9 +307,6 @@ const CryptoCandyCrushGame: React.FC<CryptoCandyCrushGameProps> = ({ onClose, on
     
     if (matches.length === 0) return 0;
 
-    // Handle LYRA special effects first
-    const lyraBonus = handleLyraSpecialEffects(gameBoard, matches);
-
     // Set matching cells for animation
     const matchSet = new Set(matches.map(m => `${m.row}-${m.col}`));
     setMatchingCells(matchSet);
@@ -448,9 +362,6 @@ const CryptoCandyCrushGame: React.FC<CryptoCandyCrushGameProps> = ({ onClose, on
         createLyraSpecial(gameBoard, group.length);
       }
     });
-
-    // Add LYRA bonus
-    minutesEarned += lyraBonus;
 
     // Remove matched crypto logos after a delay for animation
     setTimeout(() => {
@@ -559,6 +470,10 @@ const CryptoCandyCrushGame: React.FC<CryptoCandyCrushGameProps> = ({ onClose, on
       (Math.abs(targetCol - sourceCol) === 1 && targetRow === sourceRow);
 
     if (isAdjacent && (sourceRow !== targetRow || sourceCol !== targetCol)) {
+      // Store original crypto types before swap
+      const sourceCrypto = board[sourceRow][sourceCol];
+      const targetCrypto = board[targetRow][targetCol];
+      
       // Perform swap
       const newBoard = board.map(r => [...r]);
       [newBoard[targetRow][targetCol], newBoard[sourceRow][sourceCol]] = 
@@ -570,7 +485,17 @@ const CryptoCandyCrushGame: React.FC<CryptoCandyCrushGameProps> = ({ onClose, on
       if (matchesFound) {
         playChimeSound();
         setIsProcessing(true);
-        processMatches(newBoard);
+        
+        // Check if LYRA was involved in the swap
+        const lyraSwapOccurred = sourceCrypto === 'lyra' || targetCrypto === 'lyra';
+        let lyraEffectTargetCrypto: CryptoType | null = null;
+        
+        if (lyraSwapOccurred) {
+          // Determine which crypto type LYRA was swapped with
+          lyraEffectTargetCrypto = sourceCrypto === 'lyra' ? targetCrypto : sourceCrypto;
+        }
+        
+        processMatches(newBoard, lyraSwapOccurred, lyraEffectTargetCrypto);
       } else {
         playBuzzSound();
         toast.error(
@@ -590,10 +515,41 @@ const CryptoCandyCrushGame: React.FC<CryptoCandyCrushGameProps> = ({ onClose, on
   };
 
   // Process matches and cascading effects
-  const processMatches = async (gameBoard: GameBoard) => {
+  const processMatches = async (gameBoard: GameBoard, lyraSwapOccurred: boolean = false, lyraEffectTargetCrypto: CryptoType | null = null) => {
     let totalMinutesEarned = 0;
     let currentBoard = gameBoard.map(r => [...r]);
     
+    // Handle LYRA special effect first if it occurred
+    if (lyraSwapOccurred && lyraEffectTargetCrypto && lyraEffectTargetCrypto !== 'lyra') {
+      const lyraBonus = clearAllMatchingCrypto(currentBoard, lyraEffectTargetCrypto);
+      totalMinutesEarned += lyraBonus;
+      
+      playBoomSound();
+      
+      toast.success(
+        language === 'ar'
+          ? `💥 LYRA COIN مسح جميع ${lyraEffectTargetCrypto}! +${lyraBonus} دقيقة!`
+          : `💥 LYRA COIN cleared all ${lyraEffectTargetCrypto}! +${lyraBonus} minutes!`,
+        { 
+          duration: 3000,
+          style: {
+            background: '#FFD700',
+            color: '#000',
+            fontWeight: 'bold'
+          }
+        }
+      );
+      
+      // Wait for special effect animation
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      fillEmptySpaces(currentBoard);
+      setBoard(currentBoard.map(r => [...r]));
+      
+      await new Promise(resolve => setTimeout(resolve, 300));
+    }
+    
+    // Continue with normal match processing
     while (true) {
       const minutesFromMatches = removeMatches(currentBoard);
       if (minutesFromMatches === 0) break;
@@ -729,10 +685,10 @@ const CryptoCandyCrushGame: React.FC<CryptoCandyCrushGameProps> = ({ onClose, on
 
   return (
     <div className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-darkGreen border-2 border-neonGreen rounded-xl p-6 w-full max-w-md relative shadow-glow blockchain-background">
+      <div className="bg-darkGreen border-2 border-neonGreen rounded-xl p-4 w-full h-full max-w-4xl max-h-screen relative shadow-glow blockchain-background overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
-          <div className={`text-white font-bold text-2xl ${showMinutesAnimation ? 'scale-110 text-neonGreen score-animation' : ''} transition-all duration-300`}>
+          <div className={`text-white font-bold text-3xl ${showMinutesAnimation ? 'scale-110 text-neonGreen score-animation' : ''} transition-all duration-300`}>
             {language === 'ar' ? 'إجمالي الدقائق:' : 'Total Minutes:'} {totalMinutes}
           </div>
           <div className="flex items-center gap-2">
@@ -752,8 +708,8 @@ const CryptoCandyCrushGame: React.FC<CryptoCandyCrushGameProps> = ({ onClose, on
         </div>
 
         {/* Game Board */}
-        <div className="mb-6">
-          <div className="grid grid-cols-8 gap-1 bg-black/30 p-2 rounded-lg border border-neonGreen/30">
+        <div className="mb-6 flex justify-center">
+          <div className="grid grid-cols-8 gap-2 bg-black/30 p-4 rounded-lg border border-neonGreen/30 max-w-2xl">
             {board.map((row, rowIndex) =>
               row.map((crypto, colIndex) => {
                 const cryptoLogo = getCryptoLogo(crypto);
@@ -767,10 +723,9 @@ const CryptoCandyCrushGame: React.FC<CryptoCandyCrushGameProps> = ({ onClose, on
                   <div
                     key={cellKey}
                     className={`
-                      w-8 h-8 rounded border-2 cursor-pointer transition-all duration-200 relative
+                      w-16 h-16 rounded border-2 cursor-pointer transition-all duration-200 relative
                       ${crypto ? 'bg-white/10' : 'bg-gray-800'}
                       ${isDragging ? 'border-white scale-110 z-10' : 'border-gray-600 hover:border-white/50'}
-                      ${isLyra ? 'border-yellow-400 bg-yellow-400/20' : ''}
                       ${gameStarted && !isProcessing ? 'hover:scale-105' : ''}
                       ${isMatching ? 'match-explosion' : ''}
                       ${isSpecialEffect ? 'lyra-explosion' : ''}
@@ -786,7 +741,7 @@ const CryptoCandyCrushGame: React.FC<CryptoCandyCrushGameProps> = ({ onClose, on
                         src={cryptoLogo.imagePath}
                         alt={cryptoLogo.name}
                         className={`
-                          w-full h-full object-contain p-0.5 rounded
+                          w-full h-full object-contain p-1 rounded
                           ${cryptoLogo.effectClass}
                           ${isDragging ? 'dragging-effect' : ''}
                           ${isMatching ? 'matching-effect' : ''}
@@ -794,9 +749,6 @@ const CryptoCandyCrushGame: React.FC<CryptoCandyCrushGameProps> = ({ onClose, on
                         `}
                         draggable={false}
                       />
-                    )}
-                    {isLyra && (
-                      <div className="absolute inset-0 rounded border-2 border-yellow-400 animate-pulse" />
                     )}
                   </div>
                 );
@@ -806,7 +758,7 @@ const CryptoCandyCrushGame: React.FC<CryptoCandyCrushGameProps> = ({ onClose, on
         </div>
 
         {/* Game Controls */}
-        <div className="space-y-3">
+        <div className="space-y-3 max-w-md mx-auto">
           {!gameStarted ? (
             <button
               onClick={handleStartGame}
@@ -840,7 +792,7 @@ const CryptoCandyCrushGame: React.FC<CryptoCandyCrushGameProps> = ({ onClose, on
         </div>
 
         {/* Game Instructions */}
-        <div className="mt-4 text-center text-white/60 text-sm space-y-2">
+        <div className="mt-4 text-center text-white/60 text-base space-y-2 max-w-2xl mx-auto">
           <p>
             {language === 'ar' 
               ? 'اسحب وأفلت لتجميع 3 أو أكثر من نفس العملة الرقمية!'
@@ -849,8 +801,8 @@ const CryptoCandyCrushGame: React.FC<CryptoCandyCrushGameProps> = ({ onClose, on
           </p>
           <p className="text-yellow-400 font-semibold">
             {language === 'ar' 
-              ? '🌟 LYRA COIN: أفقي = مسح الصف، عمودي = انفجار 3x3'
-              : '🌟 LYRA COIN: Horizontal = Row Clear, Vertical = 3x3 Explosion'
+              ? '🌟 LYRA COIN: اسحبه إلى أي عملة لمسح جميع مثيلاتها من اللوحة!'
+              : '🌟 LYRA COIN: Drag it to any crypto to clear all instances of that crypto!'
             }
           </p>
         </div>
