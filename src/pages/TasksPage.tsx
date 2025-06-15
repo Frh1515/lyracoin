@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { FaYoutube, FaFacebook, FaTiktok, FaTelegram, FaInstagram, FaXTwitter } from 'react-icons/fa6';
 import { Gamepad2 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
-import CandyCrushGame from '../components/CandyCrushGame';
+import CryptoCandyCrushGame from '../components/CryptoCandyCrushGame';
 
 interface TasksPageProps {
   onMinutesEarned?: (minutes: number) => void;
@@ -10,7 +10,7 @@ interface TasksPageProps {
 
 const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned }) => {
   const [completedTasks, setCompletedTasks] = useState(4);
-  const [showCandyCrushGame, setShowCandyCrushGame] = useState(false);
+  const [showCryptoCandyCrushGame, setShowCryptoCandyCrushGame] = useState(false);
   const totalTasks = 10;
   const completionPercentage = Math.round((completedTasks / totalTasks) * 100);
   const { language } = useLanguage();
@@ -61,14 +61,14 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned }) => {
   ];
 
   const handleGameClose = () => {
-    setShowCandyCrushGame(false);
+    setShowCryptoCandyCrushGame(false);
   };
 
   return (
     <div className="min-h-screen pb-24 bg-gradient-to-b from-[#041e11] via-[#051a13] to-[#040d0c]">
-      {/* Candy Crush Game Modal */}
-      {showCandyCrushGame && (
-        <CandyCrushGame 
+      {/* Crypto Candy Crush Game Modal */}
+      {showCryptoCandyCrushGame && (
+        <CryptoCandyCrushGame 
           onClose={handleGameClose} 
           onMinutesEarned={onMinutesEarned}
         />
@@ -89,29 +89,29 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned }) => {
         </p>
       </div>
 
-      {/* Games Card - Featured at the top */}
+      {/* Crypto Games Card - Featured at the top */}
       <div className="mt-10 px-6">
         <div
-          onClick={() => setShowCandyCrushGame(true)}
-          className="p-6 bg-darkGreenCustom backdrop-blur-sm border-2 border-neonGreenCustom rounded-xl text-white 
-            hover:scale-105 hover:brightness-110 transition duration-300 shadow-glowCustom cursor-pointer mb-8"
+          onClick={() => setShowCryptoCandyCrushGame(true)}
+          className="p-6 bg-darkGreen backdrop-blur-sm border-2 border-neonGreen rounded-xl text-white 
+            hover:scale-105 hover:brightness-110 transition duration-300 shadow-glow cursor-pointer mb-8 blockchain-background"
         >
           <div className="flex items-center gap-3 mb-4">
-            <Gamepad2 className="w-7 h-7 text-neonGreenCustom" />
-            <h4 className="font-bold text-xl text-neonGreenCustom">
-              {language === 'ar' ? '🎮 الألعاب' : '🎮 Games'}
+            <Gamepad2 className="w-7 h-7 text-neonGreen" />
+            <h4 className="font-bold text-xl text-neonGreen">
+              {language === 'ar' ? '🎮 ألعاب العملات الرقمية' : '🎮 Crypto Games'}
             </h4>
           </div>
-          <p className="text-sm text-lightGrayCustom mb-2">
-            {language === 'ar' ? 'العب Candy Crush واكسب الدقائق!' : 'Play Candy Crush and earn minutes!'}
+          <p className="text-sm text-white/90 mb-2">
+            {language === 'ar' ? 'العب لعبة تجميع العملات الرقمية واكسب الدقائق!' : 'Play Crypto Match Game and earn minutes!'}
           </p>
           <p className="text-xs text-white/60 mb-4">
             {language === 'ar' 
-              ? 'اجمع 3 أو أكثر من نفس اللون • 1-3 دقائق لكل مجموعة'
-              : 'Match 3 or more same colors • 1-3 minutes per match'
+              ? 'اسحب وأفلت لتجميع 3 أو أكثر من نفس العملة • 1-3 دقائق لكل مجموعة'
+              : 'Drag & drop to match 3+ same cryptos • 1-3 minutes per match'
             }
           </p>
-          <div className="bg-neonGreenCustom text-black px-4 py-2 rounded-lg font-semibold text-center hover:brightness-110 transition">
+          <div className="bg-neonGreen text-black px-4 py-2 rounded-lg font-semibold text-center hover:brightness-110 transition">
             {language === 'ar' ? 'ابدأ اللعب' : 'Start Playing'}
           </div>
         </div>

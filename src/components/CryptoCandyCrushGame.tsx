@@ -1,44 +1,127 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { X, RotateCcw } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { X, RotateCcw, Volume2, VolumeX } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { updateUserMinutes } from '../../lib/supabase/updateUserMinutes';
 import { useLanguage } from '../context/LanguageContext';
 
-interface CandyCrushGameProps {
+interface CryptoCandyCrushGameProps {
   onClose: () => void;
   onMinutesEarned?: (minutes: number) => void;
 }
 
-type CandyType = 'red' | 'yellow' | 'green' | 'blue' | 'purple';
-type GameBoard = (CandyType | null)[][];
+type CryptoType = 'bitcoin' | 'ethereum' | 'tether' | 'bnb' | 'cardano' | 'xrp' | 'solana' | 'dogecoin';
+type GameBoard = (CryptoType | null)[][];
+
+interface CryptoLogo {
+  id: CryptoType;
+  name: string;
+  imagePath: string;
+  effectClass: string;
+}
 
 const BOARD_SIZE = 8;
-const CANDY_TYPES: CandyType[] = ['red', 'yellow', 'green', 'blue', 'purple'];
 
-const CANDY_COLORS = {
-  red: 'bg-red-500',
-  yellow: 'bg-yellow-400',
-  green: 'bg-green-500',
-  blue: 'bg-blue-500',
-  purple: 'bg-purple-500'
-};
+const CRYPTO_LOGOS: CryptoLogo[] = [
+  {
+    id: 'bitcoin',
+    name: 'Bitcoin',
+    imagePath: '/icons/bitcoin-btc-logo.png',
+    effectClass: 'btc-glow'
+  },
+  {
+    id: 'ethereum',
+    name: 'Ethereum',
+    imagePath: '/icons/ethereum-eth-logo.png',
+    effectClass: 'eth-rotate'
+  },
+  {
+    id: 'tether',
+    name: 'Tether',
+    imagePath: '/icons/tether-usdt-logo.png',
+    effectClass: 'usdt-pulse'
+  },
+  {
+    id: 'bnb',
+    name: 'BNB',
+    imagePath: '/icons/bnb-bnb-logo.png',
+    effectClass: 'bnb-shake'
+  },
+  {
+    id: 'cardano',
+    name: 'Cardano',
+    imagePath: '/icons/cardano-ada-logo.png',
+    effectClass: 'ada-lines'
+  },
+  {
+    id: 'xrp',
+    name: 'XRP',
+    imagePath: '/icons/xrp-xrp-logo.png',
+    effectClass: 'xrp-ripples'
+  },
+  {
+    id: 'solana',
+    name: 'Solana',
+    imagePath: '/icons/solana-sol-logo.png',
+    effectClass: 'sol-dynamic'
+  },
+  {
+    id: 'dogecoin',
+    name: 'Dogecoin',
+    imagePath: '/icons/dogecoin-doge-logo.png',
+    effectClass: 'doge-bounce'
+  }
+];
 
-const CandyCrushGame: React.FC<CandyCrushGameProps> = ({ onClose, onMinutesEarned }) => {
+const CryptoCandyCrushGame: React.FC<CryptoCandyCrushGameProps> = ({ onClose, onMinutesEarned }) => {
   const [board, setBoard] = useState<GameBoard>([]);
-  const [selectedCell, setSelectedCell] = useState<{ row: number; col: number } | null>(null);
   const [totalMinutes, setTotalMinutes] = useState(0);
   const [gameStarted, setGameStarted] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [showMinutesAnimation, setShowMinutesAnimation] = useState(false);
+  const [draggedItem, setDraggedItem] = useState<{ row: number; col: number } | null>(null);
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [matchingCells, setMatchingCells] = useState<Set<string>>(new Set());
   const { language } = useLanguage();
 
-  // Initialize board with random candies
+  // Sound refs
+  const swooshSoundRef = useRef<HTMLAudioElement | null>(null);
+  const chimeSoundRef = useRef<HTMLAudioElement | null>(null);
+  const celebratorySoundRef = useRef<HTMLAudioElement | null>(null);
+  const buzzSoundRef = useRef<HTMLAudioElement | null>(null);
+
+  // Initialize sound effects
+  useEffect(() => {
+    if (typeof Audio !== 'undefined') {
+      swooshSoundRef.current = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTYIG2m98OScTgwOUarm7blmGgU7k9n1unEiBC13yO/eizEIHWq+8+OWT');
+      chimeSoundRef.current = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTYIG2m98OScTgwOUarm7blmGgU7k9n1unEiBC13yO/eizEIHWq+8+OWT');
+      celebratorySoundRef.current = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTYIG2m98OScTgwOUarm7blmGgU7k9n1unEiBC13yO/eizEIHWq+8+OWT');
+      buzzSoundRef.current = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTYIG2m98OScTgwOUarm7blmGgU7k9n1unEiBC13yO/eizEIHWq+8+OWT');
+    }
+  }, []);
+
+  // Sound playing functions
+  const playSound = (soundRef: React.RefObject<HTMLAudioElement>) => {
+    if (soundEnabled && soundRef.current) {
+      soundRef.current.currentTime = 0;
+      soundRef.current.play().catch(() => {
+        // Ignore audio play errors (browser restrictions)
+      });
+    }
+  };
+
+  const playSwooshSound = () => playSound(swooshSoundRef);
+  const playChimeSound = () => playSound(chimeSoundRef);
+  const playCelebratorySound = () => playSound(celebratorySoundRef);
+  const playBuzzSound = () => playSound(buzzSoundRef);
+
+  // Initialize board with random crypto logos
   const initializeBoard = useCallback(() => {
     const newBoard: GameBoard = [];
     for (let row = 0; row < BOARD_SIZE; row++) {
       newBoard[row] = [];
       for (let col = 0; col < BOARD_SIZE; col++) {
-        newBoard[row][col] = CANDY_TYPES[Math.floor(Math.random() * CANDY_TYPES.length)];
+        const randomCrypto = CRYPTO_LOGOS[Math.floor(Math.random() * CRYPTO_LOGOS.length)];
+        newBoard[row][col] = randomCrypto.id;
       }
     }
     
@@ -56,10 +139,10 @@ const CandyCrushGame: React.FC<CandyCrushGameProps> = ({ onClose, onMinutesEarne
     // Check horizontal matches
     for (let row = 0; row < BOARD_SIZE; row++) {
       let count = 1;
-      let currentCandy = gameBoard[row][0];
+      let currentCrypto = gameBoard[row][0];
       
       for (let col = 1; col < BOARD_SIZE; col++) {
-        if (gameBoard[row][col] === currentCandy && currentCandy !== null) {
+        if (gameBoard[row][col] === currentCrypto && currentCrypto !== null) {
           count++;
         } else {
           if (count >= 3) {
@@ -68,7 +151,7 @@ const CandyCrushGame: React.FC<CandyCrushGameProps> = ({ onClose, onMinutesEarne
             }
           }
           count = 1;
-          currentCandy = gameBoard[row][col];
+          currentCrypto = gameBoard[row][col];
         }
       }
       
@@ -82,10 +165,10 @@ const CandyCrushGame: React.FC<CandyCrushGameProps> = ({ onClose, onMinutesEarne
     // Check vertical matches
     for (let col = 0; col < BOARD_SIZE; col++) {
       let count = 1;
-      let currentCandy = gameBoard[0][col];
+      let currentCrypto = gameBoard[0][col];
       
       for (let row = 1; row < BOARD_SIZE; row++) {
-        if (gameBoard[row][col] === currentCandy && currentCandy !== null) {
+        if (gameBoard[row][col] === currentCrypto && currentCrypto !== null) {
           count++;
         } else {
           if (count >= 3) {
@@ -94,7 +177,7 @@ const CandyCrushGame: React.FC<CandyCrushGameProps> = ({ onClose, onMinutesEarne
             }
           }
           count = 1;
-          currentCandy = gameBoard[row][col];
+          currentCrypto = gameBoard[row][col];
         }
       }
       
@@ -113,6 +196,10 @@ const CandyCrushGame: React.FC<CandyCrushGameProps> = ({ onClose, onMinutesEarne
     const matches = findMatches(gameBoard);
     
     if (matches.length === 0) return 0;
+
+    // Set matching cells for animation
+    const matchSet = new Set(matches.map(m => `${m.row}-${m.col}`));
+    setMatchingCells(matchSet);
 
     // Group matches by connected components to calculate minutes properly
     const matchGroups: { row: number; col: number }[][] = [];
@@ -161,17 +248,20 @@ const CandyCrushGame: React.FC<CandyCrushGameProps> = ({ onClose, onMinutesEarne
       else if (group.length >= 5) minutesEarned += 3;
     });
 
-    // Remove matched candies
-    matches.forEach(match => {
-      gameBoard[match.row][match.col] = null;
-    });
+    // Remove matched crypto logos after a delay for animation
+    setTimeout(() => {
+      matches.forEach(match => {
+        gameBoard[match.row][match.col] = null;
+      });
+      setMatchingCells(new Set());
+    }, 500);
 
     return minutesEarned;
   };
 
-  // Fill empty spaces with new candies
+  // Fill empty spaces with new crypto logos
   const fillEmptySpaces = (gameBoard: GameBoard) => {
-    // Drop existing candies down
+    // Drop existing crypto logos down
     for (let col = 0; col < BOARD_SIZE; col++) {
       let writeIndex = BOARD_SIZE - 1;
       
@@ -185,9 +275,10 @@ const CandyCrushGame: React.FC<CandyCrushGameProps> = ({ onClose, onMinutesEarne
         }
       }
       
-      // Fill empty spaces with new candies
+      // Fill empty spaces with new crypto logos
       for (let row = writeIndex; row >= 0; row--) {
-        gameBoard[row][col] = CANDY_TYPES[Math.floor(Math.random() * CANDY_TYPES.length)];
+        const randomCrypto = CRYPTO_LOGOS[Math.floor(Math.random() * CRYPTO_LOGOS.length)];
+        gameBoard[row][col] = randomCrypto.id;
       }
     }
   };
@@ -232,43 +323,64 @@ const CandyCrushGame: React.FC<CandyCrushGameProps> = ({ onClose, onMinutesEarne
     );
   };
 
-  // Handle cell click
-  const handleCellClick = (row: number, col: number) => {
+  // Drag and drop handlers
+  const handleDragStart = (e: React.DragEvent, row: number, col: number) => {
     if (!gameStarted || isProcessing) return;
+    
+    setDraggedItem({ row, col });
+    playSwooshSound();
+    
+    // Add visual feedback
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', `${row}-${col}`);
+  };
 
-    if (!selectedCell) {
-      setSelectedCell({ row, col });
-    } else {
-      const { row: selectedRow, col: selectedCol } = selectedCell;
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  };
+
+  const handleDrop = (e: React.DragEvent, targetRow: number, targetCol: number) => {
+    e.preventDefault();
+    
+    if (!draggedItem || !gameStarted || isProcessing) return;
+
+    const { row: sourceRow, col: sourceCol } = draggedItem;
+    
+    // Check if target is adjacent to source
+    const isAdjacent = 
+      (Math.abs(targetRow - sourceRow) === 1 && targetCol === sourceCol) ||
+      (Math.abs(targetCol - sourceCol) === 1 && targetRow === sourceRow);
+
+    if (isAdjacent && (sourceRow !== targetRow || sourceCol !== targetCol)) {
+      // Perform swap
+      const newBoard = board.map(r => [...r]);
+      [newBoard[targetRow][targetCol], newBoard[sourceRow][sourceCol]] = 
+      [newBoard[sourceRow][sourceCol], newBoard[targetRow][targetCol]];
+
+      // Check if swap creates matches
+      const matchesFound = findMatches(newBoard).length > 0;
       
-      // Check if clicked cell is adjacent to selected cell
-      const isAdjacent = 
-        (Math.abs(row - selectedRow) === 1 && col === selectedCol) ||
-        (Math.abs(col - selectedCol) === 1 && row === selectedRow);
-
-      if (isAdjacent) {
-        // Perform swap
-        const newBoard = board.map(r => [...r]);
-        [newBoard[row][col], newBoard[selectedRow][selectedCol]] = 
-        [newBoard[selectedRow][selectedCol], newBoard[row][col]];
-
-        // Check if swap creates matches
-        const matchesFound = findMatches(newBoard).length > 0;
-        
-        if (matchesFound) {
-          setIsProcessing(true);
-          processMatches(newBoard);
-        } else {
-          // Invalid move, revert
-          toast.error(
-            language === 'ar' ? 'حركة غير صالحة!' : 'Invalid move!',
-            { duration: 1000 }
-          );
-        }
+      if (matchesFound) {
+        playChimeSound();
+        setIsProcessing(true);
+        processMatches(newBoard);
+      } else {
+        playBuzzSound();
+        toast.error(
+          language === 'ar' ? 'حركة غير صالحة!' : 'Invalid move!',
+          { duration: 1000 }
+        );
       }
-      
-      setSelectedCell(null);
+    } else {
+      playBuzzSound();
     }
+    
+    setDraggedItem(null);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedItem(null);
   };
 
   // Process matches and cascading effects
@@ -281,11 +393,18 @@ const CandyCrushGame: React.FC<CandyCrushGameProps> = ({ onClose, onMinutesEarne
       if (minutesFromMatches === 0) break;
       
       totalMinutesEarned += minutesFromMatches;
+      
+      // Play celebratory sound for matches
+      playCelebratorySound();
+      
+      // Wait for match animation
+      await new Promise(resolve => setTimeout(resolve, 800));
+      
       fillEmptySpaces(currentBoard);
+      setBoard(currentBoard.map(r => [...r]));
       
       // Small delay for visual effect
       await new Promise(resolve => setTimeout(resolve, 300));
-      setBoard(currentBoard.map(r => [...r]));
     }
 
     if (totalMinutesEarned > 0) {
@@ -324,10 +443,10 @@ const CandyCrushGame: React.FC<CandyCrushGameProps> = ({ onClose, onMinutesEarne
     setBoard(newBoard);
     setGameStarted(true);
     setTotalMinutes(0);
-    setSelectedCell(null);
+    setDraggedItem(null);
     
     toast.success(
-      language === 'ar' ? 'بدأت اللعبة! اجمع 3 أو أكثر من نفس اللون' : 'Game started! Match 3 or more of the same color',
+      language === 'ar' ? 'بدأت اللعبة! اسحب وأفلت لتجميع 3 أو أكثر من نفس العملة' : 'Game started! Drag and drop to match 3 or more of the same crypto!',
       { duration: 3000 }
     );
   };
@@ -396,41 +515,78 @@ const CandyCrushGame: React.FC<CandyCrushGameProps> = ({ onClose, onMinutesEarne
     setBoard(initialBoard);
   }, [initializeBoard]);
 
+  // Get crypto logo info
+  const getCryptoLogo = (cryptoType: CryptoType | null) => {
+    if (!cryptoType) return null;
+    return CRYPTO_LOGOS.find(logo => logo.id === cryptoType);
+  };
+
   return (
     <div className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-darkGreenCustom border-2 border-neonGreenCustom rounded-xl p-6 w-full max-w-md relative shadow-glowCustom">
+      <div className="bg-darkGreen border-2 border-neonGreen rounded-xl p-6 w-full max-w-md relative shadow-glow blockchain-background">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
-          <div className={`text-white font-bold text-2xl ${showMinutesAnimation ? 'scale-110 text-neonGreenCustom' : ''} transition-all duration-300`}>
+          <div className={`text-white font-bold text-2xl ${showMinutesAnimation ? 'scale-110 text-neonGreen score-animation' : ''} transition-all duration-300`}>
             {language === 'ar' ? 'إجمالي الدقائق:' : 'Total Minutes:'} {totalMinutes}
           </div>
-          <button
-            onClick={onClose}
-            className="text-white/60 hover:text-white transition"
-          >
-            <X className="w-6 h-6" />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setSoundEnabled(!soundEnabled)}
+              className="text-white/60 hover:text-white transition"
+            >
+              {soundEnabled ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
+            </button>
+            <button
+              onClick={onClose}
+              className="text-white/60 hover:text-white transition"
+            >
+              <X className="w-6 h-6" />
+            </button>
+          </div>
         </div>
 
         {/* Game Board */}
         <div className="mb-6">
-          <div className="grid grid-cols-8 gap-1 bg-black/30 p-2 rounded-lg border border-neonGreenCustom/30">
+          <div className="grid grid-cols-8 gap-1 bg-black/30 p-2 rounded-lg border border-neonGreen/30">
             {board.map((row, rowIndex) =>
-              row.map((candy, colIndex) => (
-                <div
-                  key={`${rowIndex}-${colIndex}`}
-                  className={`
-                    w-8 h-8 rounded border-2 cursor-pointer transition-all duration-200
-                    ${candy ? CANDY_COLORS[candy] : 'bg-gray-800'}
-                    ${selectedCell?.row === rowIndex && selectedCell?.col === colIndex 
-                      ? 'border-white scale-110' 
-                      : 'border-gray-600 hover:border-white/50'
-                    }
-                    ${gameStarted && !isProcessing ? 'hover:scale-105' : ''}
-                  `}
-                  onClick={() => handleCellClick(rowIndex, colIndex)}
-                />
-              ))
+              row.map((crypto, colIndex) => {
+                const cryptoLogo = getCryptoLogo(crypto);
+                const cellKey = `${rowIndex}-${colIndex}`;
+                const isMatching = matchingCells.has(cellKey);
+                const isDragging = draggedItem?.row === rowIndex && draggedItem?.col === colIndex;
+                
+                return (
+                  <div
+                    key={cellKey}
+                    className={`
+                      w-8 h-8 rounded border-2 cursor-pointer transition-all duration-200 relative
+                      ${crypto ? 'bg-white/10' : 'bg-gray-800'}
+                      ${isDragging ? 'border-white scale-110 z-10' : 'border-gray-600 hover:border-white/50'}
+                      ${gameStarted && !isProcessing ? 'hover:scale-105' : ''}
+                      ${isMatching ? 'match-explosion' : ''}
+                    `}
+                    draggable={gameStarted && !isProcessing && crypto !== null}
+                    onDragStart={(e) => handleDragStart(e, rowIndex, colIndex)}
+                    onDragOver={handleDragOver}
+                    onDrop={(e) => handleDrop(e, rowIndex, colIndex)}
+                    onDragEnd={handleDragEnd}
+                  >
+                    {cryptoLogo && (
+                      <img
+                        src={cryptoLogo.imagePath}
+                        alt={cryptoLogo.name}
+                        className={`
+                          w-full h-full object-contain p-0.5 rounded
+                          ${cryptoLogo.effectClass}
+                          ${isDragging ? 'dragging-effect' : ''}
+                          ${isMatching ? 'matching-effect' : ''}
+                        `}
+                        draggable={false}
+                      />
+                    )}
+                  </div>
+                );
+              })
             )}
           </div>
         </div>
@@ -440,7 +596,7 @@ const CandyCrushGame: React.FC<CandyCrushGameProps> = ({ onClose, onMinutesEarne
           {!gameStarted ? (
             <button
               onClick={handleStartGame}
-              className="w-full bg-neonGreenCustom text-black font-bold py-3 rounded-lg hover:brightness-110 transition duration-300 shadow-glowCustom text-lg"
+              className="w-full bg-neonGreen text-black font-bold py-3 rounded-lg hover:brightness-110 transition duration-300 shadow-glow text-lg"
             >
               {language === 'ar' ? 'ابدأ اللعبة' : 'Start Game'}
             </button>
@@ -449,7 +605,7 @@ const CandyCrushGame: React.FC<CandyCrushGameProps> = ({ onClose, onMinutesEarne
               <button
                 onClick={handleEndGame}
                 disabled={isProcessing}
-                className="w-full bg-neonGreenCustom text-black font-bold py-3 rounded-lg hover:brightness-110 transition duration-300 shadow-glowCustom text-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full bg-neonGreen text-black font-bold py-3 rounded-lg hover:brightness-110 transition duration-300 shadow-glow text-lg disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isProcessing 
                   ? (language === 'ar' ? 'جاري الحفظ...' : 'Saving...')
@@ -472,8 +628,8 @@ const CandyCrushGame: React.FC<CandyCrushGameProps> = ({ onClose, onMinutesEarne
         {/* Game Instructions */}
         <div className="mt-4 text-center text-white/60 text-sm">
           {language === 'ar' 
-            ? 'اجمع 3 أو أكثر من نفس اللون للحصول على الدقائق!'
-            : 'Match 3 or more of the same color to earn minutes!'
+            ? 'اسحب وأفلت لتجميع 3 أو أكثر من نفس العملة الرقمية!'
+            : 'Drag and drop to match 3 or more of the same cryptocurrency!'
           }
         </div>
       </div>
@@ -481,4 +637,4 @@ const CandyCrushGame: React.FC<CandyCrushGameProps> = ({ onClose, onMinutesEarne
   );
 };
 
-export default CandyCrushGame;
+export default CryptoCandyCrushGame;
