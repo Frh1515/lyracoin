@@ -129,21 +129,55 @@ const CryptoCandyCrushGame: React.FC<CryptoCandyCrushGameProps> = ({ onClose, on
   const playBuzzSound = () => playSound(buzzSoundRef);
   const playBoomSound = () => playSound(boomSoundRef);
 
-  // Initialize board with random crypto logos
+  // Initialize board with random crypto logos and place LYRA COIN at start
   const initializeBoard = useCallback(() => {
     const newBoard: GameBoard = [];
+    
+    // First, fill the board with regular crypto types
     for (let row = 0; row < BOARD_SIZE; row++) {
       newBoard[row] = [];
       for (let col = 0; col < BOARD_SIZE; col++) {
-        // Only use regular crypto types for initial board
         const randomCrypto = REGULAR_CRYPTO_TYPES[Math.floor(Math.random() * REGULAR_CRYPTO_TYPES.length)];
         newBoard[row][col] = randomCrypto;
       }
     }
     
-    // Remove initial matches to ensure a playable board
-    removeMatches(newBoard);
-    fillEmptySpaces(newBoard);
+    // Remove any initial matches to ensure a stable board
+    let hasMatches = true;
+    while (hasMatches) {
+      const matches = findMatches(newBoard);
+      if (matches.length === 0) {
+        hasMatches = false;
+      } else {
+        // Replace matched cells with new random crypto types
+        matches.forEach(match => {
+          newBoard[match.row][match.col] = REGULAR_CRYPTO_TYPES[Math.floor(Math.random() * REGULAR_CRYPTO_TYPES.length)];
+        });
+      }
+    }
+    
+    // Now place one LYRA COIN at a random position
+    const randomRow = Math.floor(Math.random() * BOARD_SIZE);
+    const randomCol = Math.floor(Math.random() * BOARD_SIZE);
+    newBoard[randomRow][randomCol] = 'lyra';
+    
+    // Check if placing LYRA creates immediate matches, if so, move it
+    let attempts = 0;
+    while (attempts < 10) {
+      const matches = findMatches(newBoard);
+      const lyraMatches = matches.filter(match => newBoard[match.row][match.col] === 'lyra');
+      
+      if (lyraMatches.length === 0) {
+        break; // LYRA is in a safe position
+      }
+      
+      // Move LYRA to a different position
+      newBoard[randomRow][randomCol] = REGULAR_CRYPTO_TYPES[Math.floor(Math.random() * REGULAR_CRYPTO_TYPES.length)];
+      const newRow = Math.floor(Math.random() * BOARD_SIZE);
+      const newCol = Math.floor(Math.random() * BOARD_SIZE);
+      newBoard[newRow][newCol] = 'lyra';
+      attempts++;
+    }
     
     return newBoard;
   }, []);
