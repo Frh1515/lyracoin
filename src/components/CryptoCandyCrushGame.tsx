@@ -764,7 +764,7 @@ const CryptoCandyCrushGame: React.FC<CryptoCandyCrushGameProps> = ({ onClose, on
 
         {/* Game Board */}
         <div className="mb-6 flex justify-center">
-          <div className="grid grid-cols-8 gap-2 bg-black/30 p-4 rounded-lg border border-neonGreen/30 max-w-2xl">
+          <div className="grid grid-cols-8 gap-1 bg-black/30 p-2 rounded-lg border border-neonGreen/30 max-w-2xl">
             {board.map((row, rowIndex) =>
               row.map((crypto, colIndex) => {
                 const cryptoLogo = getCryptoLogo(crypto);
@@ -779,7 +779,7 @@ const CryptoCandyCrushGame: React.FC<CryptoCandyCrushGameProps> = ({ onClose, on
                   <div
                     key={cellKey}
                     className={`
-                      w-16 h-16 rounded border-2 cursor-pointer transition-all duration-200 relative
+                      w-12 h-12 rounded border-2 cursor-pointer transition-all duration-200 relative
                       ${crypto ? 'bg-white/10' : 'bg-gray-800'}
                       ${isDragging ? 'border-white scale-110 z-10' : 'border-gray-600 hover:border-white/50'}
                       ${gameStarted && !isProcessing && !isLyraDisabled ? 'hover:scale-105' : ''}
