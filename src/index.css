@@ -42,10 +42,27 @@
   100% { filter: drop-shadow(0 0 3px #0033ad); }
 }
 
-@keyframes xrp-ripples {
-  0% { transform: scale(1); filter: drop-shadow(0 0 3px #23292f); }
-  50% { transform: scale(1.02); filter: drop-shadow(0 0 8px #23292f); }
-  100% { transform: scale(1); filter: drop-shadow(0 0 3px #23292f); }
+@keyframes ton-diamond {
+  0% { 
+    transform: scale(1) rotate(0deg); 
+    filter: drop-shadow(0 0 5px #0088cc) brightness(1);
+  }
+  25% { 
+    transform: scale(1.02) rotate(90deg); 
+    filter: drop-shadow(0 0 10px #0088cc) brightness(1.1);
+  }
+  50% { 
+    transform: scale(1.05) rotate(180deg); 
+    filter: drop-shadow(0 0 15px #0088cc) brightness(1.2);
+  }
+  75% { 
+    transform: scale(1.02) rotate(270deg); 
+    filter: drop-shadow(0 0 10px #0088cc) brightness(1.1);
+  }
+  100% { 
+    transform: scale(1) rotate(360deg); 
+    filter: drop-shadow(0 0 5px #0088cc) brightness(1);
+  }
 }
 
 @keyframes sol-dynamic {
@@ -80,8 +97,12 @@
   animation: ada-lines 2.5s ease-in-out infinite;
 }
 
-.xrp-ripples {
-  animation: xrp-ripples 3s ease-in-out infinite;
+.ton-diamond {
+  animation: ton-diamond 4s ease-in-out infinite;
+}
+
+.ton-diamond.dragging-effect {
+  animation: ton-diamond 0.8s ease-in-out infinite;
 }
 
 .sol-dynamic {

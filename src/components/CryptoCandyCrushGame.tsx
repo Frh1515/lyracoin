@@ -9,7 +9,7 @@ interface CryptoCandyCrushGameProps {
   onMinutesEarned?: (minutes: number) => void;
 }
 
-type CryptoType = 'bitcoin' | 'ethereum' | 'tether' | 'bnb' | 'cardano' | 'xrp' | 'solana' | 'dogecoin';
+type CryptoType = 'bitcoin' | 'ethereum' | 'tether' | 'bnb' | 'cardano' | 'ton' | 'solana' | 'dogecoin';
 type GameBoard = (CryptoType | null)[][];
 
 interface CryptoLogo {
@@ -53,10 +53,10 @@ const CRYPTO_LOGOS: CryptoLogo[] = [
     effectClass: 'ada-lines'
   },
   {
-    id: 'xrp',
-    name: 'XRP',
-    imagePath: '/icons/xrp-xrp-logo.png',
-    effectClass: 'xrp-ripples'
+    id: 'ton',
+    name: 'TON',
+    imagePath: '/icons/toncoin-ton-logo.png',
+    effectClass: 'ton-diamond'
   },
   {
     id: 'solana',
