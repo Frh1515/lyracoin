@@ -16,7 +16,6 @@ interface CryptoLogo {
   id: CryptoType;
   name: string;
   imagePath: string;
-  effectClass: string;
   isSpecial?: boolean;
 }
 
@@ -26,56 +25,47 @@ const CRYPTO_LOGOS: CryptoLogo[] = [
   {
     id: 'bitcoin',
     name: 'Bitcoin',
-    imagePath: '/icons/bitcoin-btc-logo.png',
-    effectClass: 'btc-glow'
+    imagePath: '/icons/bitcoin-btc-logo.png'
   },
   {
     id: 'ethereum',
     name: 'Ethereum',
-    imagePath: '/icons/ethereum-eth-logo.png',
-    effectClass: 'eth-rotate'
+    imagePath: '/icons/ethereum-eth-logo.png'
   },
   {
     id: 'tether',
     name: 'Tether',
-    imagePath: '/icons/tether-usdt-logo.png',
-    effectClass: 'usdt-pulse'
+    imagePath: '/icons/tether-usdt-logo.png'
   },
   {
     id: 'bnb',
     name: 'BNB',
-    imagePath: '/icons/bnb-bnb-logo.png',
-    effectClass: 'bnb-shake'
+    imagePath: '/icons/bnb-bnb-logo.png'
   },
   {
     id: 'cardano',
     name: 'Cardano',
-    imagePath: '/icons/cardano-ada-logo.png',
-    effectClass: 'ada-lines'
+    imagePath: '/icons/cardano-ada-logo.png'
   },
   {
     id: 'ton',
     name: 'TON',
-    imagePath: '/icons/toncoin-ton-logo.png',
-    effectClass: 'ton-diamond'
+    imagePath: '/icons/toncoin-ton-logo.png'
   },
   {
     id: 'solana',
     name: 'Solana',
-    imagePath: '/icons/solana-sol-logo.png',
-    effectClass: 'sol-dynamic'
+    imagePath: '/icons/solana-sol-logo.png'
   },
   {
     id: 'dogecoin',
     name: 'Dogecoin',
-    imagePath: '/icons/dogecoin-doge-logo.png',
-    effectClass: 'doge-bounce'
+    imagePath: '/icons/dogecoin-doge-logo.png'
   },
   {
     id: 'lyra',
     name: 'LYRA COIN',
     imagePath: '/publiclogo.png',
-    effectClass: 'lyra-special',
     isSpecial: true
   }
 ];
@@ -791,10 +781,10 @@ const CryptoCandyCrushGame: React.FC<CryptoCandyCrushGameProps> = ({ onClose, on
 
   return (
     <div className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-50 p-2">
-      <div className="bg-darkGreen border-2 border-neonGreen rounded-xl p-3 w-full h-full max-w-lg max-h-screen relative shadow-glow blockchain-background overflow-y-auto">
+      <div className="bg-darkGreen border-2 border-neonGreen rounded-xl p-3 w-full h-full max-w-lg max-h-screen relative shadow-glow overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
-          <div className={`text-white font-bold text-lg ${showMinutesAnimation ? 'scale-110 text-neonGreen score-animation' : ''} transition-all duration-300`}>
+          <div className={`text-white font-bold text-lg ${showMinutesAnimation ? 'scale-110 text-neonGreen' : ''} transition-all duration-300`}>
             {language === 'ar' ? 'الدقائق:' : 'Minutes:'} {totalMinutes}
           </div>
           <div className="flex items-center gap-2">
@@ -837,7 +827,6 @@ const CryptoCandyCrushGame: React.FC<CryptoCandyCrushGameProps> = ({ onClose, on
                 const cryptoLogo = getCryptoLogo(crypto);
                 const cellKey = `${rowIndex}-${colIndex}`;
                 const isMatching = matchingCells.has(cellKey);
-                const isSpecialEffect = specialEffectCells.has(cellKey);
                 const isDragging = draggedItem?.row === rowIndex && draggedItem?.col === colIndex;
                 const isDropTarget = touchCurrentCell?.row === rowIndex && touchCurrentCell?.col === colIndex && isTouchDragging;
                 const isLyra = crypto === 'lyra';
@@ -851,11 +840,9 @@ const CryptoCandyCrushGame: React.FC<CryptoCandyCrushGameProps> = ({ onClose, on
                     className={`
                       w-8 h-8 rounded border cursor-pointer transition-all duration-200 relative
                       ${crypto ? 'bg-white/10' : 'bg-gray-800'}
-                      ${isDragging ? 'dragging-cell' : 'border-gray-600 hover:border-white/50'}
-                      ${isDropTarget ? 'drop-target' : ''}
+                      ${isDragging ? 'scale-110 z-10 filter brightness-120 border-neonGreen' : 'border-gray-600 hover:border-white/50'}
+                      ${isDropTarget ? 'border-neonGreen bg-neonGreen/10' : ''}
                       ${gameStarted && !isProcessing && !isLyraDisabled ? 'hover:scale-105' : ''}
-                      ${isMatching ? 'match-explosion' : ''}
-                      ${isSpecialEffect ? 'lyra-explosion' : ''}
                       ${isLyraDisabled ? 'opacity-50 cursor-not-allowed' : ''}
                     `}
                     draggable={gameStarted && !isProcessing && crypto !== null && !isLyraDisabled}
@@ -873,10 +860,7 @@ const CryptoCandyCrushGame: React.FC<CryptoCandyCrushGameProps> = ({ onClose, on
                         alt={cryptoLogo.name}
                         className={`
                           w-full h-full object-contain p-0.5 rounded
-                          ${cryptoLogo.effectClass}
-                          ${isDragging ? 'dragging-effect' : ''}
-                          ${isMatching ? 'matching-effect' : ''}
-                          ${isLyra && !lyraUsed ? 'lyra-glow' : ''}
+                          ${isMatching ? 'filter brightness-150' : ''}
                           ${isLyraDisabled ? 'grayscale opacity-50' : ''}
                         `}
                         draggable={false}
