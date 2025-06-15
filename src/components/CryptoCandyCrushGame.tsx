@@ -474,34 +474,85 @@ const CryptoCandyCrushGame: React.FC<CryptoCandyCrushGameProps> = ({ onClose, on
       const sourceCrypto = board[sourceRow][sourceCol];
       const targetCrypto = board[targetRow][targetCol];
       
-      // Perform swap
-      const newBoard = board.map(r => [...r]);
-      [newBoard[targetRow][targetCol], newBoard[sourceRow][sourceCol]] = 
-      [newBoard[sourceRow][sourceCol], newBoard[targetRow][targetCol]];
-
-      // Check if swap creates matches
-      const matchesFound = findMatches(newBoard).length > 0;
+      // Check if LYRA COIN is involved in the swap
+      const isLyraSwap = sourceCrypto === 'lyra' || targetCrypto === 'lyra';
       
-      if (matchesFound) {
-        playChimeSound();
-        setIsProcessing(true);
+      if (isLyraSwap) {
+        // LYRA COIN special interaction - clear all matching crypto
+        const lyraEffectTargetCrypto = sourceCrypto === 'lyra' ? targetCrypto : sourceCrypto;
         
-        // Check if LYRA was involved in the swap
-        const lyraSwapOccurred = sourceCrypto === 'lyra' || targetCrypto === 'lyra';
-        let lyraEffectTargetCrypto: CryptoType | null = null;
-        
-        if (lyraSwapOccurred) {
-          // Determine which crypto type LYRA was swapped with
-          lyraEffectTargetCrypto = sourceCrypto === 'lyra' ? targetCrypto : sourceCrypto;
+        if (lyraEffectTargetCrypto && lyraEffectTargetCrypto !== 'lyra') {
+          playBoomSound();
+          setIsProcessing(true);
+          
+          // Create a copy of the board for the special effect
+          const newBoard = board.map(r => [...r]);
+          
+          // Clear all instances of the target crypto type
+          const lyraBonus = clearAllMatchingCrypto(newBoard, lyraEffectTargetCrypto);
+          
+          toast.success(
+            language === 'ar'
+              ? `💥 LYRA COIN مسح جميع ${lyraEffectTargetCrypto}! +${lyraBonus} دقيقة!`
+              : `💥 LYRA COIN cleared all ${lyraEffectTargetCrypto}! +${lyraBonus} minutes!`,
+            { 
+              duration: 3000,
+              style: {
+                background: '#FFD700',
+                color: '#000',
+                fontWeight: 'bold'
+              }
+            }
+          );
+          
+          // Update total minutes
+          setTotalMinutes(prev => prev + lyraBonus);
+          
+          // Show animation
+          setShowMinutesAnimation(true);
+          setTimeout(() => setShowMinutesAnimation(false), 1000);
+          
+          // Wait for special effect animation, then fill empty spaces
+          setTimeout(() => {
+            fillEmptySpaces(newBoard);
+            setBoard(newBoard);
+            
+            // Check for possible moves after the effect
+            setTimeout(() => {
+              if (!hasPossibleMoves(newBoard)) {
+                shuffleBoard();
+              }
+              setIsProcessing(false);
+            }, 500);
+          }, 1000);
+          
+        } else {
+          playBuzzSound();
+          toast.error(
+            language === 'ar' ? 'لا يمكن تبديل LYRA مع LYRA!' : 'Cannot swap LYRA with LYRA!',
+            { duration: 1000 }
+          );
         }
-        
-        processMatches(newBoard, lyraSwapOccurred, lyraEffectTargetCrypto);
       } else {
-        playBuzzSound();
-        toast.error(
-          language === 'ar' ? 'حركة غير صالحة!' : 'Invalid move!',
-          { duration: 1000 }
-        );
+        // Normal swap logic
+        const newBoard = board.map(r => [...r]);
+        [newBoard[targetRow][targetCol], newBoard[sourceRow][sourceCol]] = 
+        [newBoard[sourceRow][sourceCol], newBoard[targetRow][targetCol]];
+
+        // Check if swap creates matches
+        const matchesFound = findMatches(newBoard).length > 0;
+        
+        if (matchesFound) {
+          playChimeSound();
+          setIsProcessing(true);
+          processMatches(newBoard);
+        } else {
+          playBuzzSound();
+          toast.error(
+            language === 'ar' ? 'حركة غير صالحة!' : 'Invalid move!',
+            { duration: 1000 }
+          );
+        }
       }
     } else {
       playBuzzSound();
@@ -515,39 +566,9 @@ const CryptoCandyCrushGame: React.FC<CryptoCandyCrushGameProps> = ({ onClose, on
   };
 
   // Process matches and cascading effects
-  const processMatches = async (gameBoard: GameBoard, lyraSwapOccurred: boolean = false, lyraEffectTargetCrypto: CryptoType | null = null) => {
+  const processMatches = async (gameBoard: GameBoard) => {
     let totalMinutesEarned = 0;
     let currentBoard = gameBoard.map(r => [...r]);
-    
-    // Handle LYRA special effect first if it occurred
-    if (lyraSwapOccurred && lyraEffectTargetCrypto && lyraEffectTargetCrypto !== 'lyra') {
-      const lyraBonus = clearAllMatchingCrypto(currentBoard, lyraEffectTargetCrypto);
-      totalMinutesEarned += lyraBonus;
-      
-      playBoomSound();
-      
-      toast.success(
-        language === 'ar'
-          ? `💥 LYRA COIN مسح جميع ${lyraEffectTargetCrypto}! +${lyraBonus} دقيقة!`
-          : `💥 LYRA COIN cleared all ${lyraEffectTargetCrypto}! +${lyraBonus} minutes!`,
-        { 
-          duration: 3000,
-          style: {
-            background: '#FFD700',
-            color: '#000',
-            fontWeight: 'bold'
-          }
-        }
-      );
-      
-      // Wait for special effect animation
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      fillEmptySpaces(currentBoard);
-      setBoard(currentBoard.map(r => [...r]));
-      
-      await new Promise(resolve => setTimeout(resolve, 300));
-    }
     
     // Continue with normal match processing
     while (true) {
