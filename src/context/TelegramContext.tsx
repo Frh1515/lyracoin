@@ -39,6 +39,8 @@ export function TelegramProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const initTelegram = async () => {
       try {
+        console.log('🚀 بدء تهيئة Telegram WebApp...');
+        
         // Wait for Telegram WebApp to be available
         await new Promise<void>(resolve => {
           if (window.Telegram?.WebApp) {
@@ -59,18 +61,31 @@ export function TelegramProvider({ children }: { children: React.ReactNode }) {
         const telegramUser = webApp?.initDataUnsafe?.user;
         const startParam = webApp?.initDataUnsafe?.start_param;
 
-        console.log('Telegram WebApp initialization:', {
+        console.log('📱 معلومات Telegram WebApp:', {
           webApp: !!webApp,
           user: telegramUser,
           startParam,
           platform: webApp?.platform,
           isDev: import.meta.env.DEV,
-          initData: webApp?.initData
+          initData: webApp?.initData,
+          initDataUnsafe: webApp?.initDataUnsafe
         });
+
+        // Enhanced logging for referral debugging
+        if (startParam) {
+          console.log('🔗 تم العثور على معامل الإحالة:', {
+            startParam,
+            type: typeof startParam,
+            length: startParam.length,
+            isValid: startParam.length > 0
+          });
+        } else {
+          console.log('❌ لم يتم العثور على معامل الإحالة (startParam)');
+        }
 
         // Allow development mode without Telegram WebApp
         if (import.meta.env.DEV && (!webApp || !telegramUser?.id)) {
-          console.log('Running in development mode with mock user');
+          console.log('🔧 تشغيل في وضع التطوير مع مستخدم وهمي');
           
           try {
             const { success, user: registeredUser, error: registerError } = await registerUser(
@@ -79,10 +94,10 @@ export function TelegramProvider({ children }: { children: React.ReactNode }) {
             );
 
             if (!success || registerError) {
-              console.error('Dev mode registration failed:', registerError);
-              console.warn('Continuing with mock user despite registration error');
+              console.error('❌ فشل تسجيل المستخدم الوهمي:', registerError);
+              console.warn('⚠️ المتابعة مع المستخدم الوهمي رغم خطأ التسجيل');
             } else {
-              console.log('Dev user registered successfully:', registeredUser);
+              console.log('✅ تم تسجيل المستخدم الوهمي بنجاح:', registeredUser);
             }
 
             setUser(mockUser);
@@ -92,7 +107,7 @@ export function TelegramProvider({ children }: { children: React.ReactNode }) {
             setIsLoading(false);
             return;
           } catch (devError) {
-            console.error('Dev mode error:', devError);
+            console.error('❌ خطأ في وضع التطوير:', devError);
             setUser(mockUser);
             setIsDev(true);
             setIsAuthenticated(true);
@@ -116,6 +131,8 @@ export function TelegramProvider({ children }: { children: React.ReactNode }) {
           document.documentElement.classList.add('dark');
         }
 
+        console.log('👤 تسجيل المستخدم في Supabase...');
+        
         // Register user with Supabase using RPC function
         const { success, user: registeredUser, error: registerError } = await registerUser(
           telegramUser.id.toString(),
@@ -123,23 +140,31 @@ export function TelegramProvider({ children }: { children: React.ReactNode }) {
         );
 
         if (!success || registerError) {
-          console.error('Registration failed:', registerError);
+          console.error('❌ فشل التسجيل:', registerError);
           throw new Error(registerError?.message || 'Failed to register user');
         }
 
-        console.log('User registered successfully:', registeredUser);
+        console.log('✅ تم تسجيل المستخدم بنجاح:', registeredUser);
 
         // Handle referral if start parameter exists
         if (startParam) {
-          console.log('Processing referral with start param:', startParam);
+          console.log('🔄 معالجة الإحالة مع معامل البداية:', startParam);
           
           try {
+            console.log('📞 استدعاء وظيفة processReferral مع:', {
+              referrerTelegramId: startParam,
+              referredTelegramId: telegramUser.id.toString()
+            });
+            
             const referralResult = await processReferral(
               startParam, // referrer's telegram_id
               telegramUser.id.toString() // referred user's telegram_id
             );
 
+            console.log('📊 نتيجة معالجة الإحالة:', referralResult);
+
             if (referralResult.success) {
+              console.log('🎉 تمت معالجة الإحالة بنجاح!');
               toast.success(
                 '🎉 Welcome! You\'ve been successfully referred!',
                 { 
@@ -152,13 +177,34 @@ export function TelegramProvider({ children }: { children: React.ReactNode }) {
                 }
               );
             } else {
-              console.log('Referral processing result:', referralResult.message);
-              // Don't show error toast for referral issues, just log them
+              console.log('⚠️ نتيجة معالجة الإحالة:', referralResult.message);
+              // Show error message for debugging
+              toast.error(
+                `Referral Error: ${referralResult.message}`,
+                { 
+                  duration: 3000,
+                  style: {
+                    background: '#FF6347',
+                    color: '#fff'
+                  }
+                }
+              );
             }
           } catch (referralError) {
-            console.error('Error processing referral:', referralError);
-            // Don't show error for referral processing failures
+            console.error('❌ خطأ في معالجة الإحالة:', referralError);
+            toast.error(
+              `Referral Processing Error: ${referralError instanceof Error ? referralError.message : 'Unknown error'}`,
+              { 
+                duration: 3000,
+                style: {
+                  background: '#FF6347',
+                  color: '#fff'
+                }
+              }
+            );
           }
+        } else {
+          console.log('ℹ️ لا يوجد معامل إحالة - تسجيل عادي');
         }
 
         // Update context state
@@ -168,7 +214,7 @@ export function TelegramProvider({ children }: { children: React.ReactNode }) {
         setError(null);
 
       } catch (err) {
-        console.error('Telegram initialization error:', err);
+        console.error('❌ خطأ في تهيئة Telegram:', err);
         setError(err instanceof Error ? err.message : 'Failed to initialize Telegram WebApp');
         setIsAuthenticated(false);
       } finally {
