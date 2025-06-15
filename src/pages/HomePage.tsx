@@ -113,6 +113,15 @@ const HomePage: React.FC<HomePageProps> = ({ userMinutes = 0 }) => {
               ? 'اكسب المزيد من الدقائق عن طريق إكمال المهام ودعوة الأصدقاء'
               : 'Earn more minutes by completing tasks and inviting friends'}
           </p>
+          
+          {/* New promotional text for minutes section */}
+          <div className="mt-4 p-3 bg-neonGreen/10 border border-neonGreen/30 rounded-lg">
+            <p className="text-center text-neonGreen font-bold text-sm">
+              {language === 'ar' 
+                ? 'اجمع الدقائق وحولها إلى أموال حقيقية - اشتري LYRA COIN الآن!'
+                : 'Collect minutes and turn them into real money - buy LYRA COIN now!'}
+            </p>
+          </div>
         </div>
 
         {/* Quick Actions */}
