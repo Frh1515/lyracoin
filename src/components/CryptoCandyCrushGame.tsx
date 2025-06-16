@@ -239,7 +239,7 @@ const CryptoCandyCrushGame: React.FC<CryptoCandyCrushGameProps> = ({ onClose, on
       setSpecialEffectCells(new Set());
     }, 1000);
     
-    return clearedCount * 100; // 100 minutes per cleared crypto
+    return clearedCount * 10; // 10 minutes per cleared crypto (reduced from 100)
   };
 
   // Create LYRA special square after 4+ matches
@@ -384,12 +384,12 @@ const CryptoCandyCrushGame: React.FC<CryptoCandyCrushGameProps> = ({ onClose, on
       }
     });
 
-    // Calculate minutes based on match sizes
+    // Calculate minutes based on match sizes (reduced to one-tenth)
     let minutesEarned = 0;
     matchGroups.forEach(group => {
-      if (group.length === 3) minutesEarned += 50; // Increased base points
-      else if (group.length === 4) minutesEarned += 100;
-      else if (group.length >= 5) minutesEarned += 150;
+      if (group.length === 3) minutesEarned += 5; // Reduced from 50 to 5
+      else if (group.length === 4) minutesEarned += 10; // Reduced from 100 to 10
+      else if (group.length >= 5) minutesEarned += 15; // Reduced from 150 to 15
       
       // Create LYRA special for 4+ matches (only if LYRA hasn't been used)
       if (group.length >= 4 && !lyraUsed) {
@@ -997,6 +997,12 @@ const CryptoCandyCrushGame: React.FC<CryptoCandyCrushGameProps> = ({ onClose, on
             {language === 'ar' 
               ? 'اجمع 4+ لإنتاج LYRA جديد'
               : 'Match 4+ to generate new LYRA'
+            }
+          </p>
+          <p className="text-white/50 text-xs">
+            {language === 'ar' 
+              ? 'المكافآت: 3 عملات = 5 دقائق، 4 عملات = 10 دقائق، 5+ عملات = 15 دقيقة'
+              : 'Rewards: 3 match = 5 min, 4 match = 10 min, 5+ match = 15 min'
             }
           </p>
         </div>
