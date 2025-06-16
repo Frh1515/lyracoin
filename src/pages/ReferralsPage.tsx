@@ -3,7 +3,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { getReferralStatsSecure, type ReferralStatsSecure } from '../../lib/supabase/getReferralStatsSecure';
 import { claimReferralRewardSecure } from '../../lib/supabase/claimReferralRewardSecure';
 import { generateReferralCode } from '../../lib/supabase/generateReferralCode';
-import { Share2, X, Gift, Copy, ExternalLink } from 'lucide-react';
+import { Share2, X, Gift, Copy, ExternalLink, Trophy } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 interface ReferralPageProps {
@@ -150,6 +150,23 @@ const ReferralsPage: React.FC<ReferralPageProps> = ({ onMinutesEarned, onPointsE
     }
   };
 
+  const getLevelIcon = (tier: string) => {
+    switch (tier) {
+      case 'platinum': return '💎';
+      case 'gold': return '🥇';
+      case 'silver': return '🥈';
+      default: return '🥉';
+    }
+  };
+
+  // Calculate level progress percentage (matching HomePage)
+  const getLevelProgress = (totalReferrals: number) => {
+    if (totalReferrals >= 50) return 100; // Platinum
+    if (totalReferrals >= 25) return Math.min(((totalReferrals - 25) / 25) * 100 + 75, 100); // Gold range
+    if (totalReferrals >= 10) return Math.min(((totalReferrals - 10) / 15) * 100 + 50, 75); // Silver range
+    return Math.min((totalReferrals / 10) * 50, 50); // Bronze range
+  };
+
   const shareMessage = language === 'ar'
     ? `🚀 انضم إلى LYRA COIN وساعدني في كسب المكافآت!\n💰 ستحصل على مكافآت عند التسجيل وأنا أيضاً!\n🔗 ${referralLink}`
     : `🚀 Join LYRA COIN and help me earn rewards!\n💰 You'll get rewards for signing up and so will I!\n🔗 ${referralLink}`;
@@ -239,14 +256,49 @@ const ReferralsPage: React.FC<ReferralPageProps> = ({ onMinutesEarned, onPointsE
           </button>
         </div>
 
-        {/* Tier Badge */}
+        {/* Tier Badge with Progress */}
         {stats && (
-          <div className={`mb-8 p-4 rounded-xl text-center ${getTierColor(stats.referral_tier)}`}>
-            <h2 className="text-xl font-bold text-white">
-              {language === 'ar' 
-                ? `مستوى ${stats.referral_tier}` 
-                : `${stats.referral_tier.charAt(0).toUpperCase() + stats.referral_tier.slice(1)} Tier`}
-            </h2>
+          <div className="bg-black/40 backdrop-blur-sm border border-neonGreen/30 rounded-xl p-6 text-white shadow-[0_0_15px_rgba(0,255,136,0.3)] mb-8">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <Trophy className="w-6 h-6 text-neonGreen" />
+                <h2 className="text-xl font-semibold">
+                  {language === 'ar' ? 'مستوى الإحالة' : 'Referral Level'}
+                </h2>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-2xl">{getLevelIcon(stats.referral_tier)}</span>
+                <span className={`text-lg font-bold capitalize`}>
+                  {stats.referral_tier}
+                </span>
+              </div>
+            </div>
+
+            {/* Level Progress - Matching HomePage */}
+            <div className="mt-4">
+              <div className="flex justify-between text-xs text-white/60 mb-1">
+                <span>Bronze (0-9)</span>
+                <span>Silver (10-24)</span>
+                <span>Gold (25-49)</span>
+                <span>Platinum (50+)</span>
+              </div>
+              <div className="w-full bg-white/20 rounded-full h-2">
+                <div 
+                  className="bg-neonGreen h-2 rounded-full transition-all duration-500"
+                  style={{ 
+                    width: `${getLevelProgress(stats.total_referrals)}%` 
+                  }}
+                />
+              </div>
+            </div>
+
+            <div className="mt-4 p-3 bg-neonGreen/10 border border-neonGreen/30 rounded-lg">
+              <p className="text-center text-neonGreen font-bold text-sm">
+                {language === 'ar' 
+                  ? `${stats.total_referrals} إحالة من أصل ${stats.referral_tier === 'platinum' ? '50+' : stats.referral_tier === 'gold' ? '50' : stats.referral_tier === 'silver' ? '25' : '10'} للمستوى التالي`
+                  : `${stats.total_referrals} referrals of ${stats.referral_tier === 'platinum' ? '50+' : stats.referral_tier === 'gold' ? '50' : stats.referral_tier === 'silver' ? '25' : '10'} for next level`}
+              </p>
+            </div>
           </div>
         )}
 
@@ -341,28 +393,6 @@ const ReferralsPage: React.FC<ReferralPageProps> = ({ onMinutesEarned, onPointsE
               {language === 'ar' ? 'الإحالات المعلقة' : 'Pending Referrals'}
             </h3>
             <p className="text-2xl font-bold text-neonGreen">{stats?.pending_referrals || 0}</p>
-          </div>
-        </div>
-
-        {/* Tier Progress */}
-        <div className="bg-white/5 border border-neonGreen/30 rounded-xl p-6 mb-8">
-          <h2 className="text-lg font-semibold text-white mb-4">
-            {language === 'ar' ? 'التقدم نحو المستوى التالي' : 'Next Tier Progress'}
-          </h2>
-          <div className="space-y-8">
-            {['bronze', 'silver', 'gold', 'platinum'].map((tier, index) => {
-              const isCurrentTier = stats?.referral_tier === tier;
-              const isUnlocked = ['bronze', 'silver', 'gold', 'platinum'].indexOf(stats?.referral_tier || '') >= index;
-              
-              return (
-                <div key={tier} className="relative">
-                  <div className={`h-2 rounded-full ${isUnlocked ? getTierColor(tier) : 'bg-white/10'}`} />
-                  <span className={`absolute -top-6 ${isCurrentTier ? 'text-neonGreen' : 'text-white/50'}`}>
-                    {tier.charAt(0).toUpperCase() + tier.slice(1)}
-                  </span>
-                </div>
-              );
-            })}
           </div>
         </div>
 

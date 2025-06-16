@@ -37,6 +37,14 @@ const HomePage: React.FC<HomePageProps> = ({
     }
   };
 
+  // Calculate level progress percentage (matching other pages)
+  const getLevelProgress = (points: number) => {
+    if (points >= 1001) return 100; // Platinum
+    if (points >= 501) return Math.min(((points - 501) / 500) * 100 + 75, 100); // Gold range
+    if (points >= 201) return Math.min(((points - 201) / 300) * 100 + 50, 75); // Silver range
+    return Math.min((points / 200) * 50, 50); // Bronze range
+  };
+
   const description = {
     en: [
       'LYRA Coin – Smart funding for Syria\'s reconstruction through blockchain.',
@@ -123,7 +131,7 @@ const HomePage: React.FC<HomePageProps> = ({
             </div>
           </div>
 
-          {/* Level Progress */}
+          {/* Level Progress - Matching other pages */}
           <div className="mt-4">
             <div className="flex justify-between text-xs text-white/60 mb-1">
               <span>Bronze (0-200)</span>
@@ -135,7 +143,7 @@ const HomePage: React.FC<HomePageProps> = ({
               <div 
                 className="bg-neonGreen h-2 rounded-full transition-all duration-500"
                 style={{ 
-                  width: `${Math.min((userPoints / 1001) * 100, 100)}%` 
+                  width: `${getLevelProgress(userPoints)}%` 
                 }}
               />
             </div>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { FaYoutube, FaFacebook, FaTiktok, FaTelegram, FaInstagram, FaXTwitter } from 'react-icons/fa6';
-import { Gamepad2, Clock } from 'lucide-react';
+import { Gamepad2, Clock, ExternalLink } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import CryptoCandyCrushGame from '../components/CryptoCandyCrushGame';
 import { getDailyTasks } from '../../lib/supabase/getDailyTasks';
@@ -101,10 +101,16 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
           onPointsEarned(result.pointsEarned);
         }
 
+        // Award minutes for tasks (20 minutes for fixed tasks, 10 minutes for daily tasks)
+        const minutesEarned = taskType === 'fixed' ? 20 : 10;
+        if (onMinutesEarned) {
+          onMinutesEarned(minutesEarned);
+        }
+
         toast.success(
           language === 'ar'
-            ? `🎉 تم إكمال المهمة! +${result.pointsEarned} نقطة`
-            : `🎉 Task completed! +${result.pointsEarned} points`,
+            ? `🎉 تم إكمال المهمة! +${result.pointsEarned} نقطة و +${minutesEarned} دقيقة`
+            : `🎉 Task completed! +${result.pointsEarned} points & +${minutesEarned} minutes`,
           { 
             duration: 3000,
             style: {
@@ -156,19 +162,96 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
           }
         );
       } else {
-        toast.error(result.message);
+        // Allow unlimited sessions but only count first 3
+        setShowCryptoCandyCrushGame(true);
+        toast.info(result.message);
       }
     } catch (error) {
       console.error('Error recording game session:', error);
-      toast.error(
-        language === 'ar' ? 'فشل في تسجيل جلسة اللعب' : 'Failed to record game session'
-      );
+      // Still allow game to start
+      setShowCryptoCandyCrushGame(true);
     }
   };
 
   const handleGameClose = () => {
     setShowCryptoCandyCrushGame(false);
   };
+
+  // Fixed tasks with social media links
+  const fixedTasksWithLinks = [
+    {
+      id: 'youtube-follow',
+      title: language === 'ar' ? 'تابع LYRA COIN على يوتيوب' : 'Follow LYRA COIN on YouTube',
+      description: language === 'ar' ? 'اشترك في قناتنا الرسمية على يوتيوب' : 'Subscribe to our official YouTube channel',
+      platform: 'youtube',
+      icon: FaYoutube,
+      link: 'https://www.youtube.com/@LYRACOIN',
+      borderColor: 'border-red-500',
+      glow: 'drop-shadow-[0_0_20px_#FF0000]',
+      bgColor: 'bg-red-500',
+      points_reward: 20
+    },
+    {
+      id: 'facebook-follow',
+      title: language === 'ar' ? 'تابع LYRA COIN على فيسبوك' : 'Follow LYRA COIN on Facebook',
+      description: language === 'ar' ? 'تابع صفحتنا الرسمية على فيسبوك' : 'Follow our official Facebook page',
+      platform: 'facebook',
+      icon: FaFacebook,
+      link: 'https://www.facebook.com/profile.php?id=61573828020012',
+      borderColor: 'border-blue-500',
+      glow: 'drop-shadow-[0_0_20px_#1877F2]',
+      bgColor: 'bg-blue-500',
+      points_reward: 20
+    },
+    {
+      id: 'tiktok-follow',
+      title: language === 'ar' ? 'تابع LYRA COIN على تيك توك' : 'Follow LYRA COIN on TikTok',
+      description: language === 'ar' ? 'تابع حسابنا الرسمي على تيك توك' : 'Follow our official TikTok account',
+      platform: 'tiktok',
+      icon: FaTiktok,
+      link: 'https://www.tiktok.com/@lyracoin',
+      borderColor: 'border-pink-500',
+      glow: 'drop-shadow-[0_0_20px_#FF0050]',
+      bgColor: 'bg-pink-500',
+      points_reward: 20
+    },
+    {
+      id: 'telegram-join',
+      title: language === 'ar' ? 'انضم إلى قناة LYRA COIN' : 'Join LYRA COIN Channel',
+      description: language === 'ar' ? 'انضم إلى قناتنا الرسمية على تيليجرام' : 'Join our official Telegram channel',
+      platform: 'telegram',
+      icon: FaTelegram,
+      link: 'https://t.me/LYRACOIN25',
+      borderColor: 'border-cyan-400',
+      glow: 'drop-shadow-[0_0_20px_#0088cc]',
+      bgColor: 'bg-cyan-400',
+      points_reward: 20
+    },
+    {
+      id: 'instagram-follow',
+      title: language === 'ar' ? 'تابع LYRA COIN على انستغرام' : 'Follow LYRA COIN on Instagram',
+      description: language === 'ar' ? 'تابع حسابنا الرسمي على انستغرام' : 'Follow our official Instagram account',
+      platform: 'instagram',
+      icon: FaInstagram,
+      link: 'https://www.instagram.com/lyracoin950/',
+      borderColor: 'border-purple-500',
+      glow: 'drop-shadow-[0_0_20px_#C13584]',
+      bgColor: 'bg-purple-500',
+      points_reward: 20
+    },
+    {
+      id: 'twitter-follow',
+      title: language === 'ar' ? 'تابع LYRA COIN على تويتر' : 'Follow LYRA COIN on Twitter',
+      description: language === 'ar' ? 'تابع حسابنا الرسمي على تويتر' : 'Follow our official Twitter account',
+      platform: 'twitter',
+      icon: FaXTwitter,
+      link: 'https://x.com/CoinLyra90781',
+      borderColor: 'border-sky-400',
+      glow: 'drop-shadow-[0_0_20px_#1DA1F2]',
+      bgColor: 'bg-sky-400',
+      points_reward: 20
+    }
+  ];
 
   const platforms = [
     { 
@@ -215,7 +298,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
     }
   ];
 
-  const getTaskButton = (taskId: string, taskType: 'daily' | 'fixed') => {
+  const getTaskButton = (taskId: string, taskType: 'daily' | 'fixed', isFixedWithLink = false) => {
     const isCompleted = taskType === 'daily' 
       ? completedDailyTasks.has(taskId) 
       : completedFixedTasks.has(taskId);
@@ -293,8 +376,8 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
             <Clock className="w-4 h-4 text-yellow-400" />
             <span className="text-sm text-yellow-400">
               {language === 'ar' 
-                ? `${gameSessionsRemaining} جلسات متبقية اليوم`
-                : `${gameSessionsRemaining} sessions remaining today`
+                ? `${gameSessionsRemaining} جلسات متبقية اليوم (للنقاط)`
+                : `${gameSessionsRemaining} sessions remaining today (for points)`
               }
             </span>
           </div>
@@ -304,81 +387,79 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
           </p>
           <p className="text-xs text-white/60 mb-4">
             {language === 'ar' 
-              ? 'اسحب وأفلت لتجميع 3 أو أكثر من نفس العملة • 20 نقطة لكل جلسة • حد أقصى 3 جلسات يومياً • مدة الجلسة: دقيقتان'
-              : 'Drag & drop to match 3+ same cryptos • 20 points per session • Max 3 sessions daily • Session duration: 2 minutes'
+              ? 'اسحب وأفلت لتجميع 3 أو أكثر من نفس العملة • 20 نقطة لأول 3 جلسات يومياً • دقائق لا محدودة • مدة الجلسة: دقيقتان'
+              : 'Drag & drop to match 3+ same cryptos • 20 points for first 3 daily sessions • Unlimited minutes • Session duration: 2 minutes'
             }
           </p>
           
           <button
             onClick={handleGameStart}
-            disabled={gameSessionsRemaining <= 0}
-            className={`w-full py-3 rounded-lg font-semibold text-center transition ${
-              gameSessionsRemaining > 0
-                ? 'bg-neonGreen text-black hover:brightness-110'
-                : 'bg-gray-600 text-gray-300 cursor-not-allowed'
-            }`}
+            className="w-full py-3 rounded-lg font-semibold text-center transition bg-neonGreen text-black hover:brightness-110"
           >
-            {gameSessionsRemaining > 0
-              ? (language === 'ar' ? 'ابدأ اللعب' : 'Start Playing')
-              : (language === 'ar' ? 'تم استنفاد الجلسات اليومية' : 'Daily Sessions Exhausted')
-            }
+            {language === 'ar' ? 'ابدأ اللعب' : 'Start Playing'}
           </button>
         </div>
       </div>
 
-      {/* Fixed Tasks Section (moved from home page) */}
-      {tasksLoaded && fixedTasks.length > 0 && (
-        <div className="px-6 mb-8">
-          <h3 className="text-xl font-bold text-white mb-6">
-            {language === 'ar' ? '⭐ المهام الثابتة' : '⭐ Fixed Tasks'}
-          </h3>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {fixedTasks.map((task, index) => {
-              const platform = platforms[index % platforms.length];
-              const buttonConfig = getTaskButton(task.id, 'fixed');
-              
-              return (
-                <div
-                  key={task.id}
-                  className={`p-4 backdrop-blur-sm border rounded-xl text-white transition-all duration-300 ${
-                    completedFixedTasks.has(task.id)
-                      ? `bg-neonGreen/10 ${platform.borderColor} opacity-75` 
-                      : `bg-black/40 ${platform.borderColor} ${platform.glow} hover:scale-105 hover:brightness-110`
-                  }`}
-                >
-                  <div className="flex items-center gap-3 mb-3">
-                    <platform.icon className={`w-6 h-6 ${platform.bgColor} rounded-lg p-1 text-white`} />
-                    <h5 className="font-medium text-sm">{task.title}</h5>
-                  </div>
-                  
-                  <p className="text-xs text-white/70 mb-3">{task.description}</p>
-                  
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-neonGreen">
-                      +{task.points_reward} {language === 'ar' ? 'نقطة' : 'points'}
-                    </span>
-                    
-                    <button
-                      onClick={() => {
-                        if (buttonConfig.text.includes('Start') || buttonConfig.text.includes('ابدأ')) {
-                          handleStartTask(task.id, 'fixed');
-                        } else if (buttonConfig.text.includes('Claim') || buttonConfig.text.includes('مطالبة')) {
-                          handleClaimTask(task.id, 'fixed');
-                        }
-                      }}
-                      disabled={buttonConfig.disabled}
-                      className={`px-3 py-1.5 rounded-lg font-medium text-xs transition-all duration-300 ${buttonConfig.className}`}
-                    >
-                      {buttonConfig.text}
-                    </button>
-                  </div>
+      {/* Fixed Tasks Section (Social Media Links) */}
+      <div className="px-6 mb-8">
+        <h3 className="text-xl font-bold text-white mb-6">
+          {language === 'ar' ? '⭐ المهام الثابتة' : '⭐ Fixed Tasks'}
+        </h3>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {fixedTasksWithLinks.map((task) => {
+            const buttonConfig = getTaskButton(task.id, 'fixed', true);
+            const isCompleted = completedFixedTasks.has(task.id);
+            
+            return (
+              <div
+                key={task.id}
+                className={`p-4 backdrop-blur-sm border rounded-xl text-white transition-all duration-300 ${
+                  isCompleted
+                    ? `bg-neonGreen/10 ${task.borderColor} opacity-75` 
+                    : `bg-black/40 ${task.borderColor} ${task.glow} hover:scale-105 hover:brightness-110`
+                }`}
+              >
+                <div className="flex items-center gap-3 mb-3">
+                  <task.icon className={`w-6 h-6 ${task.bgColor} rounded-lg p-1 text-white`} />
+                  <h5 className="font-medium text-sm">{task.title}</h5>
+                  <a
+                    href={task.link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="ml-auto text-neonGreen hover:text-white transition"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                  </a>
                 </div>
-              );
-            })}
-          </div>
+                
+                <p className="text-xs text-white/70 mb-3">{task.description}</p>
+                
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-neonGreen">
+                    +{task.points_reward} {language === 'ar' ? 'نقطة' : 'points'} & +20 {language === 'ar' ? 'دقيقة' : 'minutes'}
+                  </span>
+                  
+                  <button
+                    onClick={() => {
+                      if (buttonConfig.text.includes('Start') || buttonConfig.text.includes('ابدأ')) {
+                        handleStartTask(task.id, 'fixed');
+                      } else if (buttonConfig.text.includes('Claim') || buttonConfig.text.includes('مطالبة')) {
+                        handleClaimTask(task.id, 'fixed');
+                      }
+                    }}
+                    disabled={buttonConfig.disabled}
+                    className={`px-3 py-1.5 rounded-lg font-medium text-xs transition-all duration-300 ${buttonConfig.className}`}
+                  >
+                    {buttonConfig.text}
+                  </button>
+                </div>
+              </div>
+            );
+          })}
         </div>
-      )}
+      </div>
 
       {/* Daily Tasks Section */}
       {tasksLoaded && (
@@ -410,7 +491,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
                   
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-neonGreen">
-                      +{task.points_reward} {language === 'ar' ? 'نقطة' : 'points'}
+                      +{task.points_reward} {language === 'ar' ? 'نقطة' : 'points'} & +10 {language === 'ar' ? 'دقيقة' : 'minutes'}
                     </span>
                     
                     <button
@@ -443,14 +524,8 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
           <ul className="text-sm text-white/70 space-y-1">
             <li>
               {language === 'ar' 
-                ? '• النقاط منفصلة عن الدقائق ولا تتداخل معها'
-                : '• Points are separate from minutes and do not interfere with them'
-              }
-            </li>
-            <li>
-              {language === 'ar' 
-                ? '• النقاط تحدد مستواك فقط (برونزي، فضي، ذهبي، بلاتيني)'
-                : '• Points only determine your level (Bronze, Silver, Gold, Platinum)'
+                ? '• النقاط والدقائق منفصلة - النقاط تحدد المستوى، الدقائق للمكافآت'
+                : '• Points and minutes are separate - points determine level, minutes for rewards'
               }
             </li>
             <li>
@@ -461,14 +536,20 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
             </li>
             <li>
               {language === 'ar' 
-                ? '• يمكنك لعب 3 جلسات ألعاب يومياً كحد أقصى، مدة كل جلسة دقيقتان'
-                : '• You can play maximum 3 game sessions daily, each session lasts 2 minutes'
+                ? '• يمكنك لعب جلسات لا محدودة، لكن أول 3 جلسات فقط تعطي نقاط'
+                : '• You can play unlimited sessions, but only first 3 daily sessions give points'
               }
             </li>
             <li>
               {language === 'ar' 
                 ? '• انقر "ابدأ المهمة" ثم انتظر 30 ثانية لتظهر "مطالبة"'
                 : '• Click "Start Task" then wait 30 seconds for "Claim" to appear'
+              }
+            </li>
+            <li>
+              {language === 'ar' 
+                ? '• المهام الثابتة تعطي 20 نقطة + 20 دقيقة، المهام اليومية تعطي 10 نقاط + 10 دقائق'
+                : '• Fixed tasks give 20 points + 20 minutes, daily tasks give 10 points + 10 minutes'
               }
             </li>
           </ul>

@@ -88,10 +88,11 @@ const CryptoCandyCrushGame: React.FC<CryptoCandyCrushGameProps> = ({ onClose, on
   const [timeRemaining, setTimeRemaining] = useState(GAME_DURATION);
   const [gameEnded, setGameEnded] = useState(false);
   
-  // Touch handling states
+  // Enhanced touch handling states
   const [touchStartPos, setTouchStartPos] = useState<{ x: number; y: number } | null>(null);
   const [touchCurrentCell, setTouchCurrentCell] = useState<{ row: number; col: number } | null>(null);
   const [isTouchDragging, setIsTouchDragging] = useState(false);
+  const [touchSensitivity] = useState(0.3); // Reduced threshold for easier swapping
   
   const { language } = useLanguage();
 
@@ -470,14 +471,21 @@ const CryptoCandyCrushGame: React.FC<CryptoCandyCrushGameProps> = ({ onClose, on
     );
   };
 
-  // Unified swap function for both mouse and touch
+  // Enhanced touch detection with reduced threshold
+  const isAdjacentTouch = (sourceRow: number, sourceCol: number, targetRow: number, targetCol: number): boolean => {
+    const rowDiff = Math.abs(targetRow - sourceRow);
+    const colDiff = Math.abs(targetCol - sourceCol);
+    
+    // Allow adjacent cells (including diagonal with reduced sensitivity)
+    return (rowDiff <= 1 && colDiff <= 1) && (rowDiff + colDiff > 0);
+  };
+
+  // Unified swap function for both mouse and touch with enhanced sensitivity
   const performSwap = (sourceRow: number, sourceCol: number, targetRow: number, targetCol: number) => {
     if (gameEnded) return;
 
-    // Check if target is adjacent to source
-    const isAdjacent = 
-      (Math.abs(targetRow - sourceRow) === 1 && targetCol === sourceCol) ||
-      (Math.abs(targetCol - sourceCol) === 1 && targetRow === sourceRow);
+    // Enhanced adjacency check with reduced threshold
+    const isAdjacent = isAdjacentTouch(sourceRow, sourceCol, targetRow, targetCol);
 
     if (isAdjacent && (sourceRow !== targetRow || sourceCol !== targetCol)) {
       // Store original crypto types before swap
@@ -584,7 +592,7 @@ const CryptoCandyCrushGame: React.FC<CryptoCandyCrushGameProps> = ({ onClose, on
     }
   };
 
-  // Touch event handlers
+  // Enhanced touch event handlers with improved sensitivity
   const handleTouchStart = (e: React.TouchEvent, row: number, col: number) => {
     if (!gameStarted || isProcessing || gameEnded) return;
     

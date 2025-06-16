@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useLanguage } from '../context/LanguageContext';
-import { Pencil, Check, X, Upload } from 'lucide-react';
+import { Pencil, Check, X, Upload, Trophy } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { updateUserProfile } from '../../lib/supabase/updateUserProfile';
 import { updatePreferredExchange } from '../../lib/supabase/updatePreferredExchange';
@@ -204,6 +204,32 @@ const ProfilePage: React.FC = () => {
     }
   };
 
+  const getLevelColor = (level: string) => {
+    switch (level) {
+      case 'platinum': return 'text-purple-400';
+      case 'gold': return 'text-yellow-400';
+      case 'silver': return 'text-gray-300';
+      default: return 'text-yellow-600';
+    }
+  };
+
+  const getLevelIcon = (level: string) => {
+    switch (level) {
+      case 'platinum': return '💎';
+      case 'gold': return '🥇';
+      case 'silver': return '🥈';
+      default: return '🥉';
+    }
+  };
+
+  // Calculate level progress percentage (matching HomePage and ReferralsPage)
+  const getLevelProgress = (points: number) => {
+    if (points >= 1001) return 100; // Platinum
+    if (points >= 501) return Math.min(((points - 501) / 500) * 100 + 75, 100); // Gold range
+    if (points >= 201) return Math.min(((points - 201) / 300) * 100 + 50, 75); // Silver range
+    return Math.min((points / 200) * 50, 50); // Bronze range
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-[#041e11] via-[#051a13] to-[#040d0c]">
@@ -326,9 +352,60 @@ const ProfilePage: React.FC = () => {
             <span className="inline-block text-sm bg-neonGreen/20 text-neonGreen px-2 py-1 rounded-full">
               {language === 'ar' ? `المستوى ${profile.level}` : `Level ${profile.level}`}
             </span>
-            <span className="inline-block text-sm bg-purple-500/20 text-purple-400 px-2 py-1 rounded-full">
-              {profile.membership_level.charAt(0).toUpperCase() + profile.membership_level.slice(1)}
+            <span className={`inline-block text-sm px-2 py-1 rounded-full ${getLevelColor(profile.membership_level)} bg-opacity-20`}>
+              {getLevelIcon(profile.membership_level)} {profile.membership_level.charAt(0).toUpperCase() + profile.membership_level.slice(1)}
             </span>
+          </div>
+        </div>
+
+        {/* Level Progress Card - Matching other pages */}
+        <div className="bg-black/40 backdrop-blur-sm border border-neonGreen/30 rounded-xl p-6 mb-8 text-white shadow-[0_0_15px_rgba(0,255,136,0.3)]">
+          <div className="flex items-center gap-3 mb-4">
+            <Trophy className="w-6 h-6 text-neonGreen" />
+            <h2 className="text-lg font-semibold">
+              {language === 'ar' ? 'تقدم المستوى' : 'Level Progress'}
+            </h2>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-4 mb-4">
+            <div className="text-center">
+              <div className="text-2xl font-bold text-neonGreen">{profile.points}</div>
+              <p className="text-sm text-white/60">
+                {language === 'ar' ? 'النقاط' : 'Points'}
+              </p>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-neonGreen">{profile.total_minutes}</div>
+              <p className="text-sm text-white/60">
+                {language === 'ar' ? 'الدقائق' : 'Minutes'}
+              </p>
+            </div>
+          </div>
+
+          {/* Level Progress - Matching HomePage */}
+          <div className="mt-4">
+            <div className="flex justify-between text-xs text-white/60 mb-1">
+              <span>Bronze (0-200)</span>
+              <span>Silver (201-500)</span>
+              <span>Gold (501-1000)</span>
+              <span>Platinum (1001+)</span>
+            </div>
+            <div className="w-full bg-white/20 rounded-full h-2">
+              <div 
+                className="bg-neonGreen h-2 rounded-full transition-all duration-500"
+                style={{ 
+                  width: `${getLevelProgress(profile.points)}%` 
+                }}
+              />
+            </div>
+          </div>
+
+          <div className="mt-4 p-3 bg-neonGreen/10 border border-neonGreen/30 rounded-lg">
+            <p className="text-center text-neonGreen font-bold text-sm">
+              {language === 'ar' 
+                ? `${profile.points} نقطة من أصل ${profile.membership_level === 'platinum' ? '1001+' : profile.membership_level === 'gold' ? '1001' : profile.membership_level === 'silver' ? '501' : '201'} للمستوى التالي`
+                : `${profile.points} points of ${profile.membership_level === 'platinum' ? '1001+' : profile.membership_level === 'gold' ? '1001' : profile.membership_level === 'silver' ? '501' : '201'} for next level`}
+            </p>
           </div>
         </div>
 
