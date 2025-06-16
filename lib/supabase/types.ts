@@ -22,7 +22,6 @@ export interface Task {
   title: string;
   description: string;
   minutes_reward: number;
-  points_reward: number;
   type: string;
   is_daily: boolean;
   created_at: string;
@@ -34,7 +33,6 @@ export interface UserTask {
   task_id: string;
   completed_at: string;
   minutes_earned: number;
-  points_earned: number;
 }
 
 export interface Referral {

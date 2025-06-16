@@ -31,7 +31,7 @@ export async function claimTask(
     // Get task details
     const { data: task } = await supabase
       .from('tasks')
-      .select('minutes_reward, points_reward')
+      .select('minutes_reward')
       .eq('id', task_id)
       .single();
 
@@ -43,17 +43,15 @@ export async function claimTask(
     const { error } = await supabase.from('user_tasks').insert({
       user_id: telegram_id,
       task_id,
-      minutes_earned: task.minutes_reward,
-      points_earned: task.points_reward
+      minutes_earned: task.minutes_reward
     });
 
     if (error) throw error;
 
-    // Update user's total minutes and points
+    // Update user's total minutes
     await supabase.rpc('update_user_rewards', {
       p_user_id: telegram_id,
-      p_minutes: task.minutes_reward,
-      p_points: task.points_reward
+      p_minutes: task.minutes_reward
     });
 
     return {
