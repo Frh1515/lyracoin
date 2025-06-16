@@ -83,14 +83,16 @@ const CryptoCandyCrushGame: React.FC<CryptoCandyCrushGameProps> = ({ onClose, on
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [matchingCells, setMatchingCells] = useState<Set<string>>(new Set());
   const [specialEffectCells, setSpecialEffectCells] = useState<Set<string>>(new Set());
-  const [lyraUsed, setLyraUsed] = useState(false); // Track if LYRA has been used
+  const [lyraUsed, setLyraUsed] = useState(false);
   
-  // Touch handling states
-  const [touchStartPos, setTouchStartPos] = useState<{ x: number; y: number } | null>(null);
+  // Enhanced touch handling states
+  const [touchStartPos, setTouchStartPos] = useState<{ x: number; y: number; row: number; col: number } | null>(null);
   const [touchCurrentCell, setTouchCurrentCell] = useState<{ row: number; col: number } | null>(null);
   const [isTouchDragging, setIsTouchDragging] = useState(false);
+  const [touchMoved, setTouchMoved] = useState(false);
   
   const { language } = useLanguage();
+  const gameContainerRef = useRef<HTMLDivElement>(null);
 
   // Sound refs
   const swooshSoundRef = useRef<HTMLAudioElement | null>(null);
@@ -125,6 +127,41 @@ const CryptoCandyCrushGame: React.FC<CryptoCandyCrushGameProps> = ({ onClose, on
   const playCelebratorySound = () => playSound(celebratorySoundRef);
   const playBuzzSound = () => playSound(buzzSoundRef);
   const playBoomSound = () => playSound(boomSoundRef);
+
+  // Enhanced function to get cell position from coordinates
+  const getCellFromCoordinates = useCallback((x: number, y: number): { row: number; col: number } | null => {
+    if (!gameContainerRef.current) return null;
+
+    const gameContainer = gameContainerRef.current;
+    const rect = gameContainer.getBoundingClientRect();
+    
+    // Calculate relative position within the game board
+    const relativeX = x - rect.left;
+    const relativeY = y - rect.top;
+    
+    // Get the actual board dimensions
+    const boardElement = gameContainer.querySelector('.game-board');
+    if (!boardElement) return null;
+    
+    const boardRect = boardElement.getBoundingClientRect();
+    const boardRelativeX = x - boardRect.left;
+    const boardRelativeY = y - boardRect.top;
+    
+    // Calculate cell size based on board dimensions
+    const cellWidth = boardRect.width / BOARD_SIZE;
+    const cellHeight = boardRect.height / BOARD_SIZE;
+    
+    // Calculate row and column
+    const col = Math.floor(boardRelativeX / cellWidth);
+    const row = Math.floor(boardRelativeY / cellHeight);
+    
+    // Validate bounds
+    if (row >= 0 && row < BOARD_SIZE && col >= 0 && col < BOARD_SIZE) {
+      return { row, col };
+    }
+    
+    return null;
+  }, []);
 
   // Initialize board with random crypto logos and place LYRA COIN at start
   const initializeBoard = useCallback(() => {
@@ -550,62 +587,92 @@ const CryptoCandyCrushGame: React.FC<CryptoCandyCrushGameProps> = ({ onClose, on
     }
   };
 
-  // Touch event handlers
+  // Enhanced touch event handlers with improved precision
   const handleTouchStart = (e: React.TouchEvent, row: number, col: number) => {
     if (!gameStarted || isProcessing) return;
     
     e.preventDefault();
+    e.stopPropagation();
+    
     const touch = e.touches[0];
-    setTouchStartPos({ x: touch.clientX, y: touch.clientY });
+    setTouchStartPos({ 
+      x: touch.clientX, 
+      y: touch.clientY,
+      row,
+      col
+    });
     setDraggedItem({ row, col });
     setTouchCurrentCell({ row, col });
     setIsTouchDragging(false);
+    setTouchMoved(false);
     playSwooshSound();
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
-    if (!draggedItem || !gameStarted || isProcessing) return;
+    if (!touchStartPos || !gameStarted || isProcessing) return;
     
     e.preventDefault();
-    setIsTouchDragging(true);
+    e.stopPropagation();
     
     const touch = e.touches[0];
-    const elementUnderTouch = document.elementFromPoint(touch.clientX, touch.clientY);
+    const deltaX = Math.abs(touch.clientX - touchStartPos.x);
+    const deltaY = Math.abs(touch.clientY - touchStartPos.y);
     
-    if (elementUnderTouch) {
-      const row = elementUnderTouch.getAttribute('data-row');
-      const col = elementUnderTouch.getAttribute('data-col');
+    // Set minimum movement threshold to start dragging
+    const MOVE_THRESHOLD = 10;
+    
+    if (deltaX > MOVE_THRESHOLD || deltaY > MOVE_THRESHOLD) {
+      setIsTouchDragging(true);
+      setTouchMoved(true);
       
-      if (row !== null && col !== null) {
-        const newRow = parseInt(row);
-        const newCol = parseInt(col);
+      // Get cell from current touch position
+      const currentCell = getCellFromCoordinates(touch.clientX, touch.clientY);
+      
+      if (currentCell && 
+          currentCell.row >= 0 && currentCell.row < BOARD_SIZE && 
+          currentCell.col >= 0 && currentCell.col < BOARD_SIZE) {
         
-        if (newRow >= 0 && newRow < BOARD_SIZE && newCol >= 0 && newCol < BOARD_SIZE) {
-          setTouchCurrentCell({ row: newRow, col: newCol });
+        // Only update if it's a different cell and adjacent to start
+        const isAdjacent = touchStartPos && (
+          (Math.abs(currentCell.row - touchStartPos.row) === 1 && currentCell.col === touchStartPos.col) ||
+          (Math.abs(currentCell.col - touchStartPos.col) === 1 && currentCell.row === touchStartPos.row)
+        );
+        
+        if (isAdjacent) {
+          setTouchCurrentCell(currentCell);
         }
       }
     }
   };
 
   const handleTouchEnd = (e: React.TouchEvent) => {
-    if (!draggedItem || !gameStarted || isProcessing) return;
+    if (!touchStartPos || !gameStarted || isProcessing) return;
     
     e.preventDefault();
+    e.stopPropagation();
     
-    if (isTouchDragging && touchCurrentCell && draggedItem) {
+    // Only perform swap if we actually moved and have a valid target
+    if (touchMoved && isTouchDragging && touchCurrentCell && draggedItem) {
       const { row: sourceRow, col: sourceCol } = draggedItem;
       const { row: targetRow, col: targetCol } = touchCurrentCell;
       
+      // Check if we moved to a different cell
       if (sourceRow !== targetRow || sourceCol !== targetCol) {
         performSwap(sourceRow, sourceCol, targetRow, targetCol);
       }
     }
     
-    // Reset touch states
+    // Reset all touch states
     setDraggedItem(null);
     setTouchStartPos(null);
     setTouchCurrentCell(null);
     setIsTouchDragging(false);
+    setTouchMoved(false);
+  };
+
+  // Prevent context menu on long press
+  const handleContextMenu = (e: React.MouseEvent) => {
+    e.preventDefault();
   };
 
   // Drag and drop handlers (for desktop)
@@ -781,7 +848,10 @@ const CryptoCandyCrushGame: React.FC<CryptoCandyCrushGameProps> = ({ onClose, on
 
   return (
     <div className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-50 p-2">
-      <div className="bg-darkGreen border-2 border-neonGreen rounded-xl p-3 w-full h-full max-w-lg max-h-screen relative shadow-glow overflow-y-auto">
+      <div 
+        ref={gameContainerRef}
+        className="bg-darkGreen border-2 border-neonGreen rounded-xl p-3 w-full h-full max-w-lg max-h-screen relative shadow-glow overflow-y-auto"
+      >
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
           <div className={`text-white font-bold text-lg ${showMinutesAnimation ? 'scale-110 text-neonGreen' : ''} transition-all duration-300`}>
@@ -821,7 +891,7 @@ const CryptoCandyCrushGame: React.FC<CryptoCandyCrushGameProps> = ({ onClose, on
 
         {/* Game Board */}
         <div className="mb-4 flex justify-center">
-          <div className="grid grid-cols-8 gap-0.5 bg-black/30 p-1 rounded-lg border border-neonGreen/30">
+          <div className="game-board grid grid-cols-8 gap-0.5 bg-black/30 p-1 rounded-lg border border-neonGreen/30">
             {board.map((row, rowIndex) =>
               row.map((crypto, colIndex) => {
                 const cryptoLogo = getCryptoLogo(crypto);
@@ -838,13 +908,14 @@ const CryptoCandyCrushGame: React.FC<CryptoCandyCrushGameProps> = ({ onClose, on
                     data-row={rowIndex}
                     data-col={colIndex}
                     className={`
-                      w-8 h-8 rounded border cursor-pointer transition-all duration-200 relative
+                      w-8 h-8 rounded border cursor-pointer transition-all duration-200 relative select-none
                       ${crypto ? 'bg-white/10' : 'bg-gray-800'}
                       ${isDragging ? 'scale-110 z-10 filter brightness-120 border-neonGreen' : 'border-gray-600 hover:border-white/50'}
                       ${isDropTarget ? 'border-neonGreen bg-neonGreen/10' : ''}
                       ${gameStarted && !isProcessing && !isLyraDisabled ? 'hover:scale-105' : ''}
                       ${isLyraDisabled ? 'opacity-50 cursor-not-allowed' : ''}
                     `}
+                    style={{ touchAction: 'none' }}
                     draggable={gameStarted && !isProcessing && crypto !== null && !isLyraDisabled}
                     onDragStart={(e) => handleDragStart(e, rowIndex, colIndex)}
                     onDragOver={handleDragOver}
@@ -853,13 +924,14 @@ const CryptoCandyCrushGame: React.FC<CryptoCandyCrushGameProps> = ({ onClose, on
                     onTouchStart={(e) => handleTouchStart(e, rowIndex, colIndex)}
                     onTouchMove={handleTouchMove}
                     onTouchEnd={handleTouchEnd}
+                    onContextMenu={handleContextMenu}
                   >
                     {cryptoLogo && (
                       <img
                         src={cryptoLogo.imagePath}
                         alt={cryptoLogo.name}
                         className={`
-                          w-full h-full object-contain p-0.5 rounded
+                          w-full h-full object-contain p-0.5 rounded pointer-events-none
                           ${isMatching ? 'filter brightness-150' : ''}
                           ${isLyraDisabled ? 'grayscale opacity-50' : ''}
                         `}
