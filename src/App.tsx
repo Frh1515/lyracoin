@@ -19,16 +19,18 @@ function AppContent() {
   const [showSplash, setShowSplash] = useState(true);
   const [showTelegramTask, setShowTelegramTask] = useState(false);
   const [userMinutes, setUserMinutes] = useState(0);
+  const [userPoints, setUserPoints] = useState(0);
   const { user, isLoading, error, isDev, isAuthenticated } = useTelegram();
 
-  // Fetch user profile and set initial minutes
+  // Fetch user profile and set initial minutes and points
   useEffect(() => {
-    const fetchUserMinutes = async () => {
+    const fetchUserProfile = async () => {
       if (isAuthenticated) {
         try {
           const { data } = await getUserProfile();
           if (data) {
             setUserMinutes(data.total_minutes);
+            setUserPoints(data.points);
           }
         } catch (error) {
           console.error('Error fetching user profile:', error);
@@ -36,7 +38,7 @@ function AppContent() {
       }
     };
 
-    fetchUserMinutes();
+    fetchUserProfile();
   }, [isAuthenticated]);
 
   useEffect(() => {
@@ -60,6 +62,11 @@ function AppContent() {
   // Function to update minutes when earned from games or referrals
   const handleMinutesEarned = (minutesEarned: number) => {
     setUserMinutes(prev => prev + minutesEarned);
+  };
+
+  // Function to update points when earned from tasks or referrals
+  const handlePointsEarned = (pointsEarned: number) => {
+    setUserPoints(prev => prev + pointsEarned);
   };
 
   if (isLoading) {
@@ -99,10 +106,24 @@ function AppContent() {
         />
       )}
       <Routes>
-        <Route path="/" element={<HomePage userMinutes={userMinutes} />} />
-        <Route path="/tasks" element={<ProtectedRoute><TasksPage onMinutesEarned={handleMinutesEarned} /></ProtectedRoute>} />
+        <Route path="/" element={<HomePage userMinutes={userMinutes} userPoints={userPoints} />} />
+        <Route path="/tasks" element={
+          <ProtectedRoute>
+            <TasksPage 
+              onMinutesEarned={handleMinutesEarned} 
+              onPointsEarned={handlePointsEarned}
+            />
+          </ProtectedRoute>
+        } />
         <Route path="/prices" element={<PricesPage />} />
-        <Route path="/referrals" element={<ProtectedRoute><ReferralsPage onMinutesEarned={handleMinutesEarned} /></ProtectedRoute>} />
+        <Route path="/referrals" element={
+          <ProtectedRoute>
+            <ReferralsPage 
+              onMinutesEarned={handleMinutesEarned}
+              onPointsEarned={handlePointsEarned}
+            />
+          </ProtectedRoute>
+        } />
         <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
       </Routes>
       <BottomNavbar />
