@@ -20,6 +20,7 @@ interface CryptoLogo {
 }
 
 const BOARD_SIZE = 8;
+const GAME_DURATION = 2 * 60 * 1000; // 2 minutes in milliseconds
 
 const CRYPTO_LOGOS: CryptoLogo[] = [
   {
@@ -84,6 +85,8 @@ const CryptoCandyCrushGame: React.FC<CryptoCandyCrushGameProps> = ({ onClose, on
   const [matchingCells, setMatchingCells] = useState<Set<string>>(new Set());
   const [specialEffectCells, setSpecialEffectCells] = useState<Set<string>>(new Set());
   const [lyraUsed, setLyraUsed] = useState(false);
+  const [timeRemaining, setTimeRemaining] = useState(GAME_DURATION);
+  const [gameEnded, setGameEnded] = useState(false);
   
   // Touch handling states
   const [touchStartPos, setTouchStartPos] = useState<{ x: number; y: number } | null>(null);
@@ -98,6 +101,35 @@ const CryptoCandyCrushGame: React.FC<CryptoCandyCrushGameProps> = ({ onClose, on
   const celebratorySoundRef = useRef<HTMLAudioElement | null>(null);
   const buzzSoundRef = useRef<HTMLAudioElement | null>(null);
   const boomSoundRef = useRef<HTMLAudioElement | null>(null);
+
+  // Game timer
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    
+    if (gameStarted && !gameEnded && timeRemaining > 0) {
+      timer = setInterval(() => {
+        setTimeRemaining(prev => {
+          if (prev <= 1000) {
+            setGameEnded(true);
+            handleEndGame();
+            return 0;
+          }
+          return prev - 1000;
+        });
+      }, 1000);
+    }
+
+    return () => {
+      if (timer) clearInterval(timer);
+    };
+  }, [gameStarted, gameEnded, timeRemaining]);
+
+  // Format time display
+  const formatTime = (ms: number) => {
+    const minutes = Math.floor(ms / 60000);
+    const seconds = Math.floor((ms % 60000) / 1000);
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  };
 
   // Initialize sound effects
   useEffect(() => {
@@ -202,7 +234,7 @@ const CryptoCandyCrushGame: React.FC<CryptoCandyCrushGameProps> = ({ onClose, on
       setSpecialEffectCells(new Set());
     }, 1000);
     
-    return clearedCount * 10; // 10 minutes per cleared crypto (reduced from 100)
+    return clearedCount * 10; // 10 minutes per cleared crypto
   };
 
   // Create LYRA special square after 4+ matches
@@ -344,16 +376,15 @@ const CryptoCandyCrushGame: React.FC<CryptoCandyCrushGameProps> = ({ onClose, on
         if (group.length >= 3) {
           matchGroups.push(group);
         }
-      
       }
     });
 
-    // Calculate minutes based on match sizes (reduced to one-tenth)
+    // Calculate minutes based on match sizes
     let minutesEarned = 0;
     matchGroups.forEach(group => {
-      if (group.length === 3) minutesEarned += 5; // Reduced from 50 to 5
-      else if (group.length === 4) minutesEarned += 10; // Reduced from 100 to 10
-      else if (group.length >= 5) minutesEarned += 15; // Reduced from 150 to 15
+      if (group.length === 3) minutesEarned += 5;
+      else if (group.length === 4) minutesEarned += 10;
+      else if (group.length >= 5) minutesEarned += 15;
       
       // Create LYRA special for 4+ matches (only if LYRA hasn't been used)
       if (group.length >= 4 && !lyraUsed) {
@@ -441,6 +472,8 @@ const CryptoCandyCrushGame: React.FC<CryptoCandyCrushGameProps> = ({ onClose, on
 
   // Unified swap function for both mouse and touch
   const performSwap = (sourceRow: number, sourceCol: number, targetRow: number, targetCol: number) => {
+    if (gameEnded) return;
+
     // Check if target is adjacent to source
     const isAdjacent = 
       (Math.abs(targetRow - sourceRow) === 1 && targetCol === sourceCol) ||
@@ -553,7 +586,7 @@ const CryptoCandyCrushGame: React.FC<CryptoCandyCrushGameProps> = ({ onClose, on
 
   // Touch event handlers
   const handleTouchStart = (e: React.TouchEvent, row: number, col: number) => {
-    if (!gameStarted || isProcessing) return;
+    if (!gameStarted || isProcessing || gameEnded) return;
     
     e.preventDefault();
     const touch = e.touches[0];
@@ -565,7 +598,7 @@ const CryptoCandyCrushGame: React.FC<CryptoCandyCrushGameProps> = ({ onClose, on
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
-    if (!draggedItem || !gameStarted || isProcessing) return;
+    if (!draggedItem || !gameStarted || isProcessing || gameEnded) return;
     
     e.preventDefault();
     setIsTouchDragging(true);
@@ -589,7 +622,7 @@ const CryptoCandyCrushGame: React.FC<CryptoCandyCrushGameProps> = ({ onClose, on
   };
 
   const handleTouchEnd = (e: React.TouchEvent) => {
-    if (!draggedItem || !gameStarted || isProcessing) return;
+    if (!draggedItem || !gameStarted || isProcessing || gameEnded) return;
     
     e.preventDefault();
     
@@ -611,7 +644,7 @@ const CryptoCandyCrushGame: React.FC<CryptoCandyCrushGameProps> = ({ onClose, on
 
   // Drag and drop handlers (for desktop)
   const handleDragStart = (e: React.DragEvent, row: number, col: number) => {
-    if (!gameStarted || isProcessing) return;
+    if (!gameStarted || isProcessing || gameEnded) return;
     
     setDraggedItem({ row, col });
     playSwooshSound();
@@ -629,7 +662,7 @@ const CryptoCandyCrushGame: React.FC<CryptoCandyCrushGameProps> = ({ onClose, on
   const handleDrop = (e: React.DragEvent, targetRow: number, targetCol: number) => {
     e.preventDefault();
     
-    if (!draggedItem || !gameStarted || isProcessing) return;
+    if (!draggedItem || !gameStarted || isProcessing || gameEnded) return;
 
     const { row: sourceRow, col: sourceCol } = draggedItem;
     performSwap(sourceRow, sourceCol, targetRow, targetCol);
@@ -700,23 +733,29 @@ const CryptoCandyCrushGame: React.FC<CryptoCandyCrushGameProps> = ({ onClose, on
     const newBoard = initializeBoard();
     setBoard(newBoard);
     setGameStarted(true);
+    setGameEnded(false);
     setTotalMinutes(0);
     setDraggedItem(null);
-    setLyraUsed(false); // Reset LYRA usage
+    setLyraUsed(false);
+    setTimeRemaining(GAME_DURATION);
     
     toast.success(
-      language === 'ar' ? 'بدأت اللعبة! اسحب وأفلت لتجميع 3 أو أكثر من نفس العملة' : 'Game started! Drag and drop to match 3 or more of the same crypto!',
+      language === 'ar' ? 'بدأت اللعبة! لديك دقيقتان للعب' : 'Game started! You have 2 minutes to play',
       { duration: 3000 }
     );
   };
 
   // End game and save minutes
   const handleEndGame = async () => {
+    if (gameEnded) return;
+    
+    setGameEnded(true);
+    
     if (totalMinutes === 0) {
       toast.info(
-        language === 'ar' ? 'لم تكسب أي دقائق بعد!' : 'No minutes earned yet!'
+        language === 'ar' ? 'لم تكسب أي دقائق!' : 'No minutes earned!'
       );
-      onClose();
+      setTimeout(() => onClose(), 2000);
       return;
     }
 
@@ -748,7 +787,7 @@ const CryptoCandyCrushGame: React.FC<CryptoCandyCrushGameProps> = ({ onClose, on
         // Show transition effect
         setTimeout(() => {
           onClose();
-        }, 1500);
+        }, 2000);
       } else {
         throw new Error(result.message);
       }
@@ -763,6 +802,7 @@ const CryptoCandyCrushGame: React.FC<CryptoCandyCrushGameProps> = ({ onClose, on
           }
         }
       );
+      setTimeout(() => onClose(), 2000);
     } finally {
       setIsProcessing(false);
     }
@@ -789,6 +829,11 @@ const CryptoCandyCrushGame: React.FC<CryptoCandyCrushGameProps> = ({ onClose, on
             {language === 'ar' ? 'الدقائق:' : 'Minutes:'} {totalMinutes}
           </div>
           <div className="flex items-center gap-2">
+            {gameStarted && !gameEnded && (
+              <div className={`text-white font-bold text-sm ${timeRemaining <= 30000 ? 'text-red-400 animate-pulse' : ''}`}>
+                ⏰ {formatTime(timeRemaining)}
+              </div>
+            )}
             <button
               onClick={() => setSoundEnabled(!soundEnabled)}
               className="text-white/60 hover:text-white transition"
@@ -805,7 +850,7 @@ const CryptoCandyCrushGame: React.FC<CryptoCandyCrushGameProps> = ({ onClose, on
         </div>
 
         {/* LYRA Status Indicator */}
-        {gameStarted && (
+        {gameStarted && !gameEnded && (
           <div className="mb-3 text-center">
             <div className={`inline-block px-3 py-1 rounded-lg font-semibold text-xs ${
               lyraUsed 
@@ -843,10 +888,11 @@ const CryptoCandyCrushGame: React.FC<CryptoCandyCrushGameProps> = ({ onClose, on
                       ${crypto ? 'bg-white/10' : 'bg-gray-800'}
                       ${isDragging ? 'scale-110 z-10 filter brightness-120 border-neonGreen' : 'border-gray-600 hover:border-white/50'}
                       ${isDropTarget ? 'border-neonGreen bg-neonGreen/10' : ''}
-                      ${gameStarted && !isProcessing && !isLyraDisabled ? 'hover:scale-105' : ''}
+                      ${gameStarted && !isProcessing && !isLyraDisabled && !gameEnded ? 'hover:scale-105' : ''}
                       ${isLyraDisabled ? 'opacity-50 cursor-not-allowed' : ''}
+                      ${gameEnded ? 'opacity-50 cursor-not-allowed' : ''}
                     `}
-                    draggable={gameStarted && !isProcessing && crypto !== null && !isLyraDisabled}
+                    draggable={gameStarted && !isProcessing && crypto !== null && !isLyraDisabled && !gameEnded}
                     onDragStart={(e) => handleDragStart(e, rowIndex, colIndex)}
                     onDragOver={handleDragOver}
                     onDrop={(e) => handleDrop(e, rowIndex, colIndex)}
@@ -863,6 +909,7 @@ const CryptoCandyCrushGame: React.FC<CryptoCandyCrushGameProps> = ({ onClose, on
                           w-full h-full object-contain p-0.5 rounded
                           ${isMatching ? 'filter brightness-150' : ''}
                           ${isLyraDisabled ? 'grayscale opacity-50' : ''}
+                          ${gameEnded ? 'grayscale' : ''}
                         `}
                         draggable={false}
                       />
@@ -881,18 +928,27 @@ const CryptoCandyCrushGame: React.FC<CryptoCandyCrushGameProps> = ({ onClose, on
               onClick={handleStartGame}
               className="w-full bg-neonGreen text-black font-bold py-2 rounded-lg hover:brightness-110 transition duration-300 shadow-glow text-sm"
             >
-              {language === 'ar' ? 'ابدأ اللعبة' : 'Start Game'}
+              {language === 'ar' ? 'ابدأ اللعبة (دقيقتان)' : 'Start Game (2 minutes)'}
             </button>
+          ) : gameEnded ? (
+            <div className="text-center">
+              <div className="text-white font-bold mb-2">
+                {language === 'ar' ? '⏰ انتهت اللعبة!' : '⏰ Game Over!'}
+              </div>
+              <div className="text-neonGreen font-bold text-lg">
+                {language === 'ar' ? `إجمالي الدقائق: ${totalMinutes}` : `Total Minutes: ${totalMinutes}`}
+              </div>
+            </div>
           ) : (
             <div className="space-y-2">
               <button
                 onClick={handleEndGame}
                 disabled={isProcessing}
-                className="w-full bg-neonGreen text-black font-bold py-2 rounded-lg hover:brightness-110 transition duration-300 shadow-glow text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full bg-red-500 text-white font-bold py-2 rounded-lg hover:brightness-110 transition duration-300 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isProcessing 
                   ? (language === 'ar' ? 'جاري الحفظ...' : 'Saving...')
-                  : (language === 'ar' ? 'إنهاء اللعبة' : 'End Game')
+                  : (language === 'ar' ? 'إنهاء اللعبة مبكراً' : 'End Game Early')
                 }
               </button>
               
@@ -932,6 +988,12 @@ const CryptoCandyCrushGame: React.FC<CryptoCandyCrushGameProps> = ({ onClose, on
             {language === 'ar' 
               ? 'المكافآت: 3 عملات = 5 دقائق، 4 عملات = 10 دقائق، 5+ عملات = 15 دقيقة'
               : 'Rewards: 3 match = 5 min, 4 match = 10 min, 5+ match = 15 min'
+            }
+          </p>
+          <p className="text-red-400 font-semibold">
+            {language === 'ar' 
+              ? '⏰ مدة الجلسة: دقيقتان فقط!'
+              : '⏰ Session Duration: 2 minutes only!'
             }
           </p>
         </div>

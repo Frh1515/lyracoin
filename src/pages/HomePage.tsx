@@ -1,12 +1,9 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Clock, Share2, Award, Wallet, Twitter, Users, Star, Trophy } from 'lucide-react';
 import { FaTelegram } from 'react-icons/fa6';
 import { useLanguage } from '../context/LanguageContext';
 import { WalletConnect } from '../components/WalletConnect';
-import { getFixedTasks } from '../../lib/supabase/getFixedTasks';
-import { claimFixedTask } from '../../lib/supabase/claimFixedTask';
-import toast from 'react-hot-toast';
 
 interface HomePageProps {
   userMinutes?: number;
@@ -21,75 +18,6 @@ const HomePage: React.FC<HomePageProps> = ({
 }) => {
   const navigate = useNavigate();
   const { language } = useLanguage();
-  const [fixedTasks, setFixedTasks] = useState<any[]>([]);
-  const [completedTasks, setCompletedTasks] = useState<Set<string>>(new Set());
-  const [claimingTasks, setClaimingTasks] = useState<Set<string>>(new Set());
-  const [tasksLoaded, setTasksLoaded] = useState(false);
-
-  // Load fixed tasks when component mounts
-  React.useEffect(() => {
-    const loadFixedTasks = async () => {
-      try {
-        const { data, error } = await getFixedTasks();
-        if (error) {
-          console.error('Error loading fixed tasks:', error);
-          return;
-        }
-        
-        if (data) {
-          setFixedTasks(data.tasks);
-          const completed = new Set(data.completedTasks.map(ct => ct.fixed_task_id));
-          setCompletedTasks(completed);
-        }
-        setTasksLoaded(true);
-      } catch (error) {
-        console.error('Error loading fixed tasks:', error);
-        setTasksLoaded(true);
-      }
-    };
-
-    loadFixedTasks();
-  }, []);
-
-  const handleClaimTask = async (taskId: string) => {
-    if (claimingTasks.has(taskId) || completedTasks.has(taskId)) return;
-
-    setClaimingTasks(prev => new Set([...prev, taskId]));
-
-    try {
-      const result = await claimFixedTask(taskId);
-      
-      if (result.success) {
-        setCompletedTasks(prev => new Set([...prev, taskId]));
-        toast.success(
-          language === 'ar'
-            ? `🎉 تم إكمال المهمة! +${result.pointsEarned} نقطة`
-            : `🎉 Task completed! +${result.pointsEarned} points`,
-          { 
-            duration: 3000,
-            style: {
-              background: '#00FFAA',
-              color: '#000',
-              fontWeight: 'bold'
-            }
-          }
-        );
-      } else {
-        toast.error(result.message);
-      }
-    } catch (error) {
-      console.error('Error claiming task:', error);
-      toast.error(
-        language === 'ar' ? 'فشل في إكمال المهمة' : 'Failed to complete task'
-      );
-    } finally {
-      setClaimingTasks(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(taskId);
-        return newSet;
-      });
-    }
-  };
 
   const getLevelColor = (level: string) => {
     switch (level) {
@@ -252,64 +180,32 @@ const HomePage: React.FC<HomePageProps> = ({
           <WalletConnect />
         </div>
 
-        {/* Fixed Tasks Section */}
-        {tasksLoaded && fixedTasks.length > 0 && (
-          <div className="bg-black/40 backdrop-blur-sm border border-neonGreen/30 rounded-xl p-6 text-white shadow-[0_0_15px_rgba(0,255,136,0.3)]">
-            <div className="flex items-center gap-3 mb-4">
-              <Star className="w-6 h-6 text-neonGreen" />
+        {/* Minutes Card with promotional text */}
+        <div className="bg-black/40 backdrop-blur-sm border border-neonGreen/30 rounded-xl p-6 text-white shadow-[0_0_15px_rgba(0,255,136,0.3)]">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Clock className="w-6 h-6 text-neonGreen" />
               <h2 className="text-xl font-semibold">
-                {language === 'ar' ? 'المهام الثابتة' : 'Fixed Tasks'}
+                {language === 'ar' ? 'دقائقك' : 'Your Minutes'}
               </h2>
             </div>
-            
-            <div className="space-y-3">
-              {fixedTasks.map((task) => {
-                const isCompleted = completedTasks.has(task.id);
-                const isClaiming = claimingTasks.has(task.id);
-                
-                return (
-                  <div 
-                    key={task.id}
-                    className={`p-4 rounded-lg border transition-all duration-300 ${
-                      isCompleted 
-                        ? 'bg-neonGreen/10 border-neonGreen/30 opacity-75' 
-                        : 'bg-white/5 border-white/10 hover:border-neonGreen/30'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-sm">{task.title}</h3>
-                        <p className="text-xs text-white/60 mt-1">{task.description}</p>
-                        <p className="text-xs text-neonGreen mt-1">
-                          +{task.points_reward} {language === 'ar' ? 'نقطة' : 'points'}
-                        </p>
-                      </div>
-                      
-                      <button
-                        onClick={() => handleClaimTask(task.id)}
-                        disabled={isCompleted || isClaiming}
-                        className={`px-4 py-2 rounded-lg font-medium text-sm transition-all duration-300 ${
-                          isCompleted
-                            ? 'bg-gray-600 text-gray-300 cursor-not-allowed'
-                            : isClaiming
-                            ? 'bg-neonGreen/50 text-black cursor-not-allowed'
-                            : 'bg-neonGreen text-black hover:brightness-110'
-                        }`}
-                      >
-                        {isCompleted 
-                          ? (language === 'ar' ? '✓ مكتمل' : '✓ Completed')
-                          : isClaiming
-                          ? (language === 'ar' ? 'جاري...' : 'Claiming...')
-                          : (language === 'ar' ? 'مطالبة' : 'Claim')
-                        }
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+            <span className="text-2xl font-bold text-neonGreen">{userMinutes}</span>
           </div>
-        )}
+          <p className="mt-2 text-sm text-white/60">
+            {language === 'ar' 
+              ? 'اكسب المزيد من الدقائق عن طريق إكمال المهام ودعوة الأصدقاء'
+              : 'Earn more minutes by completing tasks and inviting friends'}
+          </p>
+          
+          {/* Promotional text for minutes section */}
+          <div className="mt-4 p-3 bg-neonGreen/10 border border-neonGreen/30 rounded-lg">
+            <p className="text-center text-neonGreen font-bold text-sm">
+              {language === 'ar' 
+                ? 'اجمع الدقائق وحولها إلى أموال حقيقية - اشتري LYRA COIN الآن!'
+                : 'Collect minutes and turn them into real money - buy LYRA COIN now!'}
+            </p>
+          </div>
+        </div>
 
         {/* Quick Actions */}
         <div className="grid grid-cols-2 gap-4">
