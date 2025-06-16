@@ -14,6 +14,9 @@ export interface User {
   lyra_balance: number;
   membership_level: string;
   profile_image: string | null;
+  registration_bonus_applied: boolean;
+  daily_game_sessions: number;
+  last_game_session_date: string;
 }
 
 export interface Task {
@@ -22,8 +25,31 @@ export interface Task {
   title: string;
   description: string;
   minutes_reward: number;
+  points_reward: number;
   type: string;
   is_daily: boolean;
+  created_at: string;
+}
+
+export interface FixedTask {
+  id: string;
+  title: string;
+  description: string;
+  points_reward: number;
+  platform: string;
+  task_type: string;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface DailyTask {
+  id: string;
+  title: string;
+  description: string;
+  points_reward: number;
+  platform: string;
+  task_type: string;
+  is_active: boolean;
   created_at: string;
 }
 
@@ -33,6 +59,41 @@ export interface UserTask {
   task_id: string;
   completed_at: string;
   minutes_earned: number;
+  points_earned: number;
+}
+
+export interface UserFixedTask {
+  id: string;
+  user_telegram_id: string;
+  fixed_task_id: string;
+  points_earned: number;
+  completed_at: string;
+}
+
+export interface UserDailyTask {
+  id: string;
+  user_telegram_id: string;
+  daily_task_id: string;
+  points_earned: number;
+  completed_at: string;
+  completion_date: string;
+}
+
+export interface GameSession {
+  id: string;
+  user_telegram_id: string;
+  points_earned: number;
+  session_date: string;
+  created_at: string;
+}
+
+export interface PresalePurchase {
+  id: string;
+  user_telegram_id: string;
+  lyra_units: number;
+  points_earned: number;
+  transaction_hash: string;
+  purchase_date: string;
 }
 
 export interface Referral {

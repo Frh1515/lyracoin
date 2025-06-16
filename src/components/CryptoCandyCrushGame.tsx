@@ -344,6 +344,7 @@ const CryptoCandyCrushGame: React.FC<CryptoCandyCrushGameProps> = ({ onClose, on
         if (group.length >= 3) {
           matchGroups.push(group);
         }
+      
       }
     });
 

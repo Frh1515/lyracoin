@@ -8,9 +8,10 @@ import toast from 'react-hot-toast';
 
 interface ReferralPageProps {
   onMinutesEarned?: (minutes: number) => void;
+  onPointsEarned?: (points: number) => void;
 }
 
-const ReferralsPage: React.FC<ReferralPageProps> = ({ onMinutesEarned }) => {
+const ReferralsPage: React.FC<ReferralPageProps> = ({ onMinutesEarned, onPointsEarned }) => {
   const [stats, setStats] = useState<ReferralStatsSecure | null>(null);
   const [loading, setLoading] = useState(true);
   const [showShareModal, setShowShareModal] = useState(false);
@@ -107,6 +108,24 @@ const ReferralsPage: React.FC<ReferralPageProps> = ({ onMinutesEarned }) => {
         // Update the homepage minutes display
         if (onMinutesEarned && result.minutesEarned) {
           onMinutesEarned(result.minutesEarned);
+        }
+        
+        // Award 30 points for successful referral claim
+        if (onPointsEarned) {
+          onPointsEarned(30);
+          toast.success(
+            language === 'ar'
+              ? `🌟 +30 نقطة للإحالة الناجحة!`
+              : `🌟 +30 points for successful referral!`,
+            { 
+              duration: 3000,
+              style: {
+                background: '#FFD700',
+                color: '#000',
+                fontWeight: 'bold'
+              }
+            }
+          );
         }
         
         // Refresh data
@@ -249,7 +268,7 @@ const ReferralsPage: React.FC<ReferralPageProps> = ({ onMinutesEarned }) => {
                       {language === 'ar' ? 'إحالة مؤكدة' : 'Verified Referral'}
                     </p>
                     <p className="text-white/60 text-sm">
-                      {language === 'ar' ? 'المكافأة: 60 دقيقة' : 'Reward: 60 minutes'}
+                      {language === 'ar' ? 'المكافأة: 60 دقيقة + 30 نقطة' : 'Reward: 60 minutes + 30 points'}
                     </p>
                     <p className="text-white/40 text-xs">
                       {new Date(referral.created_at).toLocaleDateString()}
@@ -326,7 +345,7 @@ const ReferralsPage: React.FC<ReferralPageProps> = ({ onMinutesEarned }) => {
         </div>
 
         {/* Tier Progress */}
-        <div className="bg-white/5 border border-neonGreen/30 rounded-xl p-6">
+        <div className="bg-white/5 border border-neonGreen/30 rounded-xl p-6 mb-8">
           <h2 className="text-lg font-semibold text-white mb-4">
             {language === 'ar' ? 'التقدم نحو المستوى التالي' : 'Next Tier Progress'}
           </h2>
@@ -348,7 +367,7 @@ const ReferralsPage: React.FC<ReferralPageProps> = ({ onMinutesEarned }) => {
         </div>
 
         {/* How it Works */}
-        <div className="bg-white/5 border border-neonGreen/30 rounded-xl p-6 mt-8">
+        <div className="bg-white/5 border border-neonGreen/30 rounded-xl p-6">
           <h2 className="text-lg font-semibold text-white mb-4">
             {language === 'ar' ? 'كيف يعمل النظام' : 'How It Works'}
           </h2>
@@ -375,8 +394,8 @@ const ReferralsPage: React.FC<ReferralPageProps> = ({ onMinutesEarned }) => {
               <span className="text-neonGreen font-bold">3.</span>
               <p>
                 {language === 'ar' 
-                  ? 'اضغط على "مطالبة" لكسب 60 دقيقة لكل إحالة مؤكدة'
-                  : 'Click "Claim" to earn 60 minutes for each verified referral'
+                  ? 'اضغط على "مطالبة" لكسب 60 دقيقة + 30 نقطة لكل إحالة مؤكدة'
+                  : 'Click "Claim" to earn 60 minutes + 30 points for each verified referral'
                 }
               </p>
             </div>

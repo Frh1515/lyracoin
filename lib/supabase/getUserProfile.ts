@@ -9,7 +9,11 @@ export interface UserProfile {
   points: number;
   referral_tier: string;
   lyra_balance: number;
+  membership_level: string;
   profile_image: string | null;
+  registration_bonus_applied: boolean;
+  daily_game_sessions: number;
+  last_game_session_date: string;
 }
 
 export async function getUserProfile(): Promise<{
@@ -38,7 +42,11 @@ export async function getUserProfile(): Promise<{
         points, 
         referral_tier,
         lyra_balance,
-        profile_image
+        membership_level,
+        profile_image,
+        registration_bonus_applied,
+        daily_game_sessions,
+        last_game_session_date
       `)
       .eq('supabase_auth_id', user.id)
       .single();
