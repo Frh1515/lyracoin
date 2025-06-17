@@ -7,6 +7,7 @@ import { useLanguage } from '../context/LanguageContext';
 interface CryptoCandyCrushGameProps {
   onClose: () => void;
   onMinutesEarned?: (minutes: number) => void;
+  gameSessionsRemaining?: number;
 }
 
 type CryptoType = 'bitcoin' | 'ethereum' | 'tether' | 'bnb' | 'cardano' | 'ton' | 'solana' | 'dogecoin' | 'lyra';
@@ -74,25 +75,24 @@ const CRYPTO_LOGOS: CryptoLogo[] = [
 // Regular crypto types (excluding LYRA)
 const REGULAR_CRYPTO_TYPES = CRYPTO_LOGOS.filter(logo => !logo.isSpecial).map(logo => logo.id);
 
-const CryptoCandyCrushGame: React.FC<CryptoCandyCrushGameProps> = ({ onClose, onMinutesEarned }) => {
+const CryptoCandyCrushGame: React.FC<CryptoCandyCrushGameProps> = ({ 
+  onClose, 
+  onMinutesEarned,
+  gameSessionsRemaining = 3
+}) => {
   const [board, setBoard] = useState<GameBoard>([]);
   const [totalMinutes, setTotalMinutes] = useState(0);
   const [gameStarted, setGameStarted] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [showMinutesAnimation, setShowMinutesAnimation] = useState(false);
-  const [draggedItem, setDraggedItem] = useState<{ row: number; col: number } | null>(null);
+  const [firstClickedItem, setFirstClickedItem] = useState<{ row: number; col: number } | null>(null);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [matchingCells, setMatchingCells] = useState<Set<string>>(new Set());
   const [specialEffectCells, setSpecialEffectCells] = useState<Set<string>>(new Set());
   const [lyraUsed, setLyraUsed] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState(GAME_DURATION);
   const [gameEnded, setGameEnded] = useState(false);
-  
-  // Enhanced touch handling states
-  const [touchStartPos, setTouchStartPos] = useState<{ x: number; y: number } | null>(null);
-  const [touchCurrentCell, setTouchCurrentCell] = useState<{ row: number; col: number } | null>(null);
-  const [isTouchDragging, setIsTouchDragging] = useState(false);
-  const [touchSensitivity] = useState(0.3); // Reduced threshold for easier swapping
+  const [isFunSession, setIsFunSession] = useState(false);
   
   const { language } = useLanguage();
 
@@ -471,214 +471,150 @@ const CryptoCandyCrushGame: React.FC<CryptoCandyCrushGameProps> = ({ onClose, on
     );
   };
 
-  // Enhanced touch detection with reduced threshold
-  const isAdjacentTouch = (sourceRow: number, sourceCol: number, targetRow: number, targetCol: number): boolean => {
-    const rowDiff = Math.abs(targetRow - sourceRow);
-    const colDiff = Math.abs(targetCol - sourceCol);
-    
-    // Allow adjacent cells (including diagonal with reduced sensitivity)
-    return (rowDiff <= 1 && colDiff <= 1) && (rowDiff + colDiff > 0);
+  // Check if two cells are adjacent (horizontally or vertically)
+  const isAdjacent = (row1: number, col1: number, row2: number, col2: number): boolean => {
+    const rowDiff = Math.abs(row2 - row1);
+    const colDiff = Math.abs(col2 - col1);
+    return (rowDiff === 1 && colDiff === 0) || (rowDiff === 0 && colDiff === 1);
   };
 
-  // Unified swap function for both mouse and touch with enhanced sensitivity
+  // Handle cell click for the new clicking system
+  const handleClick = (row: number, col: number) => {
+    if (gameEnded || isProcessing) return;
+
+    if (!firstClickedItem) {
+      // First click - select the cell
+      setFirstClickedItem({ row, col });
+      playSwooshSound();
+    } else {
+      // Second click - attempt to swap
+      const { row: firstRow, col: firstCol } = firstClickedItem;
+      
+      if (firstRow === row && firstCol === col) {
+        // Clicked the same cell - deselect
+        setFirstClickedItem(null);
+        return;
+      }
+
+      if (isAdjacent(firstRow, firstCol, row, col)) {
+        // Valid adjacent swap
+        performSwap(firstRow, firstCol, row, col);
+      } else {
+        // Not adjacent - show error and reset selection
+        playBuzzSound();
+        toast.error(
+          language === 'ar' ? 'يجب أن تكون الخلايا متجاورة!' : 'Cells must be adjacent!',
+          { duration: 1000 }
+        );
+      }
+      
+      setFirstClickedItem(null);
+    }
+  };
+
+  // Unified swap function for clicking system
   const performSwap = (sourceRow: number, sourceCol: number, targetRow: number, targetCol: number) => {
     if (gameEnded) return;
 
-    // Enhanced adjacency check with reduced threshold
-    const isAdjacent = isAdjacentTouch(sourceRow, sourceCol, targetRow, targetCol);
-
-    if (isAdjacent && (sourceRow !== targetRow || sourceCol !== targetCol)) {
-      // Store original crypto types before swap
-      const sourceCrypto = board[sourceRow][sourceCol];
-      const targetCrypto = board[targetRow][targetCol];
+    // Store original crypto types before swap
+    const sourceCrypto = board[sourceRow][sourceCol];
+    const targetCrypto = board[targetRow][targetCol];
+    
+    // Check if LYRA COIN is involved in the swap
+    const isLyraSwap = sourceCrypto === 'lyra' || targetCrypto === 'lyra';
+    
+    if (isLyraSwap && !lyraUsed) {
+      // LYRA COIN special interaction - clear all matching crypto
+      const lyraEffectTargetCrypto = sourceCrypto === 'lyra' ? targetCrypto : sourceCrypto;
       
-      // Check if LYRA COIN is involved in the swap
-      const isLyraSwap = sourceCrypto === 'lyra' || targetCrypto === 'lyra';
-      
-      if (isLyraSwap && !lyraUsed) {
-        // LYRA COIN special interaction - clear all matching crypto
-        const lyraEffectTargetCrypto = sourceCrypto === 'lyra' ? targetCrypto : sourceCrypto;
+      if (lyraEffectTargetCrypto && lyraEffectTargetCrypto !== 'lyra') {
+        playBoomSound();
+        setIsProcessing(true);
+        setLyraUsed(true); // Mark LYRA as used
         
-        if (lyraEffectTargetCrypto && lyraEffectTargetCrypto !== 'lyra') {
-          playBoomSound();
-          setIsProcessing(true);
-          setLyraUsed(true); // Mark LYRA as used
-          
-          // Create a copy of the board for the special effect
-          const newBoard = board.map(r => [...r]);
-          
-          // Remove LYRA from the board (single use)
-          if (sourceCrypto === 'lyra') {
-            newBoard[sourceRow][sourceCol] = null;
-          } else {
-            newBoard[targetRow][targetCol] = null;
-          }
-          
-          // Clear all instances of the target crypto type
-          const lyraBonus = clearAllMatchingCrypto(newBoard, lyraEffectTargetCrypto);
-          
-          toast.success(
-            language === 'ar'
-              ? `💥 LYRA COIN مسح جميع ${lyraEffectTargetCrypto}! +${lyraBonus} دقيقة!`
-              : `💥 LYRA COIN cleared all ${lyraEffectTargetCrypto}! +${lyraBonus} minutes!`,
-            { 
-              duration: 3000,
-              style: {
-                background: '#FFD700',
-                color: '#000',
-                fontWeight: 'bold'
-              }
-            }
-          );
-          
-          // Update total minutes
-          setTotalMinutes(prev => prev + lyraBonus);
-          
-          // Show animation
-          setShowMinutesAnimation(true);
-          setTimeout(() => setShowMinutesAnimation(false), 1000);
-          
-          // Wait for special effect animation, then fill empty spaces
-          setTimeout(() => {
-            fillEmptySpaces(newBoard);
-            setBoard(newBoard);
-            
-            // Check for possible moves after the effect
-            setTimeout(() => {
-              if (!hasPossibleMoves(newBoard)) {
-                shuffleBoard();
-              }
-              setIsProcessing(false);
-            }, 500);
-          }, 1000);
-          
+        // Create a copy of the board for the special effect
+        const newBoard = board.map(r => [...r]);
+        
+        // Remove LYRA from the board (single use)
+        if (sourceCrypto === 'lyra') {
+          newBoard[sourceRow][sourceCol] = null;
         } else {
-          playBuzzSound();
-          toast.error(
-            language === 'ar' ? 'لا يمكن تبديل LYRA مع LYRA!' : 'Cannot swap LYRA with LYRA!',
-            { duration: 1000 }
-          );
+          newBoard[targetRow][targetCol] = null;
         }
-      } else if (isLyraSwap && lyraUsed) {
-        // LYRA has already been used
+        
+        // Clear all instances of the target crypto type
+        const lyraBonus = clearAllMatchingCrypto(newBoard, lyraEffectTargetCrypto);
+        
+        toast.success(
+          language === 'ar'
+            ? `💥 LYRA COIN مسح جميع ${lyraEffectTargetCrypto}! +${lyraBonus} دقيقة!`
+            : `💥 LYRA COIN cleared all ${lyraEffectTargetCrypto}! +${lyraBonus} minutes!`,
+          { 
+            duration: 3000,
+            style: {
+              background: '#FFD700',
+              color: '#000',
+              fontWeight: 'bold'
+            }
+          }
+        );
+        
+        // Update total minutes
+        setTotalMinutes(prev => prev + lyraBonus);
+        
+        // Show animation
+        setShowMinutesAnimation(true);
+        setTimeout(() => setShowMinutesAnimation(false), 1000);
+        
+        // Wait for special effect animation, then fill empty spaces
+        setTimeout(() => {
+          fillEmptySpaces(newBoard);
+          setBoard(newBoard);
+          
+          // Check for possible moves after the effect
+          setTimeout(() => {
+            if (!hasPossibleMoves(newBoard)) {
+              shuffleBoard();
+            }
+            setIsProcessing(false);
+          }, 500);
+        }, 1000);
+        
+      } else {
         playBuzzSound();
         toast.error(
-          language === 'ar' ? 'تم استخدام LYRA COIN بالفعل!' : 'LYRA COIN already used!',
+          language === 'ar' ? 'لا يمكن تبديل LYRA مع LYRA!' : 'Cannot swap LYRA with LYRA!',
           { duration: 1000 }
         );
-      } else {
-        // Normal swap logic
-        const newBoard = board.map(r => [...r]);
-        [newBoard[targetRow][targetCol], newBoard[sourceRow][sourceCol]] = 
-        [newBoard[sourceRow][sourceCol], newBoard[targetRow][targetCol]];
-
-        // Check if swap creates matches
-        const matchesFound = findMatches(newBoard).length > 0;
-        
-        if (matchesFound) {
-          playChimeSound();
-          setIsProcessing(true);
-          processMatches(newBoard);
-        } else {
-          playBuzzSound();
-          toast.error(
-            language === 'ar' ? 'حركة غير صالحة!' : 'Invalid move!',
-            { duration: 1000 }
-          );
-        }
       }
-    } else {
+    } else if (isLyraSwap && lyraUsed) {
+      // LYRA has already been used
       playBuzzSound();
-    }
-  };
+      toast.error(
+        language === 'ar' ? 'تم استخدام LYRA COIN بالفعل!' : 'LYRA COIN already used!',
+        { duration: 1000 }
+      );
+    } else {
+      // Normal swap logic
+      const newBoard = board.map(r => [...r]);
+      [newBoard[targetRow][targetCol], newBoard[sourceRow][sourceCol]] = 
+      [newBoard[sourceRow][sourceCol], newBoard[targetRow][targetCol]];
 
-  // Enhanced touch event handlers with improved sensitivity
-  const handleTouchStart = (e: React.TouchEvent, row: number, col: number) => {
-    if (!gameStarted || isProcessing || gameEnded) return;
-    
-    e.preventDefault();
-    const touch = e.touches[0];
-    setTouchStartPos({ x: touch.clientX, y: touch.clientY });
-    setDraggedItem({ row, col });
-    setTouchCurrentCell({ row, col });
-    setIsTouchDragging(false);
-    playSwooshSound();
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (!draggedItem || !gameStarted || isProcessing || gameEnded) return;
-    
-    e.preventDefault();
-    setIsTouchDragging(true);
-    
-    const touch = e.touches[0];
-    const elementUnderTouch = document.elementFromPoint(touch.clientX, touch.clientY);
-    
-    if (elementUnderTouch) {
-      const row = elementUnderTouch.getAttribute('data-row');
-      const col = elementUnderTouch.getAttribute('data-col');
+      // Check if swap creates matches
+      const matchesFound = findMatches(newBoard).length > 0;
       
-      if (row !== null && col !== null) {
-        const newRow = parseInt(row);
-        const newCol = parseInt(col);
-        
-        if (newRow >= 0 && newRow < BOARD_SIZE && newCol >= 0 && newCol < BOARD_SIZE) {
-          setTouchCurrentCell({ row: newRow, col: newCol });
-        }
+      if (matchesFound) {
+        playChimeSound();
+        setIsProcessing(true);
+        processMatches(newBoard);
+      } else {
+        playBuzzSound();
+        toast.error(
+          language === 'ar' ? 'حركة غير صالحة!' : 'Invalid move!',
+          { duration: 1000 }
+        );
       }
     }
-  };
-
-  const handleTouchEnd = (e: React.TouchEvent) => {
-    if (!draggedItem || !gameStarted || isProcessing || gameEnded) return;
-    
-    e.preventDefault();
-    
-    if (isTouchDragging && touchCurrentCell && draggedItem) {
-      const { row: sourceRow, col: sourceCol } = draggedItem;
-      const { row: targetRow, col: targetCol } = touchCurrentCell;
-      
-      if (sourceRow !== targetRow || sourceCol !== targetCol) {
-        performSwap(sourceRow, sourceCol, targetRow, targetCol);
-      }
-    }
-    
-    // Reset touch states
-    setDraggedItem(null);
-    setTouchStartPos(null);
-    setTouchCurrentCell(null);
-    setIsTouchDragging(false);
-  };
-
-  // Drag and drop handlers (for desktop)
-  const handleDragStart = (e: React.DragEvent, row: number, col: number) => {
-    if (!gameStarted || isProcessing || gameEnded) return;
-    
-    setDraggedItem({ row, col });
-    playSwooshSound();
-    
-    // Add visual feedback
-    e.dataTransfer.effectAllowed = 'move';
-    e.dataTransfer.setData('text/plain', `${row}-${col}`);
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-  };
-
-  const handleDrop = (e: React.DragEvent, targetRow: number, targetCol: number) => {
-    e.preventDefault();
-    
-    if (!draggedItem || !gameStarted || isProcessing || gameEnded) return;
-
-    const { row: sourceRow, col: sourceCol } = draggedItem;
-    performSwap(sourceRow, sourceCol, targetRow, targetCol);
-    setDraggedItem(null);
-  };
-
-  const handleDragEnd = () => {
-    setDraggedItem(null);
   };
 
   // Process matches and cascading effects
@@ -743,14 +679,27 @@ const CryptoCandyCrushGame: React.FC<CryptoCandyCrushGameProps> = ({ onClose, on
     setGameStarted(true);
     setGameEnded(false);
     setTotalMinutes(0);
-    setDraggedItem(null);
+    setFirstClickedItem(null);
     setLyraUsed(false);
     setTimeRemaining(GAME_DURATION);
     
-    toast.success(
-      language === 'ar' ? 'بدأت اللعبة! لديك دقيقتان للعب' : 'Game started! You have 2 minutes to play',
-      { duration: 3000 }
-    );
+    // Check if this is a fun session (no sessions remaining)
+    const isFun = gameSessionsRemaining <= 0;
+    setIsFunSession(isFun);
+    
+    if (isFun) {
+      toast.info(
+        language === 'ar' 
+          ? 'هذه جلسة للمتعة فقط ولا تحتسب في تقدمك' 
+          : 'This session is for fun only and does not count toward your progress',
+        { duration: 4000 }
+      );
+    } else {
+      toast.success(
+        language === 'ar' ? 'بدأت اللعبة! لديك دقيقتان للعب' : 'Game started! You have 2 minutes to play',
+        { duration: 3000 }
+      );
+    }
   };
 
   // End game and save minutes
@@ -759,10 +708,19 @@ const CryptoCandyCrushGame: React.FC<CryptoCandyCrushGameProps> = ({ onClose, on
     
     setGameEnded(true);
     
-    if (totalMinutes === 0) {
-      toast.info(
-        language === 'ar' ? 'لم تكسب أي دقائق!' : 'No minutes earned!'
-      );
+    // If it's a fun session or no minutes earned, just close
+    if (isFunSession || totalMinutes === 0) {
+      if (isFunSession) {
+        toast.info(
+          language === 'ar' 
+            ? 'انتهت جلسة المتعة! شكراً لك على اللعب' 
+            : 'Fun session ended! Thanks for playing'
+        );
+      } else {
+        toast.info(
+          language === 'ar' ? 'لم تكسب أي دقائق!' : 'No minutes earned!'
+        );
+      }
       setTimeout(() => onClose(), 2000);
       return;
     }
@@ -857,6 +815,18 @@ const CryptoCandyCrushGame: React.FC<CryptoCandyCrushGameProps> = ({ onClose, on
           </div>
         </div>
 
+        {/* Fun Session Indicator */}
+        {gameStarted && !gameEnded && isFunSession && (
+          <div className="mb-3 text-center">
+            <div className="inline-block px-3 py-1 rounded-lg font-semibold text-xs bg-purple-500/20 border border-purple-500/30 text-purple-400">
+              {language === 'ar' 
+                ? '🎮 جلسة للمتعة فقط - لا تحتسب في التقدم'
+                : '🎮 Fun Session Only - No Progress Counted'
+              }
+            </div>
+          </div>
+        )}
+
         {/* LYRA Status Indicator */}
         {gameStarted && !gameEnded && (
           <div className="mb-3 text-center">
@@ -881,33 +851,22 @@ const CryptoCandyCrushGame: React.FC<CryptoCandyCrushGameProps> = ({ onClose, on
                 const cryptoLogo = getCryptoLogo(crypto);
                 const cellKey = `${rowIndex}-${colIndex}`;
                 const isMatching = matchingCells.has(cellKey);
-                const isDragging = draggedItem?.row === rowIndex && draggedItem?.col === colIndex;
-                const isDropTarget = touchCurrentCell?.row === rowIndex && touchCurrentCell?.col === colIndex && isTouchDragging;
+                const isSelected = firstClickedItem?.row === rowIndex && firstClickedItem?.col === colIndex;
                 const isLyra = crypto === 'lyra';
                 const isLyraDisabled = isLyra && lyraUsed;
                 
                 return (
                   <div
                     key={cellKey}
-                    data-row={rowIndex}
-                    data-col={colIndex}
                     className={`
                       w-8 h-8 rounded border cursor-pointer transition-all duration-200 relative
                       ${crypto ? 'bg-white/10' : 'bg-gray-800'}
-                      ${isDragging ? 'scale-110 z-10 filter brightness-120 border-neonGreen' : 'border-gray-600 hover:border-white/50'}
-                      ${isDropTarget ? 'border-neonGreen bg-neonGreen/10' : ''}
+                      ${isSelected ? 'scale-110 z-10 filter brightness-120 border-neonGreen bg-neonGreen/20' : 'border-gray-600 hover:border-white/50'}
                       ${gameStarted && !isProcessing && !isLyraDisabled && !gameEnded ? 'hover:scale-105' : ''}
                       ${isLyraDisabled ? 'opacity-50 cursor-not-allowed' : ''}
                       ${gameEnded ? 'opacity-50 cursor-not-allowed' : ''}
                     `}
-                    draggable={gameStarted && !isProcessing && crypto !== null && !isLyraDisabled && !gameEnded}
-                    onDragStart={(e) => handleDragStart(e, rowIndex, colIndex)}
-                    onDragOver={handleDragOver}
-                    onDrop={(e) => handleDrop(e, rowIndex, colIndex)}
-                    onDragEnd={handleDragEnd}
-                    onTouchStart={(e) => handleTouchStart(e, rowIndex, colIndex)}
-                    onTouchMove={handleTouchMove}
-                    onTouchEnd={handleTouchEnd}
+                    onClick={() => handleClick(rowIndex, colIndex)}
                   >
                     {cryptoLogo && (
                       <img
@@ -946,6 +905,11 @@ const CryptoCandyCrushGame: React.FC<CryptoCandyCrushGameProps> = ({ onClose, on
               <div className="text-neonGreen font-bold text-lg">
                 {language === 'ar' ? `إجمالي الدقائق: ${totalMinutes}` : `Total Minutes: ${totalMinutes}`}
               </div>
+              {isFunSession && (
+                <div className="text-purple-400 text-sm mt-2">
+                  {language === 'ar' ? 'جلسة للمتعة - لم يتم حفظ الدقائق' : 'Fun session - minutes not saved'}
+                </div>
+              )}
             </div>
           ) : (
             <div className="space-y-2">
@@ -976,14 +940,14 @@ const CryptoCandyCrushGame: React.FC<CryptoCandyCrushGameProps> = ({ onClose, on
         <div className="mt-3 text-center text-white/60 text-xs space-y-1">
           <p>
             {language === 'ar' 
-              ? 'اسحب وأفلت لتجميع 3+ من نفس العملة!'
-              : 'Drag & drop to match 3+ same cryptos!'
+              ? 'انقر على خليتين متجاورتين لتبديلهما وتجميع 3+ من نفس العملة!'
+              : 'Click two adjacent cells to swap and match 3+ same cryptos!'
             }
           </p>
           <p className="text-yellow-400 font-semibold">
             {language === 'ar' 
-              ? '🌟 LYRA: استخدام واحد! اسحبه لأي عملة لمسح الكل!'
-              : '🌟 LYRA: Single use! Drag to any crypto to clear all!'
+              ? '🌟 LYRA: استخدام واحد! انقر عليه ثم على أي عملة لمسح الكل!'
+              : '🌟 LYRA: Single use! Click it then any crypto to clear all!'
             }
           </p>
           <p className="text-neonGreen">
@@ -1004,6 +968,14 @@ const CryptoCandyCrushGame: React.FC<CryptoCandyCrushGameProps> = ({ onClose, on
               : '⏰ Session Duration: 2 minutes only!'
             }
           </p>
+          {isFunSession && (
+            <p className="text-purple-400 font-semibold">
+              {language === 'ar' 
+                ? '🎮 جلسة للمتعة - لا تحتسب في التقدم!'
+                : '🎮 Fun session - does not count toward progress!'
+              }
+            </p>
+          )}
         </div>
       </div>
     </div>

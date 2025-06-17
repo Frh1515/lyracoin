@@ -22,7 +22,8 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
   const [completedDailyTasks, setCompletedDailyTasks] = useState<Set<string>>(new Set());
   const [completedFixedTasks, setCompletedFixedTasks] = useState<Set<string>>(new Set());
   const [claimingTasks, setClaimingTasks] = useState<Set<string>>(new Set());
-  const [startingTasks, setStartingTasks] = useState<Set<string>>(new Set());
+  const [taskTimers, setTaskTimers] = useState<Map<string, NodeJS.Timeout>>(new Map());
+  const [taskStartedTimes, setTaskStartedTimes] = useState<Map<string, number>>(new Map());
   const [tasksLoaded, setTasksLoaded] = useState(false);
   const [gameSessionsRemaining, setGameSessionsRemaining] = useState(3);
   const { language } = useLanguage();
@@ -61,17 +62,27 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
     loadTasks();
   }, []);
 
+  // Cleanup timers on unmount
+  useEffect(() => {
+    return () => {
+      taskTimers.forEach(timer => clearTimeout(timer));
+    };
+  }, [taskTimers]);
+
   const handleStartTask = (taskId: string, taskType: 'daily' | 'fixed') => {
-    setStartingTasks(prev => new Set([...prev, taskId]));
+    const startTime = Date.now();
+    setTaskStartedTimes(prev => new Map(prev.set(taskId, startTime)));
     
-    // After 30 seconds, change to claim button
-    setTimeout(() => {
-      setStartingTasks(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(taskId);
-        return newSet;
+    // Start 30-second timer
+    const timer = setTimeout(() => {
+      setTaskTimers(prev => {
+        const newMap = new Map(prev);
+        newMap.delete(taskId);
+        return newMap;
       });
     }, 30000);
+    
+    setTaskTimers(prev => new Map(prev.set(taskId, timer)));
   };
 
   const handleClaimTask = async (taskId: string, taskType: 'daily' | 'fixed') => {
@@ -303,13 +314,16 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
       ? completedDailyTasks.has(taskId) 
       : completedFixedTasks.has(taskId);
     const isClaiming = claimingTasks.has(taskId);
-    const isStarting = startingTasks.has(taskId);
+    const hasTimer = taskTimers.has(taskId);
+    const startTime = taskStartedTimes.get(taskId);
+    const hasWaited = startTime && (Date.now() - startTime >= 30000);
 
     if (isCompleted) {
       return {
         text: language === 'ar' ? '✓ مكتمل' : '✓ Completed',
         className: 'bg-gray-600 text-gray-300 cursor-not-allowed opacity-75',
-        disabled: true
+        disabled: true,
+        showGlow: false
       };
     }
 
@@ -317,25 +331,34 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
       return {
         text: language === 'ar' ? 'جاري...' : 'Claiming...',
         className: 'bg-neonGreen/50 text-black cursor-not-allowed',
-        disabled: true
+        disabled: true,
+        showGlow: false
       };
     }
 
-    if (isStarting) {
+    if (hasTimer || (startTime && !hasWaited)) {
       return {
         text: language === 'ar' ? 'ابدأ المهمة' : 'Start Task',
-        className: 'bg-neonGreen text-black cursor-not-allowed',
-        disabled: true
+        className: 'bg-neonGreen/50 text-black cursor-not-allowed',
+        disabled: true,
+        showGlow: false
       };
     }
 
-    // Check if task was started (30 seconds passed)
-    const wasStarted = !startingTasks.has(taskId) && !isCompleted;
-    
+    if (startTime && hasWaited) {
+      return {
+        text: language === 'ar' ? 'مطالبة' : 'Claim',
+        className: 'bg-neonGreen text-black hover:brightness-110 animate-pulse shadow-[0_0_15px_rgba(0,255,136,0.5)]',
+        disabled: false,
+        showGlow: true
+      };
+    }
+
     return {
-      text: wasStarted ? (language === 'ar' ? 'مطالبة' : 'Claim') : (language === 'ar' ? 'ابدأ المهمة' : 'Start Task'),
+      text: language === 'ar' ? 'ابدأ المهمة' : 'Start Task',
       className: 'bg-neonGreen text-black hover:brightness-110',
-      disabled: false
+      disabled: false,
+      showGlow: false
     };
   };
 
@@ -346,6 +369,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
         <CryptoCandyCrushGame 
           onClose={handleGameClose} 
           onMinutesEarned={onMinutesEarned}
+          gameSessionsRemaining={gameSessionsRemaining}
         />
       )}
 
@@ -387,8 +411,8 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
           </p>
           <p className="text-xs text-white/60 mb-4">
             {language === 'ar' 
-              ? 'اسحب وأفلت لتجميع 3 أو أكثر من نفس العملة • 20 نقطة لأول 3 جلسات يومياً • دقائق لا محدودة • مدة الجلسة: دقيقتان'
-              : 'Drag & drop to match 3+ same cryptos • 20 points for first 3 daily sessions • Unlimited minutes • Session duration: 2 minutes'
+              ? 'انقر على خليتين متجاورتين لتبديلهما • 20 نقطة لأول 3 جلسات يومياً • دقائق لا محدودة • مدة الجلسة: دقيقتان'
+              : 'Click two adjacent cells to swap • 20 points for first 3 daily sessions • Unlimited minutes • Session duration: 2 minutes'
             }
           </p>
           
@@ -542,8 +566,8 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
             </li>
             <li>
               {language === 'ar' 
-                ? '• انقر "ابدأ المهمة" ثم انتظر 30 ثانية لتظهر "مطالبة"'
-                : '• Click "Start Task" then wait 30 seconds for "Claim" to appear'
+                ? '• انقر "ابدأ المهمة" ثم انتظر 30 ثانية لتظهر "مطالبة" مع تأثير بصري'
+                : '• Click "Start Task" then wait 30 seconds for "Claim" to appear with visual effect'
               }
             </li>
             <li>
