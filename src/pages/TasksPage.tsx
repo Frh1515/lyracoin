@@ -24,6 +24,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
   const [claimingTasks, setClaimingTasks] = useState<Set<string>>(new Set());
   const [taskTimers, setTaskTimers] = useState<Map<string, NodeJS.Timeout>>(new Map());
   const [taskStartedTimes, setTaskStartedTimes] = useState<Map<string, number>>(new Map());
+  const [taskCountdowns, setTaskCountdowns] = useState<Map<string, number>>(new Map());
   const [tasksLoaded, setTasksLoaded] = useState(false);
   const [gameSessionsRemaining, setGameSessionsRemaining] = useState(3);
   const { language } = useLanguage();
@@ -69,6 +70,27 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
     };
   }, [taskTimers]);
 
+  // Update countdown timers
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTaskCountdowns(prev => {
+        const newCountdowns = new Map(prev);
+        let hasChanges = false;
+        
+        newCountdowns.forEach((countdown, taskId) => {
+          if (countdown > 0) {
+            newCountdowns.set(taskId, countdown - 1);
+            hasChanges = true;
+          }
+        });
+        
+        return hasChanges ? newCountdowns : prev;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
+
   const handleStartTask = (taskId: string, taskType: 'daily' | 'fixed', taskLink?: string) => {
     // If there's a link, open it
     if (taskLink) {
@@ -77,10 +99,16 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
 
     const startTime = Date.now();
     setTaskStartedTimes(prev => new Map(prev.set(taskId, startTime)));
+    setTaskCountdowns(prev => new Map(prev.set(taskId, 30)));
     
     // Start 30-second timer
     const timer = setTimeout(() => {
       setTaskTimers(prev => {
+        const newMap = new Map(prev);
+        newMap.delete(taskId);
+        return newMap;
+      });
+      setTaskCountdowns(prev => {
         const newMap = new Map(prev);
         newMap.delete(taskId);
         return newMap;
@@ -320,13 +348,14 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
       : completedFixedTasks.has(taskId);
     const isClaiming = claimingTasks.has(taskId);
     const hasTimer = taskTimers.has(taskId);
+    const countdown = taskCountdowns.get(taskId);
     const startTime = taskStartedTimes.get(taskId);
     const hasWaited = startTime && (Date.now() - startTime >= 30000);
 
     if (isCompleted) {
       return {
         text: language === 'ar' ? '✓ مكتمل' : '✓ Completed',
-        className: 'bg-gray-600 text-gray-300 cursor-not-allowed opacity-75',
+        className: 'bg-gray-600 text-gray-300 cursor-not-allowed opacity-50',
         disabled: true,
         showGlow: false
       };
@@ -334,17 +363,17 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
 
     if (isClaiming) {
       return {
-        text: language === 'ar' ? 'جاري...' : 'Claiming...',
+        text: language === 'ar' ? 'جاري المطالبة...' : 'Claiming...',
         className: 'bg-neonGreen/50 text-black cursor-not-allowed',
         disabled: true,
         showGlow: false
       };
     }
 
-    if (hasTimer || (startTime && !hasWaited)) {
+    if (hasTimer && countdown !== undefined && countdown > 0) {
       return {
-        text: language === 'ar' ? 'ابدأ المهمة' : 'Start Task',
-        className: 'bg-neonGreen/50 text-black cursor-not-allowed',
+        text: `${countdown}s`,
+        className: 'bg-yellow-400/50 text-black cursor-not-allowed',
         disabled: true,
         showGlow: false
       };
@@ -446,7 +475,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
                 key={task.id}
                 className={`p-4 backdrop-blur-sm border rounded-xl text-white transition-all duration-300 ${
                   isCompleted
-                    ? `bg-neonGreen/10 ${task.borderColor} opacity-75` 
+                    ? `bg-neonGreen/10 ${task.borderColor} opacity-50` 
                     : `bg-black/40 ${task.borderColor} ${task.glow} hover:scale-105 hover:brightness-110`
                 }`}
               >
@@ -493,13 +522,14 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
             {dailyTasks.map((task, index) => {
               const platform = platforms[index % platforms.length];
               const buttonConfig = getTaskButton(task.id, 'daily');
+              const isCompleted = completedDailyTasks.has(task.id);
               
               return (
                 <div
                   key={task.id}
                   className={`p-4 backdrop-blur-sm border rounded-xl text-white transition-all duration-300 ${
-                    completedDailyTasks.has(task.id)
-                      ? `bg-neonGreen/10 ${platform.borderColor} opacity-75` 
+                    isCompleted
+                      ? `bg-neonGreen/10 ${platform.borderColor} opacity-50` 
                       : `bg-black/40 ${platform.borderColor} ${platform.glow} hover:scale-105 hover:brightness-110`
                   }`}
                 >
@@ -571,6 +601,12 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
               {language === 'ar' 
                 ? '• المهام الثابتة تعطي 20 نقطة + 20 دقيقة، المهام اليومية تعطي 10 نقاط + 10 دقائق'
                 : '• Fixed tasks give 20 points + 20 minutes, daily tasks give 10 points + 10 minutes'
+              }
+            </li>
+            <li>
+              {language === 'ar' 
+                ? '• بعد المطالبة بالمهمة، لا يمكن المطالبة بها مرة أخرى'
+                : '• After claiming a task, it cannot be claimed again'
               }
             </li>
           </ul>
