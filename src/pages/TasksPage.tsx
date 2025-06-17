@@ -36,6 +36,11 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
         const { data: dailyData, error: dailyError } = await getDailyTasks();
         if (dailyError) {
           console.error('Error loading daily tasks:', dailyError);
+          toast.error(
+            language === 'ar' 
+              ? 'فشل في تحميل المهام اليومية' 
+              : 'Failed to load daily tasks'
+          );
         } else if (dailyData) {
           setDailyTasks(dailyData.tasks);
           const completedDaily = new Set(dailyData.completedTasks.map(ct => ct.daily_task_id));
@@ -46,6 +51,11 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
         const { data: fixedData, error: fixedError } = await getFixedTasks();
         if (fixedError) {
           console.error('Error loading fixed tasks:', fixedError);
+          toast.error(
+            language === 'ar' 
+              ? 'فشل في تحميل المهام الثابتة' 
+              : 'Failed to load fixed tasks'
+          );
         } else if (fixedData) {
           setFixedTasks(fixedData.tasks);
           const completedFixed = new Set(fixedData.completedTasks.map(ct => ct.fixed_task_id));
@@ -55,12 +65,17 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
         setTasksLoaded(true);
       } catch (error) {
         console.error('Error loading tasks:', error);
+        toast.error(
+          language === 'ar' 
+            ? 'حدث خطأ في تحميل المهام' 
+            : 'Error loading tasks'
+        );
         setTasksLoaded(true);
       }
     };
 
     loadTasks();
-  }, []);
+  }, [language]);
 
   // Cleanup timers on unmount
   useEffect(() => {
@@ -79,6 +94,18 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
   }, []);
 
   const handleStartTask = (taskId: string, taskType: 'daily' | 'fixed', taskLink?: string) => {
+    // Check if task is already completed
+    const isCompleted = taskType === 'daily' 
+      ? completedDailyTasks.has(taskId) 
+      : completedFixedTasks.has(taskId);
+    
+    if (isCompleted) {
+      toast.info(
+        language === 'ar' ? 'تم إكمال هذه المهمة بالفعل' : 'This task is already completed'
+      );
+      return;
+    }
+
     // If there's a link, open it
     if (taskLink) {
       window.open(taskLink, '_blank');
@@ -97,6 +124,13 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
     }, 30000);
     
     setTaskTimers(prev => new Map(prev.set(taskId, timer)));
+
+    toast.success(
+      language === 'ar' 
+        ? 'تم بدء المهمة! انتظر 30 ثانية ثم اضغط على "مطالبة"' 
+        : 'Task started! Wait 30 seconds then click "Claim"',
+      { duration: 3000 }
+    );
   };
 
   const handleClaimTask = async (taskId: string, taskType: 'daily' | 'fixed') => {
@@ -106,7 +140,23 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
       ? completedDailyTasks.has(taskId) 
       : completedFixedTasks.has(taskId);
     
-    if (isCompleted) return;
+    if (isCompleted) {
+      toast.info(
+        language === 'ar' ? 'تم إكمال هذه المهمة بالفعل' : 'This task is already completed'
+      );
+      return;
+    }
+
+    // Check if 30 seconds have passed
+    const startTime = taskStartedTimes.get(taskId);
+    if (!startTime || (Date.now() - startTime < 30000)) {
+      toast.error(
+        language === 'ar' 
+          ? 'يجب انتظار 30 ثانية قبل المطالبة بالمهمة' 
+          : 'You must wait 30 seconds before claiming the task'
+      );
+      return;
+    }
 
     setClaimingTasks(prev => new Set([...prev, taskId]));
 
@@ -116,17 +166,19 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
         : await claimFixedTask(taskId);
       
       if (result.success) {
+        // Mark task as completed
         if (taskType === 'daily') {
           setCompletedDailyTasks(prev => new Set([...prev, taskId]));
         } else {
           setCompletedFixedTasks(prev => new Set([...prev, taskId]));
         }
 
+        // Award points
         if (onPointsEarned && result.pointsEarned) {
           onPointsEarned(result.pointsEarned);
         }
 
-        // Award minutes for tasks (20 minutes for fixed tasks, 10 minutes for daily tasks)
+        // Award minutes (20 minutes for fixed tasks, 10 minutes for daily tasks)
         const minutesEarned = taskType === 'fixed' ? 20 : 10;
         if (onMinutesEarned) {
           onMinutesEarned(minutesEarned);
@@ -153,7 +205,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
             ? `🎉 تم إكمال المهمة! +${result.pointsEarned} نقطة و +${minutesEarned} دقيقة`
             : `🎉 Task completed! +${result.pointsEarned} points & +${minutesEarned} minutes`,
           { 
-            duration: 3000,
+            duration: 4000,
             style: {
               background: '#00FFAA',
               color: '#000',
@@ -162,12 +214,19 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
           }
         );
       } else {
-        toast.error(result.message);
+        console.error('Task claim failed:', result.message);
+        toast.error(
+          language === 'ar' 
+            ? `فشل في المطالبة: ${result.message}` 
+            : `Claim failed: ${result.message}`
+        );
       }
     } catch (error) {
       console.error('Error claiming task:', error);
       toast.error(
-        language === 'ar' ? 'فشل في إكمال المهمة' : 'Failed to complete task'
+        language === 'ar' 
+          ? 'حدث خطأ أثناء المطالبة بالمهمة. تأكد من اتصالك بالإنترنت وحاول مرة أخرى.' 
+          : 'An error occurred while claiming the task. Check your internet connection and try again.'
       );
     } finally {
       setClaimingTasks(prev => {
@@ -339,7 +398,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
     }
   ];
 
-  const getTaskButton = (taskId: string, taskType: 'daily' | 'fixed', isFixedWithLink = false) => {
+  const getTaskButton = (taskId: string, taskType: 'daily' | 'fixed') => {
     const isCompleted = taskType === 'daily' 
       ? completedDailyTasks.has(taskId) 
       : completedFixedTasks.has(taskId);
@@ -367,8 +426,9 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
 
     // If timer is running (within 30 seconds)
     if (startTime && !hasWaited) {
+      const remainingTime = Math.ceil((30000 - (Date.now() - startTime)) / 1000);
       return {
-        text: language === 'ar' ? 'انتظر...' : 'Wait...',
+        text: language === 'ar' ? `انتظر ${remainingTime}ث` : `Wait ${remainingTime}s`,
         className: 'bg-yellow-400/50 text-black cursor-not-allowed',
         disabled: true,
         showGlow: false
@@ -393,6 +453,16 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
       showGlow: false
     };
   };
+
+  if (!tasksLoaded) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-[#041e11] via-[#051a13] to-[#040d0c]">
+        <div className="text-white animate-pulse">
+          {language === 'ar' ? 'جاري تحميل المهام...' : 'Loading tasks...'}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen pb-24 bg-gradient-to-b from-[#041e11] via-[#051a13] to-[#040d0c]">
@@ -465,7 +535,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {fixedTasksWithLinks.map((task) => {
-            const buttonConfig = getTaskButton(task.id, 'fixed', true);
+            const buttonConfig = getTaskButton(task.id, 'fixed');
             const isCompleted = completedFixedTasks.has(task.id);
             
             return (
@@ -568,37 +638,37 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
       <div className="mt-8 px-6">
         <div className="bg-black/40 backdrop-blur-sm border border-neonGreen/30 rounded-xl p-4">
           <h4 className="text-white font-semibold mb-2">
-            {language === 'ar' ? 'ℹ️ معلومات مهمة' : 'ℹ️ Important Information'}
+            {language === 'ar' ? 'ℹ️ كيفية إكمال المهام' : 'ℹ️ How to Complete Tasks'}
           </h4>
           <ul className="text-sm text-white/70 space-y-1">
             <li>
               {language === 'ar' 
-                ? '• النقاط والدقائق منفصلة - النقاط تحدد المستوى، الدقائق للمكافآت'
-                : '• Points and minutes are separate - points determine level, minutes for rewards'
+                ? '1. اضغط على "ابدأ المهمة" لفتح الرابط وبدء العد التنازلي'
+                : '1. Click "Start Task" to open the link and start the countdown'
               }
             </li>
             <li>
               {language === 'ar' 
-                ? '• المهام اليومية تتجدد كل 24 ساعة'
-                : '• Daily tasks reset every 24 hours'
+                ? '2. انتظر 30 ثانية حتى يظهر زر "مطالبة" مع تأثير بصري'
+                : '2. Wait 30 seconds for the "Claim" button to appear with visual effect'
               }
             </li>
             <li>
               {language === 'ar' 
-                ? '• يمكنك لعب جلسات لا محدودة، لكن أول 3 جلسات فقط تعطي نقاط'
-                : '• You can play unlimited sessions, but only first 3 daily sessions give points'
+                ? '3. اضغط على "مطالبة" لاستلام النقاط والدقائق'
+                : '3. Click "Claim" to receive points and minutes'
               }
             </li>
             <li>
               {language === 'ar' 
-                ? '• المهام الثابتة تعطي 20 نقطة + 20 دقيقة، المهام اليومية تعطي 10 نقاط + 10 دقائق'
-                : '• Fixed tasks give 20 points + 20 minutes, daily tasks give 10 points + 10 minutes'
+                ? '4. المهام الثابتة تعطي 20 نقطة + 20 دقيقة، المهام اليومية تعطي 10 نقاط + 10 دقائق'
+                : '4. Fixed tasks give 20 points + 20 minutes, daily tasks give 10 points + 10 minutes'
               }
             </li>
             <li>
               {language === 'ar' 
-                ? '• بعد المطالبة بالمهمة، لا يمكن المطالبة بها مرة أخرى'
-                : '• After claiming a task, it cannot be claimed again'
+                ? '5. بعد المطالبة بالمهمة، لا يمكن المطالبة بها مرة أخرى'
+                : '5. After claiming a task, it cannot be claimed again'
               }
             </li>
           </ul>
