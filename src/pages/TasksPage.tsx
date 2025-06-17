@@ -69,6 +69,15 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
     };
   }, [taskTimers]);
 
+  // Update timer every second to check if 30 seconds have passed
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTaskStartedTimes(prev => new Map(prev));
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
+
   const handleStartTask = (taskId: string, taskType: 'daily' | 'fixed', taskLink?: string) => {
     // If there's a link, open it
     if (taskLink) {
@@ -122,6 +131,22 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
         if (onMinutesEarned) {
           onMinutesEarned(minutesEarned);
         }
+
+        // Clear the timer and start time for this task
+        const timer = taskTimers.get(taskId);
+        if (timer) {
+          clearTimeout(timer);
+          setTaskTimers(prev => {
+            const newMap = new Map(prev);
+            newMap.delete(taskId);
+            return newMap;
+          });
+        }
+        setTaskStartedTimes(prev => {
+          const newMap = new Map(prev);
+          newMap.delete(taskId);
+          return newMap;
+        });
 
         toast.success(
           language === 'ar'
@@ -319,7 +344,6 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
       ? completedDailyTasks.has(taskId) 
       : completedFixedTasks.has(taskId);
     const isClaiming = claimingTasks.has(taskId);
-    const hasTimer = taskTimers.has(taskId);
     const startTime = taskStartedTimes.get(taskId);
     const hasWaited = startTime && (Date.now() - startTime >= 30000);
 
@@ -342,7 +366,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
     }
 
     // If timer is running (within 30 seconds)
-    if (hasTimer && startTime && !hasWaited) {
+    if (startTime && !hasWaited) {
       return {
         text: language === 'ar' ? 'انتظر...' : 'Wait...',
         className: 'bg-yellow-400/50 text-black cursor-not-allowed',
