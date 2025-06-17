@@ -282,81 +282,61 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
     setShowCryptoCandyCrushGame(false);
   };
 
-  // Fixed tasks with social media links
-  const fixedTasksWithLinks = [
-    {
-      id: 'youtube-follow',
-      title: language === 'ar' ? 'تابع LYRA COIN على يوتيوب' : 'Follow LYRA COIN on YouTube',
-      description: language === 'ar' ? 'اشترك في قناتنا الرسمية على يوتيوب' : 'Subscribe to our official YouTube channel',
-      platform: 'youtube',
-      icon: FaYoutube,
-      link: 'https://www.youtube.com/@LYRACOIN',
-      borderColor: 'border-red-500',
-      glow: 'drop-shadow-[0_0_20px_#FF0000]',
-      bgColor: 'bg-red-500',
-      points_reward: 20
-    },
-    {
-      id: 'facebook-follow',
-      title: language === 'ar' ? 'تابع LYRA COIN على فيسبوك' : 'Follow LYRA COIN on Facebook',
-      description: language === 'ar' ? 'تابع صفحتنا الرسمية على فيسبوك' : 'Follow our official Facebook page',
-      platform: 'facebook',
-      icon: FaFacebook,
-      link: 'https://www.facebook.com/profile.php?id=61573828020012',
-      borderColor: 'border-blue-500',
-      glow: 'drop-shadow-[0_0_20px_#1877F2]',
-      bgColor: 'bg-blue-500',
-      points_reward: 20
-    },
-    {
-      id: 'tiktok-follow',
-      title: language === 'ar' ? 'تابع LYRA COIN على تيك توك' : 'Follow LYRA COIN on TikTok',
-      description: language === 'ar' ? 'تابع حسابنا الرسمي على تيك توك' : 'Follow our official TikTok account',
-      platform: 'tiktok',
-      icon: FaTiktok,
-      link: 'https://www.tiktok.com/@lyracoin',
-      borderColor: 'border-pink-500',
-      glow: 'drop-shadow-[0_0_20px_#FF0050]',
-      bgColor: 'bg-pink-500',
-      points_reward: 20
-    },
-    {
-      id: 'telegram-join',
-      title: language === 'ar' ? 'انضم إلى قناة LYRA COIN' : 'Join LYRA COIN Channel',
-      description: language === 'ar' ? 'انضم إلى قناتنا الرسمية على تيليجرام' : 'Join our official Telegram channel',
-      platform: 'telegram',
+  // Helper function to get platform icon and styling based on platform name
+  const getPlatformConfig = (platform: string) => {
+    const platformConfigs = {
+      'youtube': {
+        icon: FaYoutube,
+        borderColor: 'border-red-500',
+        glow: 'drop-shadow-[0_0_20px_#FF0000]',
+        bgColor: 'bg-red-500',
+        link: 'https://www.youtube.com/@LYRACOIN'
+      },
+      'facebook': {
+        icon: FaFacebook,
+        borderColor: 'border-blue-500',
+        glow: 'drop-shadow-[0_0_20px_#1877F2]',
+        bgColor: 'bg-blue-500',
+        link: 'https://www.facebook.com/profile.php?id=61573828020012'
+      },
+      'tiktok': {
+        icon: FaTiktok,
+        borderColor: 'border-pink-500',
+        glow: 'drop-shadow-[0_0_20px_#FF0050]',
+        bgColor: 'bg-pink-500',
+        link: 'https://www.tiktok.com/@lyracoin'
+      },
+      'telegram': {
+        icon: FaTelegram,
+        borderColor: 'border-cyan-400',
+        glow: 'drop-shadow-[0_0_20px_#0088cc]',
+        bgColor: 'bg-cyan-400',
+        link: 'https://t.me/LYRACOIN25'
+      },
+      'instagram': {
+        icon: FaInstagram,
+        borderColor: 'border-purple-500',
+        glow: 'drop-shadow-[0_0_20px_#C13584]',
+        bgColor: 'bg-purple-500',
+        link: 'https://www.instagram.com/lyracoin950/'
+      },
+      'twitter': {
+        icon: FaXTwitter,
+        borderColor: 'border-sky-400',
+        glow: 'drop-shadow-[0_0_20px_#1DA1F2]',
+        bgColor: 'bg-sky-400',
+        link: 'https://x.com/CoinLyra90781'
+      }
+    };
+
+    return platformConfigs[platform.toLowerCase()] || {
       icon: FaTelegram,
-      link: 'https://t.me/LYRACOIN25',
-      borderColor: 'border-cyan-400',
-      glow: 'drop-shadow-[0_0_20px_#0088cc]',
-      bgColor: 'bg-cyan-400',
-      points_reward: 20
-    },
-    {
-      id: 'instagram-follow',
-      title: language === 'ar' ? 'تابع LYRA COIN على انستغرام' : 'Follow LYRA COIN on Instagram',
-      description: language === 'ar' ? 'تابع حسابنا الرسمي على انستغرام' : 'Follow our official Instagram account',
-      platform: 'instagram',
-      icon: FaInstagram,
-      link: 'https://www.instagram.com/lyracoin950/',
-      borderColor: 'border-purple-500',
-      glow: 'drop-shadow-[0_0_20px_#C13584]',
-      bgColor: 'bg-purple-500',
-      points_reward: 20
-    },
-    {
-      id: 'twitter-follow',
-      title: language === 'ar' ? 'تابع LYRA COIN على تويتر' : 'Follow LYRA COIN on Twitter',
-      description: language === 'ar' ? 'تابع حسابنا الرسمي على تويتر' : 'Follow our official Twitter account',
-      platform: 'twitter',
-      icon: FaXTwitter,
-      link: 'https://x.com/CoinLyra90781',
-      borderColor: 'border-sky-400',
-      glow: 'drop-shadow-[0_0_20px_#1DA1F2]',
-      bgColor: 'bg-sky-400',
-      points_reward: 20
-    }
-  ];
+      borderColor: 'border-gray-500',
+      glow: 'drop-shadow-[0_0_20px_#888888]',
+      bgColor: 'bg-gray-500',
+      link: ''
+    };
+  };
 
   const platforms = [
     { 
@@ -531,14 +511,15 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
         </div>
       </div>
 
-      {/* Fixed Tasks Section (Social Media Links) */}
+      {/* Fixed Tasks Section - Now using database data */}
       <div className="px-6 mb-8">
         <h3 className="text-xl font-bold text-white mb-6">
           {language === 'ar' ? '⭐ المهام الثابتة' : '⭐ Fixed Tasks'}
         </h3>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {fixedTasksWithLinks.map((task) => {
+          {fixedTasks.map((task) => {
+            const platformConfig = getPlatformConfig(task.platform);
             const buttonConfig = getTaskButton(task.id, 'fixed');
             const isCompleted = completedFixedTasks.has(task.id);
             
@@ -547,12 +528,12 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
                 key={task.id}
                 className={`p-4 backdrop-blur-sm border rounded-xl text-white transition-all duration-300 ${
                   isCompleted
-                    ? `bg-neonGreen/10 ${task.borderColor} opacity-50` 
-                    : `bg-black/40 ${task.borderColor} ${task.glow} hover:scale-105 hover:brightness-110`
+                    ? `bg-neonGreen/10 ${platformConfig.borderColor} opacity-50` 
+                    : `bg-black/40 ${platformConfig.borderColor} ${platformConfig.glow} hover:scale-105 hover:brightness-110`
                 }`}
               >
                 <div className="flex items-center gap-3 mb-3">
-                  <task.icon className={`w-6 h-6 ${task.bgColor} rounded-lg p-1 text-white`} />
+                  <platformConfig.icon className={`w-6 h-6 ${platformConfig.bgColor} rounded-lg p-1 text-white`} />
                   <h5 className="font-medium text-sm">{task.title}</h5>
                 </div>
                 
@@ -566,7 +547,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
                   <button
                     onClick={() => {
                       if (buttonConfig.text.includes('Start') || buttonConfig.text.includes('ابدأ')) {
-                        handleStartTask(task.id, 'fixed', task.link);
+                        handleStartTask(task.id, 'fixed', platformConfig.link);
                       } else if (buttonConfig.text.includes('Claim') || buttonConfig.text.includes('مطالبة')) {
                         handleClaimTask(task.id, 'fixed');
                       }

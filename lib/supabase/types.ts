@@ -40,6 +40,7 @@ export interface FixedTask {
   task_type: string;
   is_active: boolean;
   created_at: string;
+  link?: string; // Optional link property for task URLs
 }
 
 export interface DailyTask {
