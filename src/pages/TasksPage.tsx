@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { FaYoutube, FaFacebook, FaTiktok, FaTelegram, FaInstagram, FaXTwitter } from 'react-icons/fa6';
-import { Gamepad2, Clock, ExternalLink } from 'lucide-react';
+import { Gamepad2, Clock } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import CryptoCandyCrushGame from '../components/CryptoCandyCrushGame';
 import { getDailyTasks } from '../../lib/supabase/getDailyTasks';
@@ -69,7 +69,12 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
     };
   }, [taskTimers]);
 
-  const handleStartTask = (taskId: string, taskType: 'daily' | 'fixed') => {
+  const handleStartTask = (taskId: string, taskType: 'daily' | 'fixed', taskLink?: string) => {
+    // If there's a link, open it
+    if (taskLink) {
+      window.open(taskLink, '_blank');
+    }
+
     const startTime = Date.now();
     setTaskStartedTimes(prev => new Map(prev.set(taskId, startTime)));
     
@@ -448,14 +453,6 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
                 <div className="flex items-center gap-3 mb-3">
                   <task.icon className={`w-6 h-6 ${task.bgColor} rounded-lg p-1 text-white`} />
                   <h5 className="font-medium text-sm">{task.title}</h5>
-                  <a
-                    href={task.link}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="ml-auto text-neonGreen hover:text-white transition"
-                  >
-                    <ExternalLink className="w-4 h-4" />
-                  </a>
                 </div>
                 
                 <p className="text-xs text-white/70 mb-3">{task.description}</p>
@@ -468,7 +465,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
                   <button
                     onClick={() => {
                       if (buttonConfig.text.includes('Start') || buttonConfig.text.includes('ابدأ')) {
-                        handleStartTask(task.id, 'fixed');
+                        handleStartTask(task.id, 'fixed', task.link);
                       } else if (buttonConfig.text.includes('Claim') || buttonConfig.text.includes('مطالبة')) {
                         handleClaimTask(task.id, 'fixed');
                       }
