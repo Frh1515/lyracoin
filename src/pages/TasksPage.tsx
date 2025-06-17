@@ -567,12 +567,6 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
             </li>
             <li>
               {language === 'ar' 
-                ? '• انقر "ابدأ المهمة" ثم انتظر 30 ثانية لتظهر "مطالبة" مع تأثير بصري'
-                : '• Click "Start Task" then wait 30 seconds for "Claim" to appear with visual effect'
-              }
-            </li>
-            <li>
-              {language === 'ar' 
                 ? '• المهام الثابتة تعطي 20 نقطة + 20 دقيقة، المهام اليومية تعطي 10 نقاط + 10 دقائق'
                 : '• Fixed tasks give 20 points + 20 minutes, daily tasks give 10 points + 10 minutes'
               }
