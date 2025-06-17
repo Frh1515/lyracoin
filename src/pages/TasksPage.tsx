@@ -32,6 +32,8 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
   useEffect(() => {
     const loadTasks = async () => {
       try {
+        console.log('🔄 Loading tasks...');
+        
         // Load daily tasks
         const { data: dailyData, error: dailyError } = await getDailyTasks();
         if (dailyError) {
@@ -42,9 +44,11 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
               : 'Failed to load daily tasks'
           );
         } else if (dailyData) {
+          console.log('✅ Daily tasks loaded:', dailyData.tasks.length);
           setDailyTasks(dailyData.tasks);
           const completedDaily = new Set(dailyData.completedTasks.map(ct => ct.daily_task_id));
           setCompletedDailyTasks(completedDaily);
+          console.log('✅ Completed daily tasks:', completedDaily.size);
         }
 
         // Load fixed tasks
@@ -57,12 +61,15 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
               : 'Failed to load fixed tasks'
           );
         } else if (fixedData) {
+          console.log('✅ Fixed tasks loaded:', fixedData.tasks.length);
           setFixedTasks(fixedData.tasks);
           const completedFixed = new Set(fixedData.completedTasks.map(ct => ct.fixed_task_id));
           setCompletedFixedTasks(completedFixed);
+          console.log('✅ Completed fixed tasks:', completedFixed.size);
         }
 
         setTasksLoaded(true);
+        console.log('✅ All tasks loaded successfully');
       } catch (error) {
         console.error('Error loading tasks:', error);
         toast.error(
@@ -84,16 +91,9 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
     };
   }, [taskTimers]);
 
-  // Update timer every second to check if 30 seconds have passed
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setTaskStartedTimes(prev => new Map(prev));
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, []);
-
   const handleStartTask = (taskId: string, taskType: 'daily' | 'fixed', taskLink?: string) => {
+    console.log('🔄 Starting task:', { taskId, taskType, taskLink });
+    
     // Check if task is already completed
     const isCompleted = taskType === 'daily' 
       ? completedDailyTasks.has(taskId) 
@@ -134,7 +134,12 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
   };
 
   const handleClaimTask = async (taskId: string, taskType: 'daily' | 'fixed') => {
-    if (claimingTasks.has(taskId)) return;
+    console.log('🔄 Attempting to claim task:', { taskId, taskType });
+    
+    if (claimingTasks.has(taskId)) {
+      console.log('⚠️ Task already being claimed');
+      return;
+    }
 
     const isCompleted = taskType === 'daily' 
       ? completedDailyTasks.has(taskId) 
@@ -161,11 +166,16 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
     setClaimingTasks(prev => new Set([...prev, taskId]));
 
     try {
+      console.log('📞 Calling claim function...');
       const result = taskType === 'daily' 
         ? await claimDailyTask(taskId)
         : await claimFixedTask(taskId);
       
+      console.log('📊 Claim result:', result);
+      
       if (result.success) {
+        console.log('✅ Task claimed successfully');
+        
         // Mark task as completed
         if (taskType === 'daily') {
           setCompletedDailyTasks(prev => new Set([...prev, taskId]));
@@ -214,7 +224,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
           }
         );
       } else {
-        console.error('Task claim failed:', result.message);
+        console.error('❌ Task claim failed:', result.message);
         toast.error(
           language === 'ar' 
             ? `فشل في المطالبة: ${result.message}` 
@@ -222,7 +232,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
         );
       }
     } catch (error) {
-      console.error('Error claiming task:', error);
+      console.error('❌ Error claiming task:', error);
       toast.error(
         language === 'ar' 
           ? 'حدث خطأ أثناء المطالبة بالمهمة. تأكد من اتصالك بالإنترنت وحاول مرة أخرى.' 
@@ -424,11 +434,10 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
       };
     }
 
-    // If timer is running (within 30 seconds)
+    // If timer is running (within 30 seconds) - HIDDEN COUNTDOWN
     if (startTime && !hasWaited) {
-      const remainingTime = Math.ceil((30000 - (Date.now() - startTime)) / 1000);
       return {
-        text: language === 'ar' ? `انتظر ${remainingTime}ث` : `Wait ${remainingTime}s`,
+        text: language === 'ar' ? 'انتظر...' : 'Wait...',
         className: 'bg-yellow-400/50 text-black cursor-not-allowed',
         disabled: true,
         showGlow: false
