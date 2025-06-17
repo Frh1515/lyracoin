@@ -125,12 +125,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
     
     setTaskTimers(prev => new Map(prev.set(taskId, timer)));
 
-    toast.success(
-      language === 'ar' 
-        ? 'تم بدء المهمة! انتظر 30 ثانية ثم اضغط على "مطالبة"' 
-        : 'Task started! Wait 30 seconds then click "Claim"',
-      { duration: 3000 }
-    );
+    // إزالة الإشعار - لا نعرض أي toast هنا
   };
 
   const handleClaimTask = async (taskId: string, taskType: 'daily' | 'fixed') => {
