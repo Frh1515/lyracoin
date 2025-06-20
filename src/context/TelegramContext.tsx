@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { registerUser } from '../../lib/supabase/registerUser';
 import { processReferral } from '../../lib/supabase/processReferral';
+import { supabase } from '../../lib/supabase/client';
 import toast from 'react-hot-toast';
 
 interface TelegramUser {
@@ -83,13 +84,43 @@ export function TelegramProvider({ children }: { children: React.ReactNode }) {
           console.log('❌ لم يتم العثور على معامل الإحالة (startParam)');
         }
 
+        // Get or create Supabase auth session
+        const getSupabaseAuthId = async (): Promise<string> => {
+          // First, check if there's an existing session
+          const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+          
+          if (sessionError) {
+            console.error('Error getting session:', sessionError);
+          }
+
+          if (sessionData?.session?.user?.id) {
+            console.log('🔑 استخدام جلسة Supabase موجودة:', sessionData.session.user.id);
+            return sessionData.session.user.id;
+          }
+
+          // If no session exists, create anonymous auth session
+          console.log('🔐 إنشاء جلسة Supabase جديدة...');
+          const { data: authData, error: authError } = await supabase.auth.signInAnonymously();
+
+          if (authError || !authData.user) {
+            console.error('Anonymous auth error:', authError);
+            throw authError || new Error('Failed to authenticate anonymously');
+          }
+
+          console.log('✅ تم إنشاء جلسة Supabase جديدة:', authData.user.id);
+          return authData.user.id;
+        };
+
         // Allow development mode without Telegram WebApp
         if (import.meta.env.DEV && (!webApp || !telegramUser?.id)) {
           console.log('🔧 تشغيل في وضع التطوير مع مستخدم وهمي');
           
           try {
+            const supabaseAuthId = await getSupabaseAuthId();
+            
             const { success, user: registeredUser, error: registerError } = await registerUser(
               mockUser.id.toString(),
+              supabaseAuthId,
               mockUser.username
             );
 
@@ -133,9 +164,13 @@ export function TelegramProvider({ children }: { children: React.ReactNode }) {
 
         console.log('👤 تسجيل المستخدم في Supabase...');
         
+        // Get Supabase auth ID
+        const supabaseAuthId = await getSupabaseAuthId();
+        
         // Register user with Supabase using RPC function
         const { success, user: registeredUser, error: registerError } = await registerUser(
           telegramUser.id.toString(),
+          supabaseAuthId,
           telegramUser.username
         );
 

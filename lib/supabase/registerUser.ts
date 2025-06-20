@@ -3,6 +3,7 @@ import type { User } from './types';
 
 export async function registerUser(
   telegram_id: string | number,
+  supabase_auth_id: string,
   username?: string | null,
   level = 1
 ): Promise<{
@@ -11,12 +12,12 @@ export async function registerUser(
   error: Error | null;
 }> {
   try {
-    console.log('Registering user:', { telegram_id, username, level });
+    console.log('Registering user:', { telegram_id, supabase_auth_id, username, level });
 
     // Convert telegram_id to string if it's a number
     const telegramId = telegram_id.toString();
 
-    // Validate telegram_id
+    // Validate required parameters
     if (!telegramId) {
       return {
         success: false,
@@ -25,25 +26,20 @@ export async function registerUser(
       };
     }
 
-    // Create anonymous auth session to get supabase_auth_id
-    const { data: authData, error: authError } = await supabase.auth.signInAnonymously();
-
-    if (authError || !authData.user) {
-      console.error('Anonymous auth error:', authError);
+    if (!supabase_auth_id) {
       return {
         success: false,
         user: null,
-        error: authError || new Error('Failed to authenticate anonymously')
+        error: new Error('supabase_auth_id is required')
       };
     }
 
-    const supabaseAuthId = authData.user.id;
-    console.log('Authenticated anonymously with Supabase:', supabaseAuthId);
+    console.log('Using existing Supabase auth ID:', supabase_auth_id);
 
     // Use RPC function to register/update user atomically
     const { data, error } = await supabase.rpc('register_telegram_user', {
       p_telegram_id: telegramId,
-      p_supabase_auth_id: supabaseAuthId,
+      p_supabase_auth_id: supabase_auth_id,
       p_username: username || null,
       p_level: level
     });
