@@ -125,6 +125,25 @@ export async function getReferralStatsSecure(): Promise<{
       };
     }
 
+    // Ensure all_referrals and unclaimed_referrals are arrays
+    if (!Array.isArray(statsData.all_referrals)) {
+      statsData.all_referrals = [];
+    }
+
+    if (!Array.isArray(statsData.unclaimed_referrals)) {
+      statsData.unclaimed_referrals = [];
+    }
+
+    // Process all_referrals to ensure referred_username is never null or empty
+    if (statsData.all_referrals) {
+      statsData.all_referrals = statsData.all_referrals.map(referral => ({
+        ...referral,
+        referred_username: referral.referred_username && referral.referred_username.trim() !== '' 
+          ? referral.referred_username 
+          : 'مستخدم جديد'
+      }));
+    }
+
     return { 
       data: statsData as ReferralStatsSecure, 
       error: null 

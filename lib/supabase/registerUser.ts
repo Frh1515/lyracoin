@@ -34,13 +34,16 @@ export async function registerUser(
       };
     }
 
-    console.log('Using existing Supabase auth ID:', supabase_auth_id);
+    console.log('Using Supabase auth ID:', supabase_auth_id);
+
+    // Set default username for unnamed users
+    const displayUsername = username && username.trim() !== '' ? username : 'مستخدم جديد';
 
     // Use RPC function to register/update user atomically
     const { data, error } = await supabase.rpc('register_telegram_user', {
       p_telegram_id: telegramId,
       p_supabase_auth_id: supabase_auth_id,
-      p_username: username || null,
+      p_username: displayUsername,
       p_level: level
     });
 

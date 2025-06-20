@@ -55,6 +55,33 @@ export async function getUserProfile(): Promise<{
       throw error;
     }
 
+    // If no data found, return default profile with "مستخدم جديد" as username
+    if (!data) {
+      return { 
+        data: {
+          username: 'مستخدم جديد',
+          level: 1,
+          referral_count: 0,
+          preferred_exchange: null,
+          total_minutes: 0,
+          points: 0,
+          referral_tier: 'bronze',
+          lyra_balance: 0,
+          membership_level: 'bronze',
+          profile_image: null,
+          registration_bonus_applied: false,
+          daily_game_sessions: 0,
+          last_game_session_date: new Date().toISOString().split('T')[0]
+        }, 
+        error: null 
+      };
+    }
+
+    // If username is null or empty, set it to "مستخدم جديد"
+    if (!data.username || data.username.trim() === '') {
+      data.username = 'مستخدم جديد';
+    }
+
     return { data, error: null };
   } catch (error) {
     console.error('Error fetching user profile:', error);

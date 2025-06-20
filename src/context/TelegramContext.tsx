@@ -171,7 +171,7 @@ export function TelegramProvider({ children }: { children: React.ReactNode }) {
         const { success, user: registeredUser, error: registerError } = await registerUser(
           telegramUser.id.toString(),
           supabaseAuthId,
-          telegramUser.username
+          telegramUser.username || 'مستخدم جديد'
         );
 
         if (!success || registerError) {

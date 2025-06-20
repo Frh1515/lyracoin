@@ -230,6 +230,22 @@ const ProfilePage: React.FC = () => {
     return Math.min((points / 200) * 50, 50); // Bronze range
   };
 
+  // Function to get display name for unnamed users
+  const getDisplayName = (username: string | null) => {
+    if (!username || username.trim() === '' || username === 'مستخدم جديد') {
+      return language === 'ar' ? 'مستخدم جديد' : 'New User';
+    }
+    return username;
+  };
+
+  // Function to get display handle for unnamed users
+  const getDisplayHandle = (username: string | null) => {
+    if (!username || username.trim() === '' || username === 'مستخدم جديد') {
+      return language === 'ar' ? '@مستخدم_جديد' : '@new_user';
+    }
+    return `@${username}`;
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-[#041e11] via-[#051a13] to-[#040d0c]">
@@ -266,6 +282,9 @@ const ProfilePage: React.FC = () => {
     );
   }
 
+  const displayName = getDisplayName(profile.username);
+  const displayHandle = getDisplayHandle(profile.username);
+
   return (
     <div className="min-h-screen pb-24 bg-gradient-to-b from-[#041e11] via-[#051a13] to-[#040d0c] px-4 py-8">
       <div className="max-w-2xl mx-auto">
@@ -277,11 +296,11 @@ const ProfilePage: React.FC = () => {
           >
             <div className="absolute inset-0 rounded-full overflow-hidden border-2 border-neonGreen shadow-[0_0_15px_rgba(0,255,136,0.3)]">
               <img
-                src={profile.profile_image || `https://ui-avatars.com/api/?name=${encodeURIComponent(profile.username || 'User')}&background=00ff88&color=000&size=80`}
+                src={profile.profile_image || `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=00ff88&color=000&size=80`}
                 alt="profile"
                 className="w-full h-full object-cover"
                 onError={(e) => {
-                  (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(profile.username || 'User')}&background=00ff88&color=000&size=80`;
+                  (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=00ff88&color=000&size=80`;
                 }}
               />
               <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
@@ -314,6 +333,7 @@ const ProfilePage: React.FC = () => {
                   onChange={(e) => setNewUsername(e.target.value)}
                   className="bg-black/30 border border-neonGreen/30 rounded px-2 py-1 text-white text-center"
                   disabled={isUpdating}
+                  placeholder={language === 'ar' ? 'أدخل اسم المستخدم' : 'Enter username'}
                 />
                 <button
                   onClick={handleNameEdit}
@@ -335,7 +355,7 @@ const ProfilePage: React.FC = () => {
               </div>
             ) : (
               <>
-                <h2 className="text-xl font-semibold">{profile.username || 'Unnamed User'}</h2>
+                <h2 className="text-xl font-semibold">{displayName}</h2>
                 <button
                   onClick={() => setIsEditingName(true)}
                   className="text-white/50 hover:text-white transition"
@@ -347,7 +367,7 @@ const ProfilePage: React.FC = () => {
             )}
           </div>
 
-          <p className="text-sm text-white/50">@{profile.username || 'unnamed'}</p>
+          <p className="text-sm text-white/50">{displayHandle}</p>
           <div className="flex items-center justify-center gap-4 mt-2">
             <span className="inline-block text-sm bg-neonGreen/20 text-neonGreen px-2 py-1 rounded-full">
               {language === 'ar' ? `المستوى ${profile.level}` : `Level ${profile.level}`}
@@ -375,7 +395,12 @@ const ProfilePage: React.FC = () => {
               </p>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-neonGreen">{profile.total_minutes}</div>
+              <div className="text-2xl font-bold text-neonGreen">
+                {profile.total_minutes}
+                <span className="text-sm text-white/50 ml-2">
+                  = ? {language === 'ar' ? 'قريباً' : 'Soon'}
+                </span>
+              </div>
               <p className="text-sm text-white/60">
                 {language === 'ar' ? 'الدقائق' : 'Minutes'}
               </p>
@@ -498,7 +523,12 @@ const ProfilePage: React.FC = () => {
             </li>
             <li className="flex justify-between items-center py-2 border-b border-white/10">
               <span>{language === 'ar' ? 'الدقائق المكتسبة' : 'Minutes Earned'}</span>
-              <span className="text-neonGreen font-medium">{profile.total_minutes.toLocaleString()}</span>
+              <span className="text-neonGreen font-medium">
+                {profile.total_minutes.toLocaleString()}
+                <span className="text-xs text-white/50 ml-2">
+                  = ? {language === 'ar' ? 'قريباً' : 'Soon'}
+                </span>
+              </span>
             </li>
             <li className="flex justify-between items-center py-2 border-b border-white/10">
               <span>{language === 'ar' ? 'الإحالات' : 'Referrals'}</span>
