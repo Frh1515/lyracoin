@@ -63,7 +63,7 @@ export async function getReferralStatsSecure(): Promise<{
       .from('users')
       .select('telegram_id')
       .eq('supabase_auth_id', user.id)
-      .single();
+      .maybeSingle();
 
     if (userError) {
       console.error('❌ User lookup error:', {
@@ -107,6 +107,23 @@ export async function getReferralStatsSecure(): Promise<{
     }
 
     console.log('✅ RPC call successful, stats data:', statsData);
+
+    // Ensure we have valid data structure
+    if (!statsData || typeof statsData !== 'object') {
+      console.warn('⚠️ Invalid stats data received:', statsData);
+      return {
+        data: {
+          total_referrals: 0,
+          verified_referrals: 0,
+          pending_referrals: 0,
+          total_minutes_earned: 0,
+          referral_tier: 'bronze',
+          all_referrals: [],
+          unclaimed_referrals: []
+        },
+        error: null
+      };
+    }
 
     return { 
       data: statsData as ReferralStatsSecure, 
