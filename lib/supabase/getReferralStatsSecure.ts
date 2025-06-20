@@ -6,6 +6,17 @@ export interface ReferralStatsSecure {
   pending_referrals: number;
   total_minutes_earned: number;
   referral_tier: string;
+  all_referrals: Array<{
+    id: string;
+    referred_id: string;
+    referred_username: string;
+    created_at: string;
+    status: string;
+    reward_claimed: boolean;
+    is_claimable: boolean;
+    points_awarded: number;
+    minutes_available: number;
+  }>;
   unclaimed_referrals: Array<{
     id: string;
     referred_id: string;

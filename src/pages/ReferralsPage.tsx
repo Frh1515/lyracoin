@@ -4,7 +4,7 @@ import { getReferralStatsSecure, type ReferralStatsSecure } from '../../lib/supa
 import { claimReferralRewardSecure } from '../../lib/supabase/claimReferralRewardSecure';
 import { generateReferralCode } from '../../lib/supabase/generateReferralCode';
 import { reactivateReferralRewards, checkReferralRewardsStatus } from '../../lib/supabase/reactivateReferralRewards';
-import { Share2, X, Gift, Copy, ExternalLink, Trophy, RefreshCw, CheckCircle } from 'lucide-react';
+import { Share2, X, Gift, Copy, ExternalLink, Trophy, RefreshCw, CheckCircle, User, Calendar, Award } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 interface ReferralPageProps {
@@ -168,24 +168,6 @@ const ReferralsPage: React.FC<ReferralPageProps> = ({ onMinutesEarned, onPointsE
           onMinutesEarned(result.minutesEarned);
         }
         
-        // Award 30 points for successful referral claim
-        if (onPointsEarned) {
-          onPointsEarned(30);
-          toast.success(
-            language === 'ar'
-              ? `🌟 +30 نقطة للإحالة الناجحة!`
-              : `🌟 +30 points for successful referral!`,
-            { 
-              duration: 3000,
-              style: {
-                background: '#FFD700',
-                color: '#000',
-                fontWeight: 'bold'
-              }
-            }
-          );
-        }
-        
         // Refresh data
         fetchStats();
       } else {
@@ -232,6 +214,35 @@ const ReferralsPage: React.FC<ReferralPageProps> = ({ onMinutesEarned, onPointsE
   const copyToClipboard = (text: string, successMessage: string) => {
     navigator.clipboard.writeText(text);
     toast.success(successMessage);
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString(language === 'ar' ? 'ar-SA' : 'en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'verified': return 'text-green-400 bg-green-400/20';
+      case 'pending': return 'text-yellow-400 bg-yellow-400/20';
+      case 'rejected': return 'text-red-400 bg-red-400/20';
+      default: return 'text-gray-400 bg-gray-400/20';
+    }
+  };
+
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case 'verified': return language === 'ar' ? 'مؤكدة' : 'Verified';
+      case 'pending': return language === 'ar' ? 'معلقة' : 'Pending';
+      case 'rejected': return language === 'ar' ? 'مرفوضة' : 'Rejected';
+      default: return status;
+    }
   };
 
   const ShareModal = () => (
@@ -416,7 +427,7 @@ const ReferralsPage: React.FC<ReferralPageProps> = ({ onMinutesEarned, onPointsE
                       {language === 'ar' ? 'المكافأة: 60 دقيقة' : 'Reward: 60 minutes'}
                     </p>
                     <p className="text-white/40 text-xs">
-                      {new Date(referral.created_at).toLocaleDateString()}
+                      {formatDate(referral.created_at)}
                     </p>
                   </div>
                   <button
@@ -429,6 +440,71 @@ const ReferralsPage: React.FC<ReferralPageProps> = ({ onMinutesEarned, onPointsE
                       : (language === 'ar' ? 'مطالبة' : 'Claim')
                     }
                   </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* All Referrals History */}
+        {stats && stats.all_referrals && stats.all_referrals.length > 0 && (
+          <div className="bg-white/5 border border-neonGreen/30 rounded-xl p-6 mb-8">
+            <div className="flex items-center gap-3 mb-4">
+              <User className="w-6 h-6 text-neonGreen" />
+              <h2 className="text-lg font-semibold text-white">
+                {language === 'ar' ? 'سجل الإحالات' : 'Referral History'}
+              </h2>
+            </div>
+            
+            <div className="space-y-3">
+              {stats.all_referrals.map((referral) => (
+                <div key={referral.id} className="bg-black/30 rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 bg-neonGreen/20 rounded-full flex items-center justify-center">
+                        <User className="w-4 h-4 text-neonGreen" />
+                      </div>
+                      <div>
+                        <p className="text-white font-medium text-sm">
+                          {referral.referred_username}
+                        </p>
+                        <p className="text-white/40 text-xs">
+                          ID: {referral.referred_id}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(referral.status)}`}>
+                        {getStatusText(referral.status)}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center justify-between text-xs text-white/60">
+                    <div className="flex items-center gap-1">
+                      <Calendar className="w-3 h-3" />
+                      {formatDate(referral.created_at)}
+                    </div>
+                    <div className="flex items-center gap-4">
+                      {referral.points_awarded > 0 && (
+                        <div className="flex items-center gap-1">
+                          <Award className="w-3 h-3 text-yellow-400" />
+                          <span className="text-yellow-400">+{referral.points_awarded} نقاط</span>
+                        </div>
+                      )}
+                      {referral.minutes_available > 0 && (
+                        <div className="flex items-center gap-1">
+                          <Gift className="w-3 h-3 text-neonGreen" />
+                          <span className="text-neonGreen">
+                            {referral.reward_claimed 
+                              ? (language === 'ar' ? 'تم الاستلام' : 'Claimed')
+                              : `+${referral.minutes_available} ${language === 'ar' ? 'دقيقة' : 'min'}`
+                            }
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>
