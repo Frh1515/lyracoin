@@ -369,13 +369,17 @@ const ProfilePage: React.FC = () => {
           
           <div className="grid grid-cols-2 gap-4 mb-4">
             <div className="text-center">
-              <div className="text-2xl font-bold text-neonGreen">{profile.points}</div>
+              <div className="text-2xl font-bold text-neonGreen">
+                {profile.points} <span className="text-sm text-white/60">= ? Soon</span>
+              </div>
               <p className="text-sm text-white/60">
                 {language === 'ar' ? 'النقاط' : 'Points'}
               </p>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-neonGreen">{profile.total_minutes}</div>
+              <div className="text-2xl font-bold text-neonGreen">
+                {profile.total_minutes} <span className="text-sm text-white/60">= ? Soon</span>
+              </div>
               <p className="text-sm text-white/60">
                 {language === 'ar' ? 'الدقائق' : 'Minutes'}
               </p>
@@ -416,7 +420,7 @@ const ProfilePage: React.FC = () => {
           </h2>
           <div className="text-center">
             <div className="text-3xl font-bold text-neonGreen mb-2">
-              {profile.lyra_balance.toLocaleString()}
+              {profile.lyra_balance.toLocaleString()} <span className="text-sm text-white/60">= ? Soon</span>
             </div>
             <p className="text-sm text-white/60">
               {language === 'ar' ? 'عملة LYRA' : 'LYRA Coins'}

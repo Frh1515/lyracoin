@@ -118,13 +118,17 @@ const HomePage: React.FC<HomePageProps> = ({
           
           <div className="grid grid-cols-2 gap-4">
             <div className="text-center">
-              <div className="text-2xl font-bold text-neonGreen">{userPoints}</div>
+              <div className="text-2xl font-bold text-neonGreen">
+                {userPoints} <span className="text-sm text-white/60">= ? Soon</span>
+              </div>
               <p className="text-sm text-white/60">
                 {language === 'ar' ? 'النقاط' : 'Points'}
               </p>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-neonGreen">{userMinutes}</div>
+              <div className="text-2xl font-bold text-neonGreen">
+                {userMinutes} <span className="text-sm text-white/60">= ? Soon</span>
+              </div>
               <p className="text-sm text-white/60">
                 {language === 'ar' ? 'الدقائق' : 'Minutes'}
               </p>
@@ -197,7 +201,9 @@ const HomePage: React.FC<HomePageProps> = ({
                 {language === 'ar' ? 'دقائقك' : 'Your Minutes'}
               </h2>
             </div>
-            <span className="text-2xl font-bold text-neonGreen">{userMinutes}</span>
+            <span className="text-2xl font-bold text-neonGreen">
+              {userMinutes} <span className="text-sm text-white/60">= ? Soon</span>
+            </span>
           </div>
           <p className="mt-2 text-sm text-white/60">
             {language === 'ar' 

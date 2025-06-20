@@ -97,6 +97,31 @@ export interface PresalePurchase {
   purchase_date: string;
 }
 
+export interface UserMiningProgress {
+  id: string;
+  user_telegram_id: string;
+  mining_start_time: string | null;
+  current_session_minutes_mined: number;
+  daily_total_minutes_mined: number;
+  last_claim_timestamp: string | null;
+  status: 'idle' | 'mining' | 'ready_to_claim';
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MiningStatus {
+  status: 'idle' | 'mining' | 'ready_to_claim';
+  mining_start_time: string | null;
+  current_session_minutes_mined: number;
+  daily_total_minutes_mined: number;
+  last_claim_timestamp: string | null;
+  hours_since_last_claim: number;
+  can_claim: boolean;
+  mining_active: boolean;
+  countdown_remaining_minutes: number;
+  total_accumulated_minutes: number;
+}
+
 export interface Referral {
   id: string;
   inviter_id: string;
