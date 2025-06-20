@@ -124,8 +124,6 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
     }, 30000);
     
     setTaskTimers(prev => new Map(prev.set(taskId, timer)));
-
-    // إزالة الإشعار - لا نعرض أي toast هنا
   };
 
   const handleClaimTask = async (taskId: string, taskType: 'daily' | 'fixed') => {
@@ -269,7 +267,11 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
       } else {
         // Allow unlimited sessions but only count first 3
         setShowCryptoCandyCrushGame(true);
-        toast.info(result.message);
+        toast.info(
+          language === 'ar' 
+            ? result.message 
+            : result.message
+        );
       }
     } catch (error) {
       console.error('Error recording game session:', error);
@@ -438,6 +440,29 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
     };
   };
 
+  // Function to get localized task title and description
+  const getLocalizedTaskContent = (task: any) => {
+    if (language === 'ar') {
+      // For Arabic, use the Arabic part of the title/description if it exists
+      const titleParts = task.title.split(' | ');
+      const descParts = task.description.split(' | ');
+      
+      return {
+        title: titleParts.length > 1 ? titleParts[0] : task.title,
+        description: descParts.length > 1 ? descParts[0] : task.description
+      };
+    } else {
+      // For English, use the English part if it exists, otherwise use the full text
+      const titleParts = task.title.split(' | ');
+      const descParts = task.description.split(' | ');
+      
+      return {
+        title: titleParts.length > 1 ? titleParts[1] : task.title,
+        description: descParts.length > 1 ? descParts[1] : task.description
+      };
+    }
+  };
+
   if (!tasksLoaded) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-[#041e11] via-[#051a13] to-[#040d0c]">
@@ -522,6 +547,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
             const platformConfig = getPlatformConfig(task.platform);
             const buttonConfig = getTaskButton(task.id, 'fixed');
             const isCompleted = completedFixedTasks.has(task.id);
+            const localizedContent = getLocalizedTaskContent(task);
             
             return (
               <div
@@ -534,10 +560,10 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
               >
                 <div className="flex items-center gap-3 mb-3">
                   <platformConfig.icon className={`w-6 h-6 ${platformConfig.bgColor} rounded-lg p-1 text-white`} />
-                  <h5 className="font-medium text-sm">{task.title}</h5>
+                  <h5 className="font-medium text-sm">{localizedContent.title}</h5>
                 </div>
                 
-                <p className="text-xs text-white/70 mb-3">{task.description}</p>
+                <p className="text-xs text-white/70 mb-3">{localizedContent.description}</p>
                 
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-neonGreen">
@@ -565,7 +591,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
       </div>
 
       {/* Daily Tasks Section */}
-      {tasksLoaded && (
+      {tasksLoaded && dailyTasks.length > 0 && (
         <div className="px-6">
           <h3 className="text-xl font-bold text-white mb-6">
             {language === 'ar' ? '📋 المهام اليومية' : '📋 Daily Tasks'}
@@ -576,6 +602,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
               const platform = platforms[index % platforms.length];
               const buttonConfig = getTaskButton(task.id, 'daily');
               const isCompleted = completedDailyTasks.has(task.id);
+              const localizedContent = getLocalizedTaskContent(task);
               
               return (
                 <div
@@ -588,10 +615,10 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
                 >
                   <div className="flex items-center gap-3 mb-3">
                     <platform.icon className={`w-6 h-6 ${platform.bgColor} rounded-lg p-1 text-white`} />
-                    <h5 className="font-medium text-sm">{task.title}</h5>
+                    <h5 className="font-medium text-sm">{localizedContent.title}</h5>
                   </div>
                   
-                  <p className="text-xs text-white/70 mb-3">{task.description}</p>
+                  <p className="text-xs text-white/70 mb-3">{localizedContent.description}</p>
                   
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-neonGreen">
