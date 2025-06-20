@@ -49,13 +49,9 @@ export async function getUserProfile(): Promise<{
         last_game_session_date
       `)
       .eq('supabase_auth_id', user.id)
-      .single();
+      .maybeSingle();
 
     if (error) {
-      // If no rows found, return null data without error
-      if (error.code === 'PGRST116') {
-        return { data: null, error: null };
-      }
       throw error;
     }
 
