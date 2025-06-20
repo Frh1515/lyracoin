@@ -3,7 +3,8 @@ import { useLanguage } from '../context/LanguageContext';
 import { getReferralStatsSecure, type ReferralStatsSecure } from '../../lib/supabase/getReferralStatsSecure';
 import { claimReferralRewardSecure } from '../../lib/supabase/claimReferralRewardSecure';
 import { generateReferralCode } from '../../lib/supabase/generateReferralCode';
-import { Share2, X, Gift, Copy, ExternalLink, Trophy } from 'lucide-react';
+import { reactivateReferralRewards, checkReferralRewardsStatus } from '../../lib/supabase/reactivateReferralRewards';
+import { Share2, X, Gift, Copy, ExternalLink, Trophy, RefreshCw, CheckCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 interface ReferralPageProps {
@@ -18,12 +19,27 @@ const ReferralsPage: React.FC<ReferralPageProps> = ({ onMinutesEarned, onPointsE
   const [claimingReward, setClaimingReward] = useState<string | null>(null);
   const [referralLink, setReferralLink] = useState<string>('');
   const [loadingReferralLink, setLoadingReferralLink] = useState(true);
+  const [isReactivating, setIsReactivating] = useState(false);
+  const [showReactivateButton, setShowReactivateButton] = useState(false);
   const { language } = useLanguage();
 
   useEffect(() => {
     fetchStats();
     fetchReferralLink();
+    checkReactivationNeeded();
   }, []);
+
+  const checkReactivationNeeded = async () => {
+    try {
+      const result = await checkReferralRewardsStatus();
+      if (result.success && result.data) {
+        // Show reactivate button if there are verified referrals that might need rewards
+        setShowReactivateButton(result.data.verified_referrals > 0);
+      }
+    } catch (error) {
+      console.error('Error checking reactivation status:', error);
+    }
+  };
 
   const fetchStats = async () => {
     try {
@@ -81,6 +97,48 @@ const ReferralsPage: React.FC<ReferralPageProps> = ({ onMinutesEarned, onPointsE
       console.error('Error fetching referral link:', error);
     } finally {
       setLoadingReferralLink(false);
+    }
+  };
+
+  const handleReactivateRewards = async () => {
+    setIsReactivating(true);
+    try {
+      const result = await reactivateReferralRewards();
+      
+      if (result.success) {
+        toast.success(
+          language === 'ar'
+            ? `🎉 تم تفعيل نظام المكافآت! تمت معالجة ${result.users_processed} مستخدم ومنح ${result.total_points_awarded} نقطة`
+            : `🎉 Rewards system activated! Processed ${result.users_processed} users and awarded ${result.total_points_awarded} points`,
+          { 
+            duration: 5000,
+            style: {
+              background: '#00FFAA',
+              color: '#000',
+              fontWeight: 'bold'
+            }
+          }
+        );
+        
+        // Refresh stats after reactivation
+        await fetchStats();
+        setShowReactivateButton(false);
+      } else {
+        toast.error(
+          language === 'ar'
+            ? `فشل تفعيل النظام: ${result.message}`
+            : `Failed to activate system: ${result.message}`
+        );
+      }
+    } catch (error) {
+      console.error('Error reactivating rewards:', error);
+      toast.error(
+        language === 'ar' 
+          ? 'حدث خطأ أثناء تفعيل النظام'
+          : 'Error activating rewards system'
+      );
+    } finally {
+      setIsReactivating(false);
     }
   };
 
@@ -256,6 +314,41 @@ const ReferralsPage: React.FC<ReferralPageProps> = ({ onMinutesEarned, onPointsE
           </button>
         </div>
 
+        {/* Reactivate Rewards Button */}
+        {showReactivateButton && (
+          <div className="bg-yellow-400/20 border border-yellow-400/30 rounded-xl p-4 mb-6">
+            <div className="flex items-center gap-3 mb-3">
+              <RefreshCw className="w-5 h-5 text-yellow-400" />
+              <h3 className="text-lg font-semibold text-yellow-400">
+                {language === 'ar' ? 'تفعيل نظام المكافآت' : 'Activate Rewards System'}
+              </h3>
+            </div>
+            <p className="text-white/80 text-sm mb-4">
+              {language === 'ar' 
+                ? 'يبدو أن لديك إحالات لم تحصل على مكافآتها بعد. اضغط لتفعيل النظام وحساب المكافآت المستحقة.'
+                : 'It looks like you have referrals that haven\'t received their rewards yet. Click to activate the system and calculate due rewards.'
+              }
+            </p>
+            <button
+              onClick={handleReactivateRewards}
+              disabled={isReactivating}
+              className="w-full bg-yellow-400 text-black py-3 rounded-lg font-semibold hover:brightness-110 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              {isReactivating ? (
+                <>
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                  {language === 'ar' ? 'جاري التفعيل...' : 'Activating...'}
+                </>
+              ) : (
+                <>
+                  <CheckCircle className="w-4 h-4" />
+                  {language === 'ar' ? 'تفعيل نظام المكافآت' : 'Activate Rewards System'}
+                </>
+              )}
+            </button>
+          </div>
+        )}
+
         {/* Tier Badge with Progress */}
         {stats && (
           <div className="bg-black/40 backdrop-blur-sm border border-neonGreen/30 rounded-xl p-6 text-white shadow-[0_0_15px_rgba(0,255,136,0.3)] mb-8">
@@ -320,7 +413,7 @@ const ReferralsPage: React.FC<ReferralPageProps> = ({ onMinutesEarned, onPointsE
                       {language === 'ar' ? 'إحالة مؤكدة' : 'Verified Referral'}
                     </p>
                     <p className="text-white/60 text-sm">
-                      {language === 'ar' ? 'المكافأة: 60 دقيقة + 30 نقطة' : 'Reward: 60 minutes + 30 points'}
+                      {language === 'ar' ? 'المكافأة: 60 دقيقة' : 'Reward: 60 minutes'}
                     </p>
                     <p className="text-white/40 text-xs">
                       {new Date(referral.created_at).toLocaleDateString()}
@@ -415,8 +508,8 @@ const ReferralsPage: React.FC<ReferralPageProps> = ({ onMinutesEarned, onPointsE
               <span className="text-neonGreen font-bold">2.</span>
               <p>
                 {language === 'ar' 
-                  ? 'عندما ينضم صديق باستخدام رابطك، ستحصل على إحالة'
-                  : 'When a friend joins using your link, you get a referral'
+                  ? 'عندما ينضم صديق باستخدام رابطك، تحصل على 30 نقطة فوراً'
+                  : 'When a friend joins using your link, you get 30 points instantly'
                 }
               </p>
             </div>
@@ -424,8 +517,8 @@ const ReferralsPage: React.FC<ReferralPageProps> = ({ onMinutesEarned, onPointsE
               <span className="text-neonGreen font-bold">3.</span>
               <p>
                 {language === 'ar' 
-                  ? 'اضغط على "مطالبة" لكسب 60 دقيقة + 30 نقطة لكل إحالة مؤكدة'
-                  : 'Click "Claim" to earn 60 minutes + 30 points for each verified referral'
+                  ? 'اضغط على "مطالبة" لكسب 60 دقيقة إضافية لكل إحالة مؤكدة'
+                  : 'Click "Claim" to earn 60 additional minutes for each verified referral'
                 }
               </p>
             </div>
@@ -435,6 +528,15 @@ const ReferralsPage: React.FC<ReferralPageProps> = ({ onMinutesEarned, onPointsE
                 {language === 'ar' 
                   ? 'كلما زادت إحالاتك، ارتقيت في المستويات وحصلت على مكافآت أكبر'
                   : 'The more referrals you get, the higher your tier and bigger rewards'
+                }
+              </p>
+            </div>
+            <div className="flex items-start gap-3">
+              <span className="text-yellow-400 font-bold">💡</span>
+              <p className="text-yellow-400">
+                {language === 'ar' 
+                  ? 'جديد: النظام الآن يمنح المكافآت تلقائياً! 30 نقطة فورية + 60 دقيقة عند المطالبة'
+                  : 'New: System now awards rewards automatically! 30 instant points + 60 minutes when claimed'
                 }
               </p>
             </div>
