@@ -931,12 +931,6 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
             </li>
             <li>
               {language === 'ar' 
-                ? '2. انتظر 30 ثانية حتى يظهر زر "مطالبة" مع تأثير بصري'
-                : '2. Wait 30 seconds for the "Claim" button to appear with visual effect'
-              }
-            </li>
-            <li>
-              {language === 'ar' 
                 ? '3. اضغط على "مطالبة" لاستلام النقاط والدقائق'
                 : '3. Click "Claim" to receive points and minutes'
               }
