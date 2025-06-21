@@ -184,7 +184,7 @@ const BoostTimeModal: React.FC<BoostTimeModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-darkGreen border-2 border-blue-500 rounded-xl p-6 w-full max-w-md relative shadow-[0_0_15px_rgba(59,130,246,0.3)]">
+      <div className="bg-darkGreen border-2 border-blue-500 rounded-xl p-6 w-full max-w-sm max-h-[90vh] overflow-y-auto relative shadow-[0_0_15px_rgba(59,130,246,0.3)]">
         <button
           onClick={onClose}
           className="absolute top-4 right-4 text-white/60 hover:text-white transition"
