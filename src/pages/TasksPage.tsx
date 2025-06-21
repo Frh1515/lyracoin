@@ -3,6 +3,7 @@ import { FaYoutube, FaFacebook, FaTiktok, FaTelegram, FaInstagram, FaXTwitter } 
 import { Gamepad2, Clock, Pickaxe, Timer, Share2, Smartphone } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import CryptoCandyCrushGame from '../components/CryptoCandyCrushGame';
+import PasswordInputModal from '../components/PasswordInputModal';
 import { getDailyTasks } from '../../lib/supabase/getDailyTasks';
 import { getFixedTasks } from '../../lib/supabase/getFixedTasks';
 import { claimDailyTask } from '../../lib/supabase/claimDailyTask';
@@ -28,6 +29,14 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
   const [taskStartedTimes, setTaskStartedTimes] = useState<Map<string, number>>(new Map());
   const [tasksLoaded, setTasksLoaded] = useState(false);
   const [gameSessionsRemaining, setGameSessionsRemaining] = useState(3);
+  
+  // Password modal states
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [passwordModalTaskId, setPasswordModalTaskId] = useState<string | null>(null);
+  const [passwordModalTaskTitle, setPasswordModalTaskTitle] = useState<string>('');
+  const [passwordModalTaskLink, setPasswordModalTaskLink] = useState<string>('');
+  const [passwordModalTaskPlatform, setPasswordModalTaskPlatform] = useState<string>('');
+  const [verifiedPasswords, setVerifiedPasswords] = useState<Set<string>>(new Set());
   
   // Mining states
   const [miningStatus, setMiningStatus] = useState<MiningStatus | null>(null);
@@ -312,6 +321,19 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
       return;
     }
 
+    // Get task details
+    const task = taskType === 'daily'
+      ? dailyTasks.find(t => t.id === taskId)
+      : fixedTasks.find(t => t.id === taskId);
+    
+    if (!task) {
+      console.error('Task not found:', taskId);
+      return;
+    }
+
+    // Check if this is a YouTube or TikTok daily task
+    const isVideoTask = taskType === 'daily' && (task.platform === 'youtube' || task.platform === 'tiktok');
+
     // If there's a link, open it
     if (taskLink) {
       window.open(taskLink, '_blank');
@@ -327,9 +349,63 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
         newMap.delete(taskId);
         return newMap;
       });
+
+      // If this is a YouTube or TikTok daily task, show password modal after 30 seconds
+      if (isVideoTask) {
+        // Get localized task title
+        const localizedContent = getLocalizedTaskContent(task);
+        
+        setPasswordModalTaskId(taskId);
+        setPasswordModalTaskTitle(localizedContent.title);
+        setPasswordModalTaskLink(taskLink || '');
+        setPasswordModalTaskPlatform(task.platform);
+        setShowPasswordModal(true);
+      }
     }, 30000);
     
     setTaskTimers(prev => new Map(prev.set(taskId, timer)));
+  };
+
+  const handlePasswordSubmit = (password: string) => {
+    if (!passwordModalTaskId) return;
+    
+    // Check if password is correct
+    if (password.trim().toUpperCase() === 'HOERLYRACOIN') {
+      // Add task to verified passwords
+      setVerifiedPasswords(prev => new Set([...prev, passwordModalTaskId]));
+      
+      // Close modal
+      setShowPasswordModal(false);
+      
+      // Show success message
+      toast.success(
+        language === 'ar'
+          ? 'كلمة المرور صحيحة! يمكنك الآن المطالبة بالمكافأة'
+          : 'Correct password! You can now claim the reward',
+        { 
+          duration: 3000,
+          style: {
+            background: '#00FFAA',
+            color: '#000',
+            fontWeight: 'bold'
+          }
+        }
+      );
+    } else {
+      // Show error message
+      toast.error(
+        language === 'ar'
+          ? 'كلمة المرور غير صحيحة، حاول مرة أخرى'
+          : 'Incorrect password, please try again',
+        { 
+          duration: 3000,
+          style: {
+            background: '#FF6347',
+            color: '#fff'
+          }
+        }
+      );
+    }
   };
 
   const handleClaimTask = async (taskId: string, taskType: 'daily' | 'fixed') => {
@@ -348,6 +424,33 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
       toast.info(
         language === 'ar' ? 'تم إكمال هذه المهمة بالفعل' : 'This task is already completed'
       );
+      return;
+    }
+
+    // Get task details
+    const task = taskType === 'daily'
+      ? dailyTasks.find(t => t.id === taskId)
+      : fixedTasks.find(t => t.id === taskId);
+    
+    if (!task) {
+      console.error('Task not found:', taskId);
+      return;
+    }
+
+    // Check if this is a YouTube or TikTok daily task that requires password verification
+    const isVideoTask = taskType === 'daily' && (task.platform === 'youtube' || task.platform === 'tiktok');
+    
+    if (isVideoTask && !verifiedPasswords.has(taskId)) {
+      // Get localized task title
+      const localizedContent = getLocalizedTaskContent(task);
+      const platformConfig = getPlatformConfig(task.platform);
+      
+      // Show password modal
+      setPasswordModalTaskId(taskId);
+      setPasswordModalTaskTitle(localizedContent.title);
+      setPasswordModalTaskLink(platformConfig.link || '');
+      setPasswordModalTaskPlatform(task.platform);
+      setShowPasswordModal(true);
       return;
     }
 
@@ -408,6 +511,15 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
           newMap.delete(taskId);
           return newMap;
         });
+
+        // Remove from verified passwords if it was a video task
+        if (isVideoTask) {
+          setVerifiedPasswords(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(taskId);
+            return newSet;
+          });
+        }
 
         toast.success(
           language === 'ar'
@@ -583,6 +695,82 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
     }
   };
 
+  // Get task button configuration based on task state
+  const getTaskButton = (taskId: string, taskType: 'daily' | 'fixed') => {
+    const isCompleted = taskType === 'daily' 
+      ? completedDailyTasks.has(taskId) 
+      : completedFixedTasks.has(taskId);
+    
+    const isClaiming = claimingTasks.has(taskId);
+    const startTime = taskStartedTimes.get(taskId);
+    const hasWaited = startTime && (Date.now() - startTime >= 30000);
+    
+    // Get task details
+    const task = taskType === 'daily'
+      ? dailyTasks.find(t => t.id === taskId)
+      : fixedTasks.find(t => t.id === taskId);
+    
+    // Check if this is a YouTube or TikTok daily task that requires password verification
+    const isVideoTask = task && taskType === 'daily' && (task.platform === 'youtube' || task.platform === 'tiktok');
+    const isPasswordVerified = isVideoTask ? verifiedPasswords.has(taskId) : true;
+
+    if (isCompleted) {
+      return {
+        text: language === 'ar' ? '✓ مكتمل' : '✓ Completed',
+        className: 'bg-gray-600 text-gray-300 cursor-not-allowed opacity-50',
+        disabled: true,
+        showGlow: false
+      };
+    }
+
+    if (isClaiming) {
+      return {
+        text: language === 'ar' ? 'جاري المطالبة...' : 'Claiming...',
+        className: 'bg-neonGreen/50 text-black cursor-not-allowed',
+        disabled: true,
+        showGlow: false
+      };
+    }
+
+    // If timer is running (within 30 seconds)
+    if (startTime && !hasWaited) {
+      return {
+        text: language === 'ar' ? 'انتظر...' : 'Wait...',
+        className: 'bg-yellow-400/50 text-black cursor-not-allowed',
+        disabled: true,
+        showGlow: false
+      };
+    }
+
+    // If 30 seconds have passed but password not verified for video tasks
+    if (startTime && hasWaited && isVideoTask && !isPasswordVerified) {
+      return {
+        text: language === 'ar' ? 'أدخل كلمة المرور' : 'Enter Password',
+        className: 'bg-yellow-400 text-black hover:brightness-110',
+        disabled: false,
+        showGlow: false
+      };
+    }
+
+    // If 30 seconds have passed and password verified (or not needed)
+    if (startTime && hasWaited && isPasswordVerified) {
+      return {
+        text: language === 'ar' ? 'مطالبة' : 'Claim',
+        className: 'bg-neonGreen text-black hover:brightness-110 animate-pulse shadow-[0_0_15px_rgba(0,255,136,0.5)]',
+        disabled: false,
+        showGlow: true
+      };
+    }
+
+    // Default state - start task
+    return {
+      text: language === 'ar' ? 'ابدأ المهمة' : 'Start Task',
+      className: 'bg-neonGreen text-black hover:brightness-110',
+      disabled: false,
+      showGlow: false
+    };
+  };
+
   if (!tasksLoaded) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-[#041e11] via-[#051a13] to-[#040d0c]">
@@ -605,6 +793,16 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
           gameSessionsRemaining={gameSessionsRemaining}
         />
       )}
+
+      {/* Password Input Modal */}
+      <PasswordInputModal
+        isOpen={showPasswordModal}
+        onClose={() => setShowPasswordModal(false)}
+        onSubmit={handlePasswordSubmit}
+        taskTitle={passwordModalTaskTitle}
+        taskLink={passwordModalTaskLink}
+        platform={passwordModalTaskPlatform}
+      />
 
       {/* Header */}
       <div className="pt-8 px-4 text-center">
@@ -787,6 +985,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
               const buttonConfig = getTaskButton(task.id, 'daily');
               const isCompleted = completedDailyTasks.has(task.id);
               const localizedContent = getLocalizedTaskContent(task);
+              const isVideoTask = task.platform === 'youtube' || task.platform === 'tiktok';
               
               return (
                 <div
@@ -802,7 +1001,17 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
                     <h5 className="font-medium text-sm">{localizedContent.title}</h5>
                   </div>
                   
-                  <p className="text-xs text-white/70 mb-3">{localizedContent.description}</p>
+                  <p className="text-xs text-white/70 mb-3">
+                    {localizedContent.description}
+                    {isVideoTask && (
+                      <span className="block mt-1 text-yellow-400">
+                        {language === 'ar' 
+                          ? '(كلمة المرور موجودة في الفيديو: HOERLYRACOIN)'
+                          : '(Password is in the video: HOERLYRACOIN)'
+                        }
+                      </span>
+                    )}
+                  </p>
                   
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-neonGreen">
@@ -813,6 +1022,13 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
                       onClick={() => {
                         if (buttonConfig.text.includes('Start') || buttonConfig.text.includes('ابدأ')) {
                           handleStartTask(task.id, 'daily', platformConfig.link);
+                        } else if (buttonConfig.text.includes('Password') || buttonConfig.text.includes('كلمة المرور')) {
+                          // Show password modal
+                          setPasswordModalTaskId(task.id);
+                          setPasswordModalTaskTitle(localizedContent.title);
+                          setPasswordModalTaskLink(platformConfig.link || '');
+                          setPasswordModalTaskPlatform(task.platform);
+                          setShowPasswordModal(true);
                         } else if (buttonConfig.text.includes('Claim') || buttonConfig.text.includes('مطالبة')) {
                           handleClaimTask(task.id, 'daily');
                         }
@@ -851,20 +1067,20 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
             </li>
             <li>
               {language === 'ar' 
-                ? '3. اضغط على "مطالبة" لاستلام النقاط والدقائق'
-                : '3. Click "Claim" to receive points and minutes'
+                ? '3. لمهام اليوتيوب وتيك توك، ستحتاج إلى إدخال كلمة المرور من الفيديو (HOERLYRACOIN)'
+                : '3. For YouTube and TikTok tasks, you\'ll need to enter the password from the video (HOERLYRACOIN)'
               }
             </li>
             <li>
               {language === 'ar' 
-                ? '4. المهام الثابتة تعطي 20 نقطة + 20 دقيقة، المهام اليومية تعطي 10 نقاط + 10 دقائق'
-                : '4. Fixed tasks give 20 points + 20 minutes, daily tasks give 10 points + 10 minutes'
+                ? '4. اضغط على "مطالبة" لاستلام النقاط والدقائق'
+                : '4. Click "Claim" to receive points and minutes'
               }
             </li>
             <li>
               {language === 'ar' 
-                ? '5. بعد المطالبة بالمهمة، لا يمكن المطالبة بها مرة أخرى'
-                : '5. After claiming a task, it cannot be claimed again'
+                ? '5. المهام الثابتة تعطي 20 نقطة + 20 دقيقة، المهام اليومية تعطي 10 نقاط + 10 دقائق'
+                : '5. Fixed tasks give 20 points + 20 minutes, daily tasks give 10 points + 10 minutes'
               }
             </li>
             <li>
@@ -878,60 +1094,6 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
       </div>
     </div>
   );
-};
-
-// Helper function to get task button configuration
-const getTaskButton = (taskId: string, taskType: 'daily' | 'fixed') => {
-  const isCompleted = false; // This will be determined by the component state
-  const isClaiming = false; // This will be determined by the component state
-  const startTime = 0; // This will be determined by the component state
-  const hasWaited = false; // This will be determined by the component state
-
-  if (isCompleted) {
-    return {
-      text: 'Completed',
-      className: 'bg-gray-600 text-gray-300 cursor-not-allowed opacity-50',
-      disabled: true,
-      showGlow: false
-    };
-  }
-
-  if (isClaiming) {
-    return {
-      text: 'Claiming...',
-      className: 'bg-neonGreen/50 text-black cursor-not-allowed',
-      disabled: true,
-      showGlow: false
-    };
-  }
-
-  // If timer is running (within 30 seconds)
-  if (startTime && !hasWaited) {
-    return {
-      text: 'Wait...',
-      className: 'bg-yellow-400/50 text-black cursor-not-allowed',
-      disabled: true,
-      showGlow: false
-    };
-  }
-
-  // If 30 seconds have passed, show claim button
-  if (startTime && hasWaited) {
-    return {
-      text: 'Claim',
-      className: 'bg-neonGreen text-black hover:brightness-110 animate-pulse shadow-[0_0_15px_rgba(0,255,136,0.5)]',
-      disabled: false,
-      showGlow: true
-    };
-  }
-
-  // Default state - start task
-  return {
-    text: 'Start Task',
-    className: 'bg-neonGreen text-black hover:brightness-110',
-    disabled: false,
-    showGlow: false
-  };
 };
 
 export default TasksPage;
