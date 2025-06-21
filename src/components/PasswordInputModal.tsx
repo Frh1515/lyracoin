@@ -109,17 +109,8 @@ const PasswordInputModal: React.FC<PasswordInputModalProps> = ({
                 setError(null);
               }}
               className="w-full bg-black/30 border border-white/20 rounded-lg px-4 py-3 text-white focus:border-neonGreen focus:outline-none transition"
-              placeholder={language === 'ar' ? 'أدخل كلمة المرور: HOERLYRACOIN' : 'Enter password: HOERLYRACOIN'}
+              placeholder={language === 'ar' ? 'أدخل كلمة المرور من الفيديو' : 'Enter password from the video'}
             />
-          </div>
-
-          <div className="bg-yellow-400/20 border border-yellow-400/30 rounded-lg p-3 mb-4">
-            <p className="text-yellow-400 text-sm font-medium">
-              {language === 'ar' 
-                ? '💡 تلميح: كلمة المرور هي HOERLYRACOIN'
-                : '💡 Hint: The password is HOERLYRACOIN'
-              }
-            </p>
           </div>
 
           <div className="flex gap-3">
