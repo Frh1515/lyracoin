@@ -395,12 +395,7 @@ const ProfilePage: React.FC = () => {
               </p>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-neonGreen">
-                {profile.total_minutes}
-                <span className="text-sm text-white/50 ml-2">
-                  =? {language === 'ar' ? 'قريباً' : 'Soon'}
-                </span>
-              </div>
+              <div className="text-2xl font-bold text-neonGreen">{profile.total_minutes}</div>
               <p className="text-sm text-white/60">
                 {language === 'ar' ? 'الدقائق' : 'Minutes'}
               </p>
@@ -523,12 +518,7 @@ const ProfilePage: React.FC = () => {
             </li>
             <li className="flex justify-between items-center py-2 border-b border-white/10">
               <span>{language === 'ar' ? 'الدقائق المكتسبة' : 'Minutes Earned'}</span>
-              <span className="text-neonGreen font-medium">
-                {profile.total_minutes.toLocaleString()}
-                <span className="text-xs text-white/50 ml-2">
-                  =? {language === 'ar' ? 'قريباً' : 'Soon'}
-                </span>
-              </span>
+              <span className="text-neonGreen font-medium">{profile.total_minutes.toLocaleString()}</span>
             </li>
             <li className="flex justify-between items-center py-2 border-b border-white/10">
               <span>{language === 'ar' ? 'الإحالات' : 'Referrals'}</span>

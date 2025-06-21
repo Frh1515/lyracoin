@@ -1,12 +1,10 @@
 import React, { useState } from 'react';
 import { TonConnectButton, useTonWallet } from '@tonconnect/ui-react';
 import PresalePurchaseModal from './PresalePurchaseModal';
-import { useLanguage } from '../context/LanguageContext';
 
 export function WalletConnect() {
   const wallet = useTonWallet();
   const [showPresaleModal, setShowPresaleModal] = useState(false);
-  const { language } = useLanguage();
 
   const handleWalletConnected = () => {
     if (wallet) {
@@ -21,10 +19,9 @@ export function WalletConnect() {
       {wallet && (
         <button
           onClick={handleWalletConnected}
-          disabled={true}
-          className="bg-gray-600 text-gray-400 font-bold py-3 px-6 rounded-lg cursor-not-allowed opacity-50 transition duration-300"
+          className="bg-neonGreen text-black font-bold py-3 px-6 rounded-lg hover:brightness-110 transition duration-300 shadow-glow"
         >
-          🪙 {language === 'ar' ? 'شراء LYRA COIN - قريباً' : 'Buy LYRA COIN - Soon'}
+          🪙 Buy LYRA COIN
         </button>
       )}
 
