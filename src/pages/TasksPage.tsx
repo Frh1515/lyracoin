@@ -1071,26 +1071,26 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
             </li>
             <li>
               {language === 'ar' 
-                ? '3. لمهام اليوتيوب وتيك توك، ستحتاج إلى إدخال كلمة المرور من الفيديو'
-                : '3. For YouTube and TikTok tasks, you\'ll need to enter the password from the video'
+                ? '2. لمهام اليوتيوب وتيك توك، ستحتاج إلى إدخال كلمة المرور من الفيديو'
+                : '2. For YouTube and TikTok tasks, you\'ll need to enter the password from the video'
               }
             </li>
             <li>
               {language === 'ar' 
-                ? '4. اضغط على "مطالبة" لاستلام النقاط والدقائق'
-                : '4. Click "Claim" to receive points and minutes'
+                ? '3. اضغط على "مطالبة" لاستلام النقاط والدقائق'
+                : '3. Click "Claim" to receive points and minutes'
               }
             </li>
             <li>
               {language === 'ar' 
-                ? '5. المهام الثابتة تعطي 20 نقطة + 20 دقيقة، المهام اليومية تعطي 10 نقاط + 10 دقائق'
-                : '5. Fixed tasks give 20 points + 20 minutes, daily tasks give 10 points + 10 minutes'
+                ? '4. المهام الثابتة تعطي 20 نقطة + 20 دقيقة، المهام اليومية تعطي 10 نقاط + 10 دقائق'
+                : '4. Fixed tasks give 20 points + 20 minutes, daily tasks give 10 points + 10 minutes'
               }
             </li>
             <li>
               {language === 'ar' 
-                ? '6. التعدين: اضغط "تعدين" لبدء جلسة 6 ساعات، استلم المكافآت كل 24 ساعة'
-                : '6. Mining: Click "Mine" to start 6-hour session, claim rewards every 24 hours'
+                ? '5. التعدين: اضغط "تعدين" لبدء جلسة 6 ساعات، استلم المكافآت كل 24 ساعة'
+                : '5. Mining: Click "Mine" to start 6-hour session, claim rewards every 24 hours'
               }
             </li>
           </ul>
