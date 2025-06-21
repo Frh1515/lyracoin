@@ -6,7 +6,7 @@ import './index.css';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <TonConnectUIProvider manifestUrl="https://www.lyracoine.com/tonconnect-manifest.json">
+    <TonConnectUIProvider manifestUrl="https://unique-melomakarona-b3adfe.netlify.app/tonconnect-manifest.json">
       <App />
     </TonConnectUIProvider>
   </StrictMode>
