@@ -131,6 +131,19 @@ const BoostTimeModal: React.FC<BoostTimeModalProps> = ({
 
     setIsProcessing(true);
     try {
+      // Check boost status with backend
+      const statusResponse = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/boost-status`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        }
+      });
+
+      if (!statusResponse.ok) {
+        throw new Error('Failed to check boost status');
+      }
+
       // Simulate transaction hash (in real implementation, this would come from TON Connect)
       const mockTransactionHash = `tx_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       

@@ -9,6 +9,7 @@ import ProfilePage from './pages/ProfilePage';
 import BottomNavbar from './components/BottomNavbar';
 import SplashScreen from './components/SplashScreen';
 import FeaturedTelegramTask from './components/FeaturedTelegramTask';
+import BackendStatus from './components/BackendStatus';
 import { LanguageProvider } from './context/LanguageContext';
 import { TelegramProvider, useTelegram } from './context/TelegramContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
@@ -113,6 +114,7 @@ function AppContent() {
     <>
       <Toaster position="top-center" />
       <LanguageSelector />
+      <BackendStatus />
       {showSplash && <SplashScreen />}
       {!showSplash && showTelegramTask && (
         <FeaturedTelegramTask 

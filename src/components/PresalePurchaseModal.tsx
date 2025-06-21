@@ -47,11 +47,11 @@ const PresalePurchaseModal: React.FC<PresalePurchaseModalProps> = ({
       // Simulate transaction hash (in real implementation, this would come from TON Connect)
       const mockTransactionHash = `tx_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/process-presale-payment`, {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/verify-payment`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          'Accept': 'application/json',
         },
         body: JSON.stringify({
           wallet_address: walletAddress,
