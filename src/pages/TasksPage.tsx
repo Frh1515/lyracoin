@@ -1006,8 +1006,8 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
                     {isVideoTask && (
                       <span className="block mt-1 text-yellow-400">
                         {language === 'ar' 
-                          ? '(كلمة المرور موجودة في الفيديو: HOERLYRACOIN)'
-                          : '(Password is in the video: HOERLYRACOIN)'
+                          ? '(كلمة المرور موجودة في الفيديو)'
+                          : '(Password is in the video)'
                         }
                       </span>
                     )}
@@ -1067,8 +1067,8 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
             </li>
             <li>
               {language === 'ar' 
-                ? '3. لمهام اليوتيوب وتيك توك، ستحتاج إلى إدخال كلمة المرور من الفيديو (HOERLYRACOIN)'
-                : '3. For YouTube and TikTok tasks, you\'ll need to enter the password from the video (HOERLYRACOIN)'
+                ? '3. لمهام اليوتيوب وتيك توك، ستحتاج إلى إدخال كلمة المرور من الفيديو'
+                : '3. For YouTube and TikTok tasks, you\'ll need to enter the password from the video'
               }
             </li>
             <li>
