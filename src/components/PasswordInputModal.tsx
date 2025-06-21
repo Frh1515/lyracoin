@@ -66,8 +66,8 @@ const PasswordInputModal: React.FC<PasswordInputModalProps> = ({
           </h2>
           <p className="text-white/60 text-sm mt-2">
             {language === 'ar' 
-              ? 'كلمة المرور موجودة في الفيديو الذي شاهدته للتو'
-              : 'The password is shown in the video you just watched'
+              ? 'شاهد الفيديو بالكامل للعثور على كلمة المرور'
+              : 'Watch the full video to find the password'
             }
           </p>
         </div>
