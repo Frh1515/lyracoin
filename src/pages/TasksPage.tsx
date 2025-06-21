@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { FaYoutube, FaFacebook, FaTiktok, FaTelegram, FaInstagram, FaXTwitter } from 'react-icons/fa6';
-import { Gamepad2, Clock, Pickaxe, Timer } from 'lucide-react';
+import { Gamepad2, Clock, Pickaxe, Timer, Share2, Smartphone } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import CryptoCandyCrushGame from '../components/CryptoCandyCrushGame';
 import { getDailyTasks } from '../../lib/supabase/getDailyTasks';
@@ -492,7 +492,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
 
   // Helper function to get platform icon and styling based on platform name
   const getPlatformConfig = (platform: string) => {
-    const platformConfigs = {
+    const platformConfigs: Record<string, any> = {
       'youtube': {
         icon: FaYoutube,
         borderColor: 'border-red-500',
@@ -534,6 +534,20 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
         glow: 'drop-shadow-[0_0_20px_#1DA1F2]',
         bgColor: 'bg-sky-400',
         link: 'https://x.com/CoinLyra90781'
+      },
+      'app': {
+        icon: Smartphone,
+        borderColor: 'border-gray-500',
+        glow: 'drop-shadow-[0_0_20px_#888888]',
+        bgColor: 'bg-gray-500',
+        link: ''
+      },
+      'social': {
+        icon: Share2,
+        borderColor: 'border-yellow-400',
+        glow: 'drop-shadow-[0_0_20px_#FACC15]',
+        bgColor: 'bg-yellow-400',
+        link: ''
       }
     };
 
@@ -543,106 +557,6 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
       glow: 'drop-shadow-[0_0_20px_#888888]',
       bgColor: 'bg-gray-500',
       link: ''
-    };
-  };
-
-  const platforms = [
-    { 
-      name: language === 'ar' ? 'يوتيوب' : 'YouTube',
-      icon: FaYoutube,
-      borderColor: 'border-red-500',
-      glow: 'drop-shadow-[0_0_20px_#FF0000]',
-      bgColor: 'bg-red-500'
-    },
-    { 
-      name: language === 'ar' ? 'فيسبوك' : 'Facebook',
-      icon: FaFacebook,
-      borderColor: 'border-blue-500',
-      glow: 'drop-shadow-[0_0_20px_#1877F2]',
-      bgColor: 'bg-blue-500'
-    },
-    { 
-      name: language === 'ar' ? 'تيليجرام' : 'Telegram',
-      icon: FaTelegram,
-      borderColor: 'border-cyan-400',
-      glow: 'drop-shadow-[0_0_20px_#0088cc]',
-      bgColor: 'bg-cyan-400'
-    },
-    { 
-      name: language === 'ar' ? 'تيك توك' : 'TikTok',
-      icon: FaTiktok,
-      borderColor: 'border-pink-500',
-      glow: 'drop-shadow-[0_0_20px_#FF0050]',
-      bgColor: 'bg-pink-500'
-    },
-    { 
-      name: language === 'ar' ? 'انستغرام' : 'Instagram',
-      icon: FaInstagram,
-      borderColor: 'border-purple-500',
-      glow: 'drop-shadow-[0_0_20px_#C13584]',
-      bgColor: 'bg-purple-500'
-    },
-    { 
-      name: language === 'ar' ? 'تويتر' : 'Twitter',
-      icon: FaXTwitter,
-      borderColor: 'border-sky-400',
-      glow: 'drop-shadow-[0_0_20px_#1DA1F2]',
-      bgColor: 'bg-sky-400'
-    }
-  ];
-
-  const getTaskButton = (taskId: string, taskType: 'daily' | 'fixed') => {
-    const isCompleted = taskType === 'daily' 
-      ? completedDailyTasks.has(taskId) 
-      : completedFixedTasks.has(taskId);
-    const isClaiming = claimingTasks.has(taskId);
-    const startTime = taskStartedTimes.get(taskId);
-    const hasWaited = startTime && (Date.now() - startTime >= 30000);
-
-    if (isCompleted) {
-      return {
-        text: language === 'ar' ? '✓ مكتمل' : '✓ Completed',
-        className: 'bg-gray-600 text-gray-300 cursor-not-allowed opacity-50',
-        disabled: true,
-        showGlow: false
-      };
-    }
-
-    if (isClaiming) {
-      return {
-        text: language === 'ar' ? 'جاري المطالبة...' : 'Claiming...',
-        className: 'bg-neonGreen/50 text-black cursor-not-allowed',
-        disabled: true,
-        showGlow: false
-      };
-    }
-
-    // If timer is running (within 30 seconds) - HIDDEN COUNTDOWN
-    if (startTime && !hasWaited) {
-      return {
-        text: language === 'ar' ? 'انتظر...' : 'Wait...',
-        className: 'bg-yellow-400/50 text-black cursor-not-allowed',
-        disabled: true,
-        showGlow: false
-      };
-    }
-
-    // If 30 seconds have passed, show claim button
-    if (startTime && hasWaited) {
-      return {
-        text: language === 'ar' ? 'مطالبة' : 'Claim',
-        className: 'bg-neonGreen text-black hover:brightness-110 animate-pulse shadow-[0_0_15px_rgba(0,255,136,0.5)]',
-        disabled: false,
-        showGlow: true
-      };
-    }
-
-    // Default state - start task
-    return {
-      text: language === 'ar' ? 'ابدأ المهمة' : 'Start Task',
-      className: 'bg-neonGreen text-black hover:brightness-110',
-      disabled: false,
-      showGlow: false
     };
   };
 
@@ -868,8 +782,8 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
           </h3>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {dailyTasks.map((task, index) => {
-              const platform = platforms[index % platforms.length];
+            {dailyTasks.map((task) => {
+              const platformConfig = getPlatformConfig(task.platform);
               const buttonConfig = getTaskButton(task.id, 'daily');
               const isCompleted = completedDailyTasks.has(task.id);
               const localizedContent = getLocalizedTaskContent(task);
@@ -879,12 +793,12 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
                   key={task.id}
                   className={`p-4 backdrop-blur-sm border rounded-xl text-white transition-all duration-300 ${
                     isCompleted
-                      ? `bg-neonGreen/10 ${platform.borderColor} opacity-50` 
-                      : `bg-black/40 ${platform.borderColor} ${platform.glow} hover:scale-105 hover:brightness-110`
+                      ? `bg-neonGreen/10 ${platformConfig.borderColor} opacity-50` 
+                      : `bg-black/40 ${platformConfig.borderColor} ${platformConfig.glow} hover:scale-105 hover:brightness-110`
                   }`}
                 >
                   <div className="flex items-center gap-3 mb-3">
-                    <platform.icon className={`w-6 h-6 ${platform.bgColor} rounded-lg p-1 text-white`} />
+                    <platformConfig.icon className={`w-6 h-6 ${platformConfig.bgColor} rounded-lg p-1 text-white`} />
                     <h5 className="font-medium text-sm">{localizedContent.title}</h5>
                   </div>
                   
@@ -898,7 +812,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
                     <button
                       onClick={() => {
                         if (buttonConfig.text.includes('Start') || buttonConfig.text.includes('ابدأ')) {
-                          handleStartTask(task.id, 'daily');
+                          handleStartTask(task.id, 'daily', platformConfig.link);
                         } else if (buttonConfig.text.includes('Claim') || buttonConfig.text.includes('مطالبة')) {
                           handleClaimTask(task.id, 'daily');
                         }
@@ -931,6 +845,12 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
             </li>
             <li>
               {language === 'ar' 
+                ? '2. انتظر 30 ثانية حتى يظهر زر "مطالبة" مع تأثير بصري'
+                : '2. Wait 30 seconds for the "Claim" button to appear with visual effect'
+              }
+            </li>
+            <li>
+              {language === 'ar' 
                 ? '3. اضغط على "مطالبة" لاستلام النقاط والدقائق'
                 : '3. Click "Claim" to receive points and minutes'
               }
@@ -958,6 +878,60 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
       </div>
     </div>
   );
+};
+
+// Helper function to get task button configuration
+const getTaskButton = (taskId: string, taskType: 'daily' | 'fixed') => {
+  const isCompleted = false; // This will be determined by the component state
+  const isClaiming = false; // This will be determined by the component state
+  const startTime = 0; // This will be determined by the component state
+  const hasWaited = false; // This will be determined by the component state
+
+  if (isCompleted) {
+    return {
+      text: 'Completed',
+      className: 'bg-gray-600 text-gray-300 cursor-not-allowed opacity-50',
+      disabled: true,
+      showGlow: false
+    };
+  }
+
+  if (isClaiming) {
+    return {
+      text: 'Claiming...',
+      className: 'bg-neonGreen/50 text-black cursor-not-allowed',
+      disabled: true,
+      showGlow: false
+    };
+  }
+
+  // If timer is running (within 30 seconds)
+  if (startTime && !hasWaited) {
+    return {
+      text: 'Wait...',
+      className: 'bg-yellow-400/50 text-black cursor-not-allowed',
+      disabled: true,
+      showGlow: false
+    };
+  }
+
+  // If 30 seconds have passed, show claim button
+  if (startTime && hasWaited) {
+    return {
+      text: 'Claim',
+      className: 'bg-neonGreen text-black hover:brightness-110 animate-pulse shadow-[0_0_15px_rgba(0,255,136,0.5)]',
+      disabled: false,
+      showGlow: true
+    };
+  }
+
+  // Default state - start task
+  return {
+    text: 'Start Task',
+    className: 'bg-neonGreen text-black hover:brightness-110',
+    disabled: false,
+    showGlow: false
+  };
 };
 
 export default TasksPage;
