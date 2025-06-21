@@ -398,7 +398,7 @@ const ProfilePage: React.FC = () => {
               <div className="text-2xl font-bold text-neonGreen">
                 {profile.total_minutes}
                 <span className="text-sm text-white/50 ml-2">
-                  = ? {language === 'ar' ? 'قريباً' : 'Soon'}
+                  =? {language === 'ar' ? 'قريباً' : 'Soon'}
                 </span>
               </div>
               <p className="text-sm text-white/60">
@@ -526,7 +526,7 @@ const ProfilePage: React.FC = () => {
               <span className="text-neonGreen font-medium">
                 {profile.total_minutes.toLocaleString()}
                 <span className="text-xs text-white/50 ml-2">
-                  = ? {language === 'ar' ? 'قريباً' : 'Soon'}
+                  =? {language === 'ar' ? 'قريباً' : 'Soon'}
                 </span>
               </span>
             </li>

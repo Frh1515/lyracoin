@@ -124,7 +124,12 @@ const HomePage: React.FC<HomePageProps> = ({
               </p>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-neonGreen">{userMinutes}</div>
+              <div className="text-2xl font-bold text-neonGreen">
+                {userMinutes}
+                <span className="text-sm text-white/50 ml-2">
+                  =? {language === 'ar' ? 'قريباً' : 'Soon'}
+                </span>
+              </div>
               <p className="text-sm text-white/60">
                 {language === 'ar' ? 'الدقائق' : 'Minutes'}
               </p>
@@ -197,7 +202,12 @@ const HomePage: React.FC<HomePageProps> = ({
                 {language === 'ar' ? 'دقائقك' : 'Your Minutes'}
               </h2>
             </div>
-            <span className="text-2xl font-bold text-neonGreen">{userMinutes}</span>
+            <span className="text-2xl font-bold text-neonGreen">
+              {userMinutes}
+              <span className="text-sm text-white/50 ml-2">
+                =? {language === 'ar' ? 'قريباً' : 'Soon'}
+              </span>
+            </span>
           </div>
           <p className="mt-2 text-sm text-white/60">
             {language === 'ar' 
