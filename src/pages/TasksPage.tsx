@@ -490,8 +490,14 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
           onPointsEarned(result.pointsEarned);
         }
 
-        // Award minutes (20 minutes for fixed tasks, 10 minutes for daily tasks)
-        const minutesEarned = taskType === 'fixed' ? 20 : 10;
+        // Award minutes (20 minutes for fixed tasks, special for YouTube/TikTok)
+        let minutesEarned = taskType === 'fixed' ? 20 : 10;
+        
+        // Special rewards for YouTube and TikTok daily tasks
+        if (taskType === 'daily' && (task.platform === 'youtube' || task.platform === 'tiktok')) {
+          minutesEarned = 100; // Increased to 100 minutes for YouTube and TikTok
+        }
+        
         if (onMinutesEarned) {
           onMinutesEarned(minutesEarned);
         }
@@ -987,6 +993,10 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
               const localizedContent = getLocalizedTaskContent(task);
               const isVideoTask = task.platform === 'youtube' || task.platform === 'tiktok';
               
+              // Determine reward amount based on platform
+              const pointsReward = isVideoTask ? 20 : task.points_reward;
+              const minutesReward = isVideoTask ? 100 : 10;
+              
               return (
                 <div
                   key={task.id}
@@ -1015,7 +1025,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
                   
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-neonGreen">
-                      +{task.points_reward} {language === 'ar' ? 'نقطة' : 'points'} & +10 {language === 'ar' ? 'دقيقة' : 'minutes'}
+                      +{pointsReward} {language === 'ar' ? 'نقطة' : 'points'} & +{minutesReward} {language === 'ar' ? 'دقيقة' : 'minutes'}
                     </span>
                     
                     <button
@@ -1057,12 +1067,6 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
               {language === 'ar' 
                 ? '1. اضغط على "ابدأ المهمة" لفتح الرابط وبدء العد التنازلي'
                 : '1. Click "Start Task" to open the link and start the countdown'
-              }
-            </li>
-            <li>
-              {language === 'ar' 
-                ? '2. انتظر 30 ثانية حتى يظهر زر "مطالبة" مع تأثير بصري'
-                : '2. Wait 30 seconds for the "Claim" button to appear with visual effect'
               }
             </li>
             <li>
