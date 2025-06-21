@@ -1,15 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { FaYoutube, FaFacebook, FaTiktok, FaTelegram, FaInstagram, FaXTwitter } from 'react-icons/fa6';
-import { Gamepad2, Clock, Pickaxe, Timer, Share2, Smartphone } from 'lucide-react';
+import { Gamepad2, Clock, Pickaxe, Timer, Share2, Smartphone, Zap } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import CryptoCandyCrushGame from '../components/CryptoCandyCrushGame';
 import PasswordInputModal from '../components/PasswordInputModal';
+import BoostTimeModal from '../components/BoostTimeModal';
 import { getDailyTasks } from '../../lib/supabase/getDailyTasks';
 import { getFixedTasks } from '../../lib/supabase/getFixedTasks';
 import { claimDailyTask } from '../../lib/supabase/claimDailyTask';
 import { claimFixedTask } from '../../lib/supabase/claimFixedTask';
 import { recordGameSession } from '../../lib/supabase/recordGameSession';
 import { getMiningStatus, startOrResumeMining, claimDailyMiningReward } from '../../lib/supabase/mining';
+import { getActiveBoost, applyBoostToMining } from '../../lib/supabase/boostSystem';
 import type { MiningStatus } from '../../lib/supabase/types';
 import toast from 'react-hot-toast';
 
@@ -43,6 +45,15 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
   const [miningCountdown, setMiningCountdown] = useState<string>('');
   const [isMiningLoading, setIsMiningLoading] = useState(false);
   const [miningInterval, setMiningInterval] = useState<NodeJS.Timeout | null>(null);
+  
+  // Boost states
+  const [showBoostModal, setShowBoostModal] = useState(false);
+  const [activeBoost, setActiveBoost] = useState<{
+    multiplier: number;
+    endTime: string;
+    remainingHours: number;
+  } | null>(null);
+  const [isBoostLoading, setIsBoostLoading] = useState(false);
   
   const { language } = useLanguage();
 
@@ -102,7 +113,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
     loadTasks();
   }, [language]);
 
-  // Load mining status when component mounts
+  // Load mining status and active boost when component mounts
   useEffect(() => {
     const loadMiningStatus = async () => {
       try {
@@ -117,7 +128,25 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
       }
     };
 
+    const loadActiveBoost = async () => {
+      try {
+        const { data, error } = await getActiveBoost();
+        if (error) {
+          console.error('Error loading active boost:', error);
+        } else if (data) {
+          setActiveBoost({
+            multiplier: data.multiplier,
+            endTime: data.end_time,
+            remainingHours: data.remainingHours
+          });
+        }
+      } catch (error) {
+        console.error('Error loading active boost:', error);
+      }
+    };
+
     loadMiningStatus();
+    loadActiveBoost();
   }, []);
 
   // Update mining countdown every second
@@ -177,6 +206,25 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
     }
   };
 
+  const refreshActiveBoost = async () => {
+    try {
+      const { data, error } = await getActiveBoost();
+      if (error) {
+        console.error('Error refreshing active boost:', error);
+      } else if (data) {
+        setActiveBoost({
+          multiplier: data.multiplier,
+          endTime: data.end_time,
+          remainingHours: data.remainingHours
+        });
+      } else {
+        setActiveBoost(null);
+      }
+    } catch (error) {
+      console.error('Error refreshing active boost:', error);
+    }
+  };
+
   const handleMineClick = async () => {
     setIsMiningLoading(true);
     try {
@@ -224,10 +272,16 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
       const result = await claimDailyMiningReward();
       
       if (result.success) {
+        const boostMessage = result.boost_multiplier && result.boost_multiplier > 1
+          ? (language === 'ar' 
+              ? ` (مضاعفة ×${result.boost_multiplier})`
+              : ` (boosted ×${result.boost_multiplier})`)
+          : '';
+          
         toast.success(
           language === 'ar' 
-            ? `🎉 تم استلام المكافأة! +${result.minutes_claimed} دقيقة و +${result.points_awarded} نقطة`
-            : `🎉 Reward claimed! +${result.minutes_claimed} minutes & +${result.points_awarded} points`,
+            ? `🎉 تم استلام المكافأة! +${result.minutes_claimed} دقيقة${boostMessage} و +${result.points_awarded} نقطة`
+            : `🎉 Reward claimed! +${result.minutes_claimed} minutes${boostMessage} & +${result.points_awarded} points`,
           { 
             duration: 4000,
             style: {
@@ -267,6 +321,77 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
     }
   };
 
+  const handleBoostClick = async () => {
+    setIsBoostLoading(true);
+    try {
+      // If there's an active boost, apply it
+      if (activeBoost) {
+        const result = await applyBoostToMining();
+        
+        if (result.success) {
+          toast.success(
+            language === 'ar'
+              ? `🚀 تم تطبيق المضاعف! +${result.minutes_earned} دقيقة (×${result.multiplier})`
+              : `🚀 Boost applied! +${result.minutes_earned} minutes (×${result.multiplier})`,
+            { 
+              duration: 4000,
+              style: {
+                background: '#00FFAA',
+                color: '#000',
+                fontWeight: 'bold'
+              }
+            }
+          );
+          
+          // Update parent component
+          if (onMinutesEarned && result.minutes_earned) {
+            onMinutesEarned(result.minutes_earned);
+          }
+          
+          // Refresh mining status
+          await refreshMiningStatus();
+        } else {
+          toast.error(
+            language === 'ar' 
+              ? `فشل تطبيق المضاعف: ${result.message}`
+              : `Failed to apply boost: ${result.message}`
+          );
+        }
+      } else {
+        // Show boost purchase modal
+        setShowBoostModal(true);
+      }
+    } catch (error) {
+      console.error('Error handling boost:', error);
+      toast.error(
+        language === 'ar' 
+          ? 'حدث خطأ أثناء معالجة المضاعف'
+          : 'Error handling boost'
+      );
+    } finally {
+      setIsBoostLoading(false);
+    }
+  };
+
+  const handleBoostPurchased = async () => {
+    // Refresh active boost after purchase
+    await refreshActiveBoost();
+    
+    toast.success(
+      language === 'ar'
+        ? '🚀 تم تفعيل المضاعف! اضغط على زر "Boost Time" لاستخدامه'
+        : '🚀 Boost activated! Click "Boost Time" to use it',
+      { 
+        duration: 5000,
+        style: {
+          background: '#00FFAA',
+          color: '#000',
+          fontWeight: 'bold'
+        }
+      }
+    );
+  };
+
   const getMiningButtonConfig = () => {
     if (!miningStatus) {
       return {
@@ -303,6 +428,30 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
       disabled: isMiningLoading,
       onClick: handleMineClick,
       className: 'bg-neonGreen text-black hover:brightness-110'
+    };
+  };
+
+  const getBoostButtonConfig = () => {
+    if (isBoostLoading) {
+      return {
+        text: language === 'ar' ? 'جاري المعالجة...' : 'Processing...',
+        disabled: true,
+        className: 'bg-blue-500/50 text-white cursor-not-allowed'
+      };
+    }
+
+    if (activeBoost) {
+      return {
+        text: language === 'ar' ? 'مضاعفة الوقت' : 'Boost Time',
+        disabled: false,
+        className: 'bg-blue-500 text-white hover:brightness-110 shadow-[0_0_15px_rgba(59,130,246,0.5)]'
+      };
+    }
+
+    return {
+      text: language === 'ar' ? 'مضاعفة الوقت' : 'Boost Time',
+      disabled: false,
+      className: 'bg-blue-500 text-white hover:brightness-110'
     };
   };
 
@@ -788,6 +937,18 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
   }
 
   const miningButtonConfig = getMiningButtonConfig();
+  const boostButtonConfig = getBoostButtonConfig();
+
+  const getBoostStatusColor = (multiplier: number) => {
+    switch (multiplier) {
+      case 2: return 'text-blue-500 bg-blue-500/20 border-blue-500/30';
+      case 3: return 'text-purple-500 bg-purple-500/20 border-purple-500/30';
+      case 4: return 'text-pink-500 bg-pink-500/20 border-pink-500/30';
+      case 6: return 'text-yellow-400 bg-yellow-400/20 border-yellow-400/30';
+      case 10: return 'text-red-500 bg-red-500/20 border-red-500/30';
+      default: return 'text-neonGreen bg-neonGreen/20 border-neonGreen/30';
+    }
+  };
 
   return (
     <div className="min-h-screen pb-24 bg-gradient-to-b from-[#041e11] via-[#051a13] to-[#040d0c]">
@@ -810,6 +971,14 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
         platform={passwordModalTaskPlatform}
       />
 
+      {/* Boost Time Modal */}
+      <BoostTimeModal
+        isOpen={showBoostModal}
+        onClose={() => setShowBoostModal(false)}
+        onBoostPurchased={handleBoostPurchased}
+        activeBoost={activeBoost}
+      />
+
       {/* Header */}
       <div className="pt-8 px-4 text-center">
         <h1 className="text-2xl font-bold text-white mb-4">
@@ -826,11 +995,28 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
       {/* Earn Section - Mining Feature */}
       <div className="mt-10 px-6">
         <div className="p-6 bg-darkGreen backdrop-blur-sm border-2 border-yellow-400 rounded-xl text-white shadow-[0_0_15px_rgba(255,204,21,0.3)] mb-8">
-          <div className="flex items-center gap-3 mb-4">
-            <Pickaxe className="w-7 h-7 text-yellow-400" />
-            <h4 className="font-bold text-xl text-yellow-400">
-              {language === 'ar' ? '⛏️ تعدين الدقائق' : '⛏️ Earn Minutes'}
-            </h4>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <Pickaxe className="w-7 h-7 text-yellow-400" />
+              <h4 className="font-bold text-xl text-yellow-400">
+                {language === 'ar' ? '⛏️ تعدين الدقائق' : '⛏️ Earn Minutes'}
+              </h4>
+            </div>
+            
+            {/* Boost Status Indicator */}
+            {activeBoost && (
+              <div className={`px-3 py-1 rounded-full text-xs font-medium ${getBoostStatusColor(activeBoost.multiplier)}`}>
+                <div className="flex items-center gap-1">
+                  <Zap className="w-3 h-3" />
+                  <span>
+                    {language === 'ar' 
+                      ? `مضاعف ×${activeBoost.multiplier} نشط`
+                      : `Boost ×${activeBoost.multiplier} active`
+                    }
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
           
           {miningStatus && (
@@ -866,15 +1052,30 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
             </div>
           )}
           
-          <button
-            onClick={miningButtonConfig.onClick}
-            disabled={miningButtonConfig.disabled}
-            className={`w-full py-3 rounded-lg font-semibold text-center transition ${miningButtonConfig.className} ${
-              miningButtonConfig.disabled ? 'cursor-not-allowed opacity-50' : ''
-            }`}
-          >
-            {miningButtonConfig.text}
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={miningButtonConfig.onClick}
+              disabled={miningButtonConfig.disabled}
+              className={`flex-1 py-3 rounded-lg font-semibold text-center transition ${miningButtonConfig.className} ${
+                miningButtonConfig.disabled ? 'cursor-not-allowed opacity-50' : ''
+              }`}
+            >
+              {miningButtonConfig.text}
+            </button>
+            
+            <button
+              onClick={handleBoostClick}
+              disabled={boostButtonConfig.disabled}
+              className={`py-3 px-4 rounded-lg font-semibold text-center transition ${boostButtonConfig.className} ${
+                boostButtonConfig.disabled ? 'cursor-not-allowed opacity-50' : ''
+              }`}
+            >
+              <div className="flex items-center gap-1">
+                <Zap className="w-4 h-4" />
+                {boostButtonConfig.text}
+              </div>
+            </button>
+          </div>
           
           <div className="mt-3 text-xs text-center text-white/60">
             {language === 'ar' 
