@@ -3,6 +3,7 @@ import { X, Wallet } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useTelegram } from '../context/TelegramContext';
 import { useLanguage } from '../context/LanguageContext';
+import { verifyPayment } from '../utils/api';
 
 interface PresalePurchaseModalProps {
   isOpen: boolean;
@@ -47,23 +48,16 @@ const PresalePurchaseModal: React.FC<PresalePurchaseModalProps> = ({
       // Simulate transaction hash (in real implementation, this would come from TON Connect)
       const mockTransactionHash = `tx_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/verify-payment`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: JSON.stringify({
-          wallet_address: walletAddress,
-          lyra_amount: lyraAmount,
-          transaction_hash: mockTransactionHash,
-          telegram_id: user.id.toString()
-        })
+      console.log('🔄 Verifying payment with backend...');
+      const result = await verifyPayment({
+        wallet_address: walletAddress,
+        lyra_amount: lyraAmount,
+        transaction_hash: mockTransactionHash,
+        telegram_id: user.id.toString()
       });
 
-      const result = await response.json();
-
       if (result.success) {
+        console.log('✅ Payment verified successfully');
         toast.success(
           language === 'ar' 
             ? `🎉 تم الشراء بنجاح!\n💰 ${lyraAmount} LYRA COIN\n💎 ${tonAmount} TON\n🔗 ${mockTransactionHash.substring(0, 10)}...`
@@ -79,11 +73,15 @@ const PresalePurchaseModal: React.FC<PresalePurchaseModalProps> = ({
         );
         onClose();
       } else {
-        throw new Error(result.error || 'Payment processing failed');
+        throw new Error(result.error || 'Payment verification failed');
       }
     } catch (error) {
       console.error('Payment error:', error);
-      toast.error(language === 'ar' ? 'فشل الدفع. يرجى المحاولة مرة أخرى.' : 'Payment failed. Please try again.');
+      toast.error(
+        language === 'ar' 
+          ? 'فشل الدفع. يرجى المحاولة مرة أخرى.' 
+          : 'Payment failed. Please try again.'
+      );
     } finally {
       setIsProcessing(false);
     }

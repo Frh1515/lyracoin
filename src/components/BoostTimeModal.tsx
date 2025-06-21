@@ -3,6 +3,7 @@ import { X, Zap, Wallet, Clock, Check, AlertTriangle } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { useTonWallet } from '@tonconnect/ui-react';
 import { purchaseBoost, getActiveBoost } from '../../lib/supabase/boostSystem';
+import { getBoostStatus, updateBoostStatus } from '../utils/api';
 import toast from 'react-hot-toast';
 
 interface BoostTimeModalProps {
@@ -131,22 +132,35 @@ const BoostTimeModal: React.FC<BoostTimeModalProps> = ({
 
     setIsProcessing(true);
     try {
-      // Check boost status with backend
-      const statusResponse = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/boost-status`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        }
-      });
-
-      if (!statusResponse.ok) {
-        throw new Error('Failed to check boost status');
+      // Check boost status with backend first
+      console.log('🔍 Checking boost status with backend...');
+      const statusResponse = await getBoostStatus(wallet.account.address);
+      
+      if (!statusResponse.success) {
+        console.warn('⚠️ Backend boost status check failed:', statusResponse.error);
+        // Continue with local processing as fallback
+      } else {
+        console.log('✅ Backend boost status:', statusResponse.data);
       }
 
       // Simulate transaction hash (in real implementation, this would come from TON Connect)
       const mockTransactionHash = `tx_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       
+      // Update backend boost status
+      const updateResponse = await updateBoostStatus({
+        multiplier: selectedBoost.multiplier,
+        duration: selectedBoost.hoursRewarded,
+        transaction_hash: mockTransactionHash,
+        wallet_address: wallet.account.address
+      });
+
+      if (updateResponse.success) {
+        console.log('✅ Backend boost status updated');
+      } else {
+        console.warn('⚠️ Backend boost update failed:', updateResponse.error);
+      }
+
+      // Process boost with Supabase (primary system)
       const result = await purchaseBoost({
         multiplier: selectedBoost.multiplier,
         price: selectedBoost.price,
