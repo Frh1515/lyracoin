@@ -11,7 +11,7 @@ import { claimDailyTask } from '../../lib/supabase/claimDailyTask';
 import { claimFixedTask } from '../../lib/supabase/claimFixedTask';
 import { recordGameSession } from '../../lib/supabase/recordGameSession';
 import { getMiningStatus, startOrResumeMining, claimDailyMiningReward } from '../../lib/supabase/mining';
-import { getActiveBoost, applyBoostToMining } from '../../lib/supabase/boostSystem';
+import { getActiveBoost } from '../../lib/supabase/boostSystem';
 import type { MiningStatus } from '../../lib/supabase/types';
 import toast from 'react-hot-toast';
 
@@ -53,7 +53,6 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
     endTime: string;
     remainingHours: number;
   } | null>(null);
-  const [isBoostLoading, setIsBoostLoading] = useState(false);
   
   const { language } = useLanguage();
 
@@ -206,25 +205,6 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
     }
   };
 
-  const refreshActiveBoost = async () => {
-    try {
-      const { data, error } = await getActiveBoost();
-      if (error) {
-        console.error('Error refreshing active boost:', error);
-      } else if (data) {
-        setActiveBoost({
-          multiplier: data.multiplier,
-          endTime: data.end_time,
-          remainingHours: data.remainingHours
-        });
-      } else {
-        setActiveBoost(null);
-      }
-    } catch (error) {
-      console.error('Error refreshing active boost:', error);
-    }
-  };
-
   const handleMineClick = async () => {
     setIsMiningLoading(true);
     try {
@@ -321,72 +301,22 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
     }
   };
 
-  const handleBoostClick = async () => {
-    setIsBoostLoading(true);
-    try {
-      // If there's an active boost, apply it
-      if (activeBoost) {
-        const result = await applyBoostToMining();
-        
-        if (result.success) {
-          toast.success(
-            language === 'ar'
-              ? `🚀 تم تطبيق المضاعف! +${result.minutes_earned} دقيقة (×${result.multiplier})`
-              : `🚀 Boost applied! +${result.minutes_earned} minutes (×${result.multiplier})`,
-            { 
-              duration: 4000,
-              style: {
-                background: '#00FFAA',
-                color: '#000',
-                fontWeight: 'bold'
-              }
-            }
-          );
-          
-          // Update parent component
-          if (onMinutesEarned && result.minutes_earned) {
-            onMinutesEarned(result.minutes_earned);
-          }
-          
-          // Refresh mining status
-          await refreshMiningStatus();
-        } else {
-          toast.error(
-            language === 'ar' 
-              ? `فشل تطبيق المضاعف: ${result.message}`
-              : `Failed to apply boost: ${result.message}`
-          );
-        }
-      } else {
-        // Show boost purchase modal
-        setShowBoostModal(true);
-      }
-    } catch (error) {
-      console.error('Error handling boost:', error);
-      toast.error(
-        language === 'ar' 
-          ? 'حدث خطأ أثناء معالجة المضاعف'
-          : 'Error handling boost'
-      );
-    } finally {
-      setIsBoostLoading(false);
-    }
+  const handleBoostClick = () => {
+    // Just show the modal - no actual functionality
+    setShowBoostModal(true);
   };
 
-  const handleBoostPurchased = async () => {
-    // Refresh active boost after purchase
-    await refreshActiveBoost();
-    
-    toast.success(
+  const handleBoostPurchased = () => {
+    // Placeholder function - no actual functionality
+    toast.info(
       language === 'ar'
-        ? '🚀 تم تفعيل المضاعف! اضغط على زر "Boost Time" لاستخدامه'
-        : '🚀 Boost activated! Click "Boost Time" to use it',
+        ? 'ميزة المضاعف ستكون متاحة قريباً'
+        : 'Boost feature will be available soon',
       { 
-        duration: 5000,
+        duration: 3000,
         style: {
-          background: '#00FFAA',
-          color: '#000',
-          fontWeight: 'bold'
+          background: '#6B7280',
+          color: '#fff'
         }
       }
     );
@@ -432,26 +362,10 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
   };
 
   const getBoostButtonConfig = () => {
-    if (isBoostLoading) {
-      return {
-        text: language === 'ar' ? 'جاري المعالجة...' : 'Processing...',
-        disabled: true,
-        className: 'bg-blue-500/50 text-white cursor-not-allowed'
-      };
-    }
-
-    if (activeBoost) {
-      return {
-        text: language === 'ar' ? 'مضاعفة الوقت' : 'Boost Time',
-        disabled: false,
-        className: 'bg-blue-500 text-white hover:brightness-110 shadow-[0_0_15px_rgba(59,130,246,0.5)]'
-      };
-    }
-
     return {
-      text: language === 'ar' ? 'مضاعفة الوقت' : 'Boost Time',
+      text: language === 'ar' ? 'مضاعفة الوقت - قريباً' : 'Boost Time - Soon',
       disabled: false,
-      className: 'bg-blue-500 text-white hover:brightness-110'
+      className: 'bg-gray-600 text-gray-400 hover:bg-gray-700 opacity-75'
     };
   };
 
@@ -940,14 +854,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
   const boostButtonConfig = getBoostButtonConfig();
 
   const getBoostStatusColor = (multiplier: number) => {
-    switch (multiplier) {
-      case 2: return 'text-blue-500 bg-blue-500/20 border-blue-500/30';
-      case 3: return 'text-purple-500 bg-purple-500/20 border-purple-500/30';
-      case 4: return 'text-pink-500 bg-pink-500/20 border-pink-500/30';
-      case 6: return 'text-yellow-400 bg-yellow-400/20 border-yellow-400/30';
-      case 10: return 'text-red-500 bg-red-500/20 border-red-500/30';
-      default: return 'text-neonGreen bg-neonGreen/20 border-neonGreen/30';
-    }
+    return 'text-gray-500 bg-gray-500/20 border-gray-500/30';
   };
 
   return (

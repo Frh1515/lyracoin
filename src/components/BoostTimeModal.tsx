@@ -1,10 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { X, Zap, Wallet, Clock, Check, AlertTriangle } from 'lucide-react';
+import { X, Zap, Clock, AlertTriangle } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { useTonWallet } from '@tonconnect/ui-react';
-import { purchaseBoost, getActiveBoost } from '../../lib/supabase/boostSystem';
-import { getBoostStatus, updateBoostStatus } from '../utils/api';
-import toast from 'react-hot-toast';
 
 interface BoostTimeModalProps {
   isOpen: boolean;
@@ -35,7 +32,6 @@ const BoostTimeModal: React.FC<BoostTimeModalProps> = ({
   const { language } = useLanguage();
   const wallet = useTonWallet();
   const [selectedBoost, setSelectedBoost] = useState<BoostPackage | null>(null);
-  const [isProcessing, setIsProcessing] = useState(false);
   const [remainingTime, setRemainingTime] = useState<string>('');
 
   const boostPackages: BoostPackage[] = [
@@ -44,40 +40,40 @@ const BoostTimeModal: React.FC<BoostTimeModalProps> = ({
       price: 20,
       multiplier: 2,
       hoursRewarded: 12,
-      color: 'border-blue-500 bg-blue-500/20',
-      glowColor: 'shadow-[0_0_15px_rgba(59,130,246,0.5)]'
+      color: 'border-gray-600 bg-gray-600/20',
+      glowColor: 'shadow-[0_0_15px_rgba(107,114,128,0.3)]'
     },
     {
       id: 2,
       price: 30,
       multiplier: 3,
       hoursRewarded: 18,
-      color: 'border-purple-500 bg-purple-500/20',
-      glowColor: 'shadow-[0_0_15px_rgba(168,85,247,0.5)]'
+      color: 'border-gray-600 bg-gray-600/20',
+      glowColor: 'shadow-[0_0_15px_rgba(107,114,128,0.3)]'
     },
     {
       id: 3,
       price: 40,
       multiplier: 4,
       hoursRewarded: 24,
-      color: 'border-pink-500 bg-pink-500/20',
-      glowColor: 'shadow-[0_0_15px_rgba(236,72,153,0.5)]'
+      color: 'border-gray-600 bg-gray-600/20',
+      glowColor: 'shadow-[0_0_15px_rgba(107,114,128,0.3)]'
     },
     {
       id: 4,
       price: 60,
       multiplier: 6,
       hoursRewarded: 36,
-      color: 'border-yellow-400 bg-yellow-400/20',
-      glowColor: 'shadow-[0_0_15px_rgba(250,204,21,0.5)]'
+      color: 'border-gray-600 bg-gray-600/20',
+      glowColor: 'shadow-[0_0_15px_rgba(107,114,128,0.3)]'
     },
     {
       id: 5,
       price: 100,
       multiplier: 10,
       hoursRewarded: 60,
-      color: 'border-red-500 bg-red-500/20',
-      glowColor: 'shadow-[0_0_15px_rgba(239,68,68,0.5)]'
+      color: 'border-gray-600 bg-gray-600/20',
+      glowColor: 'shadow-[0_0_15px_rgba(107,114,128,0.3)]'
     }
   ];
 
@@ -111,107 +107,13 @@ const BoostTimeModal: React.FC<BoostTimeModalProps> = ({
 
   if (!isOpen) return null;
 
-  const handleBoostPurchase = async () => {
-    if (!selectedBoost) {
-      toast.error(
-        language === 'ar' 
-          ? 'يرجى اختيار باقة أولاً' 
-          : 'Please select a package first'
-      );
-      return;
-    }
-
-    if (!wallet) {
-      toast.error(
-        language === 'ar' 
-          ? 'يرجى توصيل محفظتك أولاً' 
-          : 'Please connect your wallet first'
-      );
-      return;
-    }
-
-    setIsProcessing(true);
-    try {
-      // Check boost status with backend first
-      console.log('🔍 Checking boost status with backend...');
-      const statusResponse = await getBoostStatus(wallet.account.address);
-      
-      if (!statusResponse.success) {
-        console.warn('⚠️ Backend boost status check failed:', statusResponse.error);
-        // Continue with local processing as fallback
-      } else {
-        console.log('✅ Backend boost status:', statusResponse.data);
-      }
-
-      // Simulate transaction hash (in real implementation, this would come from TON Connect)
-      const mockTransactionHash = `tx_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      
-      // Update backend boost status
-      const updateResponse = await updateBoostStatus({
-        multiplier: selectedBoost.multiplier,
-        duration: selectedBoost.hoursRewarded,
-        transaction_hash: mockTransactionHash,
-        wallet_address: wallet.account.address
-      });
-
-      if (updateResponse.success) {
-        console.log('✅ Backend boost status updated');
-      } else {
-        console.warn('⚠️ Backend boost update failed:', updateResponse.error);
-      }
-
-      // Process boost with Supabase (primary system)
-      const result = await purchaseBoost({
-        multiplier: selectedBoost.multiplier,
-        price: selectedBoost.price,
-        transaction_hash: mockTransactionHash
-      });
-      
-      if (result.success) {
-        toast.success(
-          language === 'ar'
-            ? `🚀 تم شراء Boost ×${selectedBoost.multiplier} بنجاح!`
-            : `🚀 Boost ×${selectedBoost.multiplier} purchased successfully!`,
-          { 
-            duration: 4000,
-            style: {
-              background: '#00FFAA',
-              color: '#000',
-              fontWeight: 'bold'
-            }
-          }
-        );
-        onBoostPurchased();
-        onClose();
-      } else {
-        throw new Error(result.message);
-      }
-    } catch (error) {
-      console.error('Error purchasing boost:', error);
-      toast.error(
-        language === 'ar'
-          ? 'فشل في شراء الباقة. يرجى المحاولة مرة أخرى.'
-          : 'Failed to purchase boost. Please try again.'
-      );
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
   const getMultiplierColor = (multiplier: number) => {
-    switch (multiplier) {
-      case 2: return 'text-blue-500';
-      case 3: return 'text-purple-500';
-      case 4: return 'text-pink-500';
-      case 6: return 'text-yellow-400';
-      case 10: return 'text-red-500';
-      default: return 'text-neonGreen';
-    }
+    return 'text-gray-500';
   };
 
   return (
     <div className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-darkGreen border-2 border-blue-500 rounded-xl p-6 w-full max-w-sm max-h-[90vh] overflow-y-auto relative shadow-[0_0_15px_rgba(59,130,246,0.3)]">
+      <div className="bg-darkGreen border-2 border-gray-600 rounded-xl p-6 w-full max-w-sm max-h-[90vh] overflow-y-auto relative opacity-75">
         <button
           onClick={onClose}
           className="absolute top-4 right-4 text-white/60 hover:text-white transition"
@@ -220,14 +122,14 @@ const BoostTimeModal: React.FC<BoostTimeModalProps> = ({
         </button>
 
         <div className="text-center mb-6">
-          <Zap className="w-12 h-12 text-blue-500 mx-auto mb-3 drop-shadow-[0_0_20px_#1877F2]" />
-          <h2 className="text-2xl font-bold text-white">
+          <Zap className="w-12 h-12 text-gray-500 mx-auto mb-3" />
+          <h2 className="text-2xl font-bold text-gray-400">
             {language === 'ar' ? 'مضاعفة وقت التعدين' : 'Boost Mining Time'}
           </h2>
-          <p className="text-white/70 text-sm mt-2">
+          <p className="text-gray-500 text-sm mt-2">
             {language === 'ar' 
-              ? 'ضاعف مكافآت التعدين الخاصة بك لمدة 24 ساعة'
-              : 'Multiply your mining rewards for 24 hours'
+              ? 'قريباً - ضاعف مكافآت التعدين الخاصة بك'
+              : 'Coming Soon - Multiply your mining rewards'
             }
           </p>
         </div>
@@ -253,15 +155,6 @@ const BoostTimeModal: React.FC<BoostTimeModalProps> = ({
                 <span className="font-mono ml-2 text-white">{remainingTime}</span>
               </span>
             </div>
-            
-            <div className="bg-black/50 p-3 rounded-lg text-center mt-4">
-              <p className="text-white/80 text-sm">
-                {language === 'ar' 
-                  ? 'لديك بالفعل باقة نشطة. انتظر حتى تنتهي لشراء باقة جديدة.'
-                  : 'You already have an active boost. Wait until it expires to purchase a new one.'
-                }
-              </p>
-            </div>
           </div>
         ) : (
           <>
@@ -269,21 +162,16 @@ const BoostTimeModal: React.FC<BoostTimeModalProps> = ({
               {boostPackages.map((pkg) => (
                 <div
                   key={pkg.id}
-                  className={`p-4 rounded-lg border ${pkg.color} ${
-                    selectedBoost?.id === pkg.id ? pkg.glowColor : ''
-                  } cursor-pointer transition-all duration-200 ${
-                    selectedBoost?.id === pkg.id ? 'scale-[1.02]' : 'hover:scale-[1.02]'
-                  }`}
-                  onClick={() => setSelectedBoost(pkg)}
+                  className={`p-4 rounded-lg border ${pkg.color} ${pkg.glowColor} cursor-not-allowed transition-all duration-200 opacity-50`}
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className={`w-10 h-10 rounded-full flex items-center justify-center ${pkg.color}`}>
-                        <Zap className="w-5 h-5 text-white" />
+                        <Zap className="w-5 h-5 text-gray-500" />
                       </div>
                       <div>
-                        <h3 className="font-bold text-white">Boost ×{pkg.multiplier}</h3>
-                        <p className="text-white/60 text-xs">
+                        <h3 className="font-bold text-gray-400">Boost ×{pkg.multiplier}</h3>
+                        <p className="text-gray-500 text-xs">
                           {language === 'ar' 
                             ? `كل 6 ساعات تمنح ${pkg.hoursRewarded} ساعة`
                             : `Each 6 hours gives ${pkg.hoursRewarded} hours`
@@ -292,66 +180,34 @@ const BoostTimeModal: React.FC<BoostTimeModalProps> = ({
                       </div>
                     </div>
                     <div className="text-right">
-                      <span className="font-bold text-white">{pkg.price} TON</span>
+                      <span className="font-bold text-gray-400">{pkg.price} TON</span>
                     </div>
                   </div>
-                  
-                  {selectedBoost?.id === pkg.id && (
-                    <div className="mt-3 flex justify-end">
-                      <div className="bg-black/30 px-3 py-1 rounded-full text-white/80 text-xs flex items-center gap-1">
-                        <Check className="w-3 h-3" />
-                        {language === 'ar' ? 'تم الاختيار' : 'Selected'}
-                      </div>
-                    </div>
-                  )}
                 </div>
               ))}
             </div>
 
-            <div className="space-y-4">
-              {!wallet ? (
-                <div className="bg-yellow-400/20 border border-yellow-400/30 rounded-lg p-4 text-center">
-                  <AlertTriangle className="w-6 h-6 text-yellow-400 mx-auto mb-2" />
-                  <p className="text-yellow-400 text-sm">
-                    {language === 'ar' 
-                      ? 'يرجى توصيل محفظتك أولاً لشراء الباقة'
-                      : 'Please connect your wallet first to purchase boost'
-                    }
-                  </p>
-                </div>
-              ) : (
-                <button
-                  onClick={handleBoostPurchase}
-                  disabled={!selectedBoost || isProcessing}
-                  className={`w-full py-3 rounded-lg font-semibold flex items-center justify-center gap-2 transition ${
-                    selectedBoost 
-                      ? selectedBoost.color.replace('bg-', 'bg-').replace('/20', '') + ' text-white hover:brightness-110'
-                      : 'bg-gray-600 text-gray-300'
-                  } ${isProcessing ? 'opacity-50 cursor-not-allowed' : ''}`}
-                >
-                  {isProcessing ? (
-                    <>
-                      <Zap className="w-5 h-5 animate-spin" />
-                      {language === 'ar' ? 'جاري المعالجة...' : 'Processing...'}
-                    </>
-                  ) : (
-                    <>
-                      <Wallet className="w-5 h-5" />
-                      {language === 'ar' ? 'شراء الآن' : 'Purchase Now'}
-                    </>
-                  )}
-                </button>
-              )}
-              
-              <button
-                onClick={onClose}
-                className="w-full bg-transparent border border-white/30 text-white/70 py-3 rounded-lg hover:bg-white/5 transition"
-              >
-                {language === 'ar' ? 'إلغاء' : 'Cancel'}
-              </button>
+            <div className="bg-gray-600/20 border border-gray-600/30 rounded-lg p-4 text-center mb-4">
+              <Clock className="w-8 h-8 text-gray-500 mx-auto mb-2" />
+              <h3 className="text-lg font-bold text-gray-400 mb-2">
+                {language === 'ar' ? 'قريباً' : 'Coming Soon'}
+              </h3>
+              <p className="text-gray-500 text-sm">
+                {language === 'ar' 
+                  ? 'ميزة مضاعفة الوقت ستكون متاحة قريباً!'
+                  : 'Time boost feature will be available soon!'
+                }
+              </p>
             </div>
           </>
         )}
+
+        <button
+          onClick={onClose}
+          className="w-full bg-gray-600 text-gray-300 py-3 rounded-lg font-medium hover:bg-gray-700 transition duration-300"
+        >
+          {language === 'ar' ? 'إغلاق' : 'Close'}
+        </button>
       </div>
     </div>
   );
