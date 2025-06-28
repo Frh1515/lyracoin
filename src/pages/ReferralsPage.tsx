@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../context/LanguageContext';
 import { getReferralStatsSecure, type ReferralStatsSecure } from '../../lib/supabase/getReferralStatsSecure';
 import { claimReferralRewardSecure } from '../../lib/supabase/claimReferralRewardSecure';
@@ -622,8 +623,8 @@ const ReferralsPage: React.FC<ReferralPageProps> = ({ onMinutesEarned, onPointsE
               <span className="text-yellow-400 font-bold">💡</span>
               <p className="text-yellow-400">
                 {language === 'ar' 
-                  ? 'جديد: النظام الآن يمنح المكافآت تلقائياً! 30 نقطة فورية + 60 دقيقة عند المطالبة'
-                  : 'New: System now awards rewards automatically! 30 instant points + 60 minutes when claimed'
+                  ? 'جديد: يمكن للمستخدمين الجدد الآن المشاركة في نظام الإحالة! 30 نقطة فورية + 60 دقيقة عند المطالبة'
+                  : 'New: New users can now participate in the referral system! 30 instant points + 60 minutes when claimed'
                 }
               </p>
             </div>

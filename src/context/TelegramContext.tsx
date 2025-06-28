@@ -171,7 +171,7 @@ export function TelegramProvider({ children }: { children: React.ReactNode }) {
         const { success, user: registeredUser, error: registerError } = await registerUser(
           telegramUser.id.toString(),
           supabaseAuthId,
-          telegramUser.username || 'مستخدم جديد'
+          telegramUser.username || null // Allow null username
         );
 
         if (!success || registerError) {
@@ -213,17 +213,19 @@ export function TelegramProvider({ children }: { children: React.ReactNode }) {
               );
             } else {
               console.log('⚠️ نتيجة معالجة الإحالة:', referralResult.message);
-              // Show error message for debugging
-              toast.error(
-                `Referral Error: ${referralResult.message}`,
-                { 
-                  duration: 3000,
-                  style: {
-                    background: '#FF6347',
-                    color: '#fff'
+              // Only show error for non-"already referred" cases
+              if (!referralResult.message.includes('already referred')) {
+                toast.error(
+                  `Referral Error: ${referralResult.message}`,
+                  { 
+                    duration: 3000,
+                    style: {
+                      background: '#FF6347',
+                      color: '#fff'
+                    }
                   }
-                }
-              );
+                );
+              }
             }
           } catch (referralError) {
             console.error('❌ خطأ في معالجة الإحالة:', referralError);

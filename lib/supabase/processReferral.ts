@@ -65,7 +65,7 @@ export async function processReferral(
       success: data.success,
       message: data.message,
       referralId: data.referral_id,
-      debug: data.debug
+      debug: data
     };
   } catch (error) {
     console.error('❌ Error processing referral:', {
