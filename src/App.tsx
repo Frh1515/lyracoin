@@ -9,6 +9,8 @@ import ProfilePage from './pages/ProfilePage';
 import BottomNavbar from './components/BottomNavbar';
 import SplashScreen from './components/SplashScreen';
 import FeaturedTelegramTask from './components/FeaturedTelegramTask';
+import OnboardingTour from './components/OnboardingTour';
+import { useOnboarding } from './hooks/useOnboarding';
 import { LanguageProvider } from './context/LanguageContext';
 import { TelegramProvider, useTelegram } from './context/TelegramContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
@@ -22,6 +24,7 @@ function AppContent() {
   const [userPoints, setUserPoints] = useState(0);
   const [userLevel, setUserLevel] = useState('bronze');
   const { user, isLoading, error, isDev, isAuthenticated } = useTelegram();
+  const { isFirstVisit, completeOnboarding } = useOnboarding();
 
   // Fetch user profile and set initial data
   useEffect(() => {
@@ -120,6 +123,15 @@ function AppContent() {
           onReward={handleTelegramReward}
         />
       )}
+      
+      {/* Onboarding Tour */}
+      {!showSplash && !showTelegramTask && (
+        <OnboardingTour 
+          isFirstVisit={isFirstVisit} 
+          onComplete={completeOnboarding} 
+        />
+      )}
+      
       <Routes>
         <Route path="/" element={
           <HomePage 

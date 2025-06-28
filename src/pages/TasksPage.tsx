@@ -1010,7 +1010,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
               disabled={miningButtonConfig.disabled}
               className={`flex-1 py-3 rounded-lg font-semibold text-center transition ${miningButtonConfig.className} ${
                 miningButtonConfig.disabled ? 'cursor-not-allowed opacity-50' : ''
-              }`}
+              } mining-button`}
             >
               {miningButtonConfig.text}
             </button>
@@ -1133,7 +1133,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
 
       {/* Daily Tasks Section */}
       {tasksLoaded && dailyTasks.length > 0 && (
-        <div className="px-6">
+        <div className="px-6 daily-tasks-section">
           <h3 className="text-xl font-bold text-white mb-6">
             {language === 'ar' ? '📋 المهام اليومية' : '📋 Daily Tasks'}
           </h3>

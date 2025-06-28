@@ -100,7 +100,7 @@ const HomePage: React.FC<HomePageProps> = ({
         </div>
 
         {/* Level and Points Card */}
-        <div className="bg-black/40 backdrop-blur-sm border border-neonGreen/30 rounded-xl p-6 text-white shadow-[0_0_15px_rgba(0,255,136,0.3)]">
+        <div className="bg-black/40 backdrop-blur-sm border border-neonGreen/30 rounded-xl p-6 text-white shadow-[0_0_15px_rgba(0,255,136,0.3)] home-mining-card">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
               <Trophy className="w-6 h-6 text-neonGreen" />
@@ -242,7 +242,7 @@ const HomePage: React.FC<HomePageProps> = ({
 
           <button
             onClick={() => navigate('/referrals')}
-            className="bg-black/40 backdrop-blur-sm border border-neonGreen/30 rounded-xl p-6 text-white hover:scale-105 transition duration-300 shadow-[0_0_15px_rgba(0,255,136,0.3)]"
+            className="bg-black/40 backdrop-blur-sm border border-neonGreen/30 rounded-xl p-6 text-white hover:scale-105 transition duration-300 shadow-[0_0_15px_rgba(0,255,136,0.3)] referral-button"
           >
             <Share2 className="w-6 h-6 text-neonGreen mb-2" />
             <h3 className="font-semibold">
