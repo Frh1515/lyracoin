@@ -395,7 +395,12 @@ const ProfilePage: React.FC = () => {
               </p>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-neonGreen">{profile.total_minutes}</div>
+              <div className="text-2xl font-bold text-neonGreen flex items-center justify-center gap-2">
+                {profile.total_minutes}
+                <span className="px-2 py-0.5 bg-yellow-400/20 text-yellow-400 text-xs rounded-full border border-yellow-400/30">
+                  {language === 'ar' ? 'قريباً' : 'Soon'}
+                </span>
+              </div>
               <p className="text-sm text-white/60">
                 {language === 'ar' ? 'الدقائق' : 'Minutes'}
               </p>
@@ -435,8 +440,11 @@ const ProfilePage: React.FC = () => {
             {language === 'ar' ? 'رصيد LYRA COIN' : 'LYRA COIN Balance'}
           </h2>
           <div className="text-center">
-            <div className="text-3xl font-bold text-neonGreen mb-2">
+            <div className="text-3xl font-bold text-neonGreen mb-2 flex items-center justify-center gap-2">
               {profile.lyra_balance.toLocaleString()}
+              <span className="px-2 py-0.5 bg-yellow-400/20 text-yellow-400 text-xs rounded-full border border-yellow-400/30">
+                {language === 'ar' ? 'قريباً' : 'Soon'}
+              </span>
             </div>
             <p className="text-sm text-white/60">
               {language === 'ar' ? 'عملة LYRA' : 'LYRA Coins'}
@@ -518,7 +526,12 @@ const ProfilePage: React.FC = () => {
             </li>
             <li className="flex justify-between items-center py-2 border-b border-white/10">
               <span>{language === 'ar' ? 'الدقائق المكتسبة' : 'Minutes Earned'}</span>
-              <span className="text-neonGreen font-medium">{profile.total_minutes.toLocaleString()}</span>
+              <div className="flex items-center gap-2">
+                <span className="text-neonGreen font-medium">{profile.total_minutes.toLocaleString()}</span>
+                <span className="px-2 py-0.5 bg-yellow-400/20 text-yellow-400 text-xs rounded-full border border-yellow-400/30">
+                  {language === 'ar' ? 'قريباً' : 'Soon'}
+                </span>
+              </div>
             </li>
             <li className="flex justify-between items-center py-2 border-b border-white/10">
               <span>{language === 'ar' ? 'الإحالات' : 'Referrals'}</span>

@@ -322,55 +322,19 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
   };
 
   const handleBoostClick = async () => {
-    setIsBoostLoading(true);
-    try {
-      // If there's an active boost, apply it
-      if (activeBoost) {
-        const result = await applyBoostToMining();
-        
-        if (result.success) {
-          toast.success(
-            language === 'ar'
-              ? `🚀 تم تطبيق المضاعف! +${result.minutes_earned} دقيقة (×${result.multiplier})`
-              : `🚀 Boost applied! +${result.minutes_earned} minutes (×${result.multiplier})`,
-            { 
-              duration: 4000,
-              style: {
-                background: '#00FFAA',
-                color: '#000',
-                fontWeight: 'bold'
-              }
-            }
-          );
-          
-          // Update parent component
-          if (onMinutesEarned && result.minutes_earned) {
-            onMinutesEarned(result.minutes_earned);
-          }
-          
-          // Refresh mining status
-          await refreshMiningStatus();
-        } else {
-          toast.error(
-            language === 'ar' 
-              ? `فشل تطبيق المضاعف: ${result.message}`
-              : `Failed to apply boost: ${result.message}`
-          );
+    // Disabled - just show toast about coming soon
+    toast.info(
+      language === 'ar' 
+        ? 'ميزة مضاعفة الوقت ستكون متاحة قريباً!'
+        : 'Boost Time feature coming soon!',
+      { 
+        duration: 3000,
+        style: {
+          background: '#3B82F6',
+          color: '#fff'
         }
-      } else {
-        // Show boost purchase modal
-        setShowBoostModal(true);
       }
-    } catch (error) {
-      console.error('Error handling boost:', error);
-      toast.error(
-        language === 'ar' 
-          ? 'حدث خطأ أثناء معالجة المضاعف'
-          : 'Error handling boost'
-      );
-    } finally {
-      setIsBoostLoading(false);
-    }
+    );
   };
 
   const handleBoostPurchased = async () => {
@@ -432,26 +396,11 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
   };
 
   const getBoostButtonConfig = () => {
-    if (isBoostLoading) {
-      return {
-        text: language === 'ar' ? 'جاري المعالجة...' : 'Processing...',
-        disabled: true,
-        className: 'bg-blue-500/50 text-white cursor-not-allowed'
-      };
-    }
-
-    if (activeBoost) {
-      return {
-        text: language === 'ar' ? 'مضاعفة الوقت' : 'Boost Time',
-        disabled: false,
-        className: 'bg-blue-500 text-white hover:brightness-110 shadow-[0_0_15px_rgba(59,130,246,0.5)]'
-      };
-    }
-
+    // Always disabled with "Soon" indicator
     return {
       text: language === 'ar' ? 'مضاعفة الوقت' : 'Boost Time',
-      disabled: false,
-      className: 'bg-blue-500 text-white hover:brightness-110'
+      disabled: true,
+      className: 'bg-gray-600 text-gray-300 cursor-not-allowed opacity-60'
     };
   };
 
@@ -1027,6 +976,9 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
                   ? `الدقائق المجمعة: ${miningStatus.total_accumulated_minutes}`
                   : `Accumulated Minutes: ${miningStatus.total_accumulated_minutes}`
                 }
+                <span className="ml-2 px-2 py-0.5 bg-yellow-400/20 text-yellow-400 text-xs rounded-full border border-yellow-400/30">
+                  {language === 'ar' ? 'قريباً' : 'Soon'}
+                </span>
               </span>
             </div>
           )}
@@ -1064,15 +1016,15 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
             </button>
             
             <button
-              onClick={handleBoostClick}
-              disabled={boostButtonConfig.disabled}
-              className={`py-3 px-4 rounded-lg font-semibold text-center transition ${boostButtonConfig.className} ${
-                boostButtonConfig.disabled ? 'cursor-not-allowed opacity-50' : ''
-              }`}
+              disabled={true}
+              className="py-3 px-4 rounded-lg font-semibold text-center transition bg-gray-600 text-gray-300 cursor-not-allowed opacity-60"
             >
               <div className="flex items-center gap-1">
                 <Zap className="w-4 h-4" />
                 {boostButtonConfig.text}
+                <span className="ml-1 text-xs">
+                  {language === 'ar' ? 'قريباً' : 'Soon'}
+                </span>
               </div>
             </button>
           </div>
