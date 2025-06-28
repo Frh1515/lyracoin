@@ -81,9 +81,10 @@ const ReferralsPage: React.FC<ReferralPageProps> = ({ onMinutesEarned, onPointsE
   const fetchReferralLink = async () => {
     try {
       setLoadingReferralLink(true);
-      const { success, referralLink: link, error } = await generateReferralCode();
+      const { success, referralCode: code, referralLink: link, error } = await generateReferralCode();
       
       if (success && link) {
+        console.log('✅ Generated referral link:', link);
         setReferralLink(link);
       } else {
         console.error('Error generating referral link:', error);
@@ -146,7 +147,11 @@ const ReferralsPage: React.FC<ReferralPageProps> = ({ onMinutesEarned, onPointsE
     try {
       setClaimingReward(referralId);
       
+      console.log('🔄 Claiming referral reward for ID:', referralId);
+      
       const result = await claimReferralRewardSecure(referralId);
+      
+      console.log('📊 Claim result:', result);
       
       if (result.success) {
         toast.success(
@@ -171,6 +176,7 @@ const ReferralsPage: React.FC<ReferralPageProps> = ({ onMinutesEarned, onPointsE
         // Refresh data
         fetchStats();
       } else {
+        console.error('❌ Error claiming reward:', result.message);
         toast.error(result.message);
       }
     } catch (error) {
@@ -549,7 +555,12 @@ const ReferralsPage: React.FC<ReferralPageProps> = ({ onMinutesEarned, onPointsE
             <h3 className="text-sm text-white/70">
               {language === 'ar' ? 'الدقائق المكتسبة' : 'Minutes Earned'}
             </h3>
-            <p className="text-2xl font-bold text-neonGreen">{stats?.total_minutes_earned || 0}</p>
+            <div className="flex items-center justify-center gap-2">
+              <p className="text-2xl font-bold text-neonGreen">{stats?.total_minutes_earned || 0}</p>
+              <span className="px-2 py-0.5 bg-yellow-400/20 text-yellow-400 text-xs rounded-full border border-yellow-400/30">
+                {language === 'ar' ? 'قريباً =' : '= Soon'}
+              </span>
+            </div>
           </div>
           <div className="bg-white/5 border border-neonGreen/30 rounded-xl p-4 text-center">
             <h3 className="text-sm text-white/70">
