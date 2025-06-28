@@ -398,7 +398,7 @@ const ProfilePage: React.FC = () => {
               <div className="text-2xl font-bold text-neonGreen flex items-center justify-center gap-2">
                 {profile.total_minutes}
                 <span className="px-2 py-0.5 bg-yellow-400/20 text-yellow-400 text-xs rounded-full border border-yellow-400/30">
-                  {language === 'ar' ? 'قريباً' : 'Soon'}
+                  {language === 'ar' ? 'قريباً =' : '= Soon'}
                 </span>
               </div>
               <p className="text-sm text-white/60">
@@ -443,7 +443,7 @@ const ProfilePage: React.FC = () => {
             <div className="text-3xl font-bold text-neonGreen mb-2 flex items-center justify-center gap-2">
               {profile.lyra_balance.toLocaleString()}
               <span className="px-2 py-0.5 bg-yellow-400/20 text-yellow-400 text-xs rounded-full border border-yellow-400/30">
-                {language === 'ar' ? 'قريباً' : 'Soon'}
+                {language === 'ar' ? 'قريباً =' : '= Soon'}
               </span>
             </div>
             <p className="text-sm text-white/60">
@@ -529,7 +529,7 @@ const ProfilePage: React.FC = () => {
               <div className="flex items-center gap-2">
                 <span className="text-neonGreen font-medium">{profile.total_minutes.toLocaleString()}</span>
                 <span className="px-2 py-0.5 bg-yellow-400/20 text-yellow-400 text-xs rounded-full border border-yellow-400/30">
-                  {language === 'ar' ? 'قريباً' : 'Soon'}
+                  {language === 'ar' ? 'قريباً =' : '= Soon'}
                 </span>
               </div>
             </li>

@@ -25,7 +25,7 @@ export function WalletConnect() {
         >
           🪙 {language === 'ar' ? 'شراء LYRA COIN' : 'Buy LYRA COIN'} 
           <span className="ml-2 px-2 py-0.5 bg-yellow-400/20 text-yellow-400 text-xs rounded-full border border-yellow-400/30">
-            {language === 'ar' ? 'قريباً' : 'Soon'}
+            {language === 'ar' ? 'قريباً =' : '= Soon'}
           </span>
         </button>
       )}

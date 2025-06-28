@@ -977,7 +977,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
                   : `Accumulated Minutes: ${miningStatus.total_accumulated_minutes}`
                 }
                 <span className="ml-2 px-2 py-0.5 bg-yellow-400/20 text-yellow-400 text-xs rounded-full border border-yellow-400/30">
-                  {language === 'ar' ? 'قريباً' : 'Soon'}
+                  {language === 'ar' ? 'قريباً =' : '= Soon'}
                 </span>
               </span>
             </div>
@@ -1023,7 +1023,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
                 <Zap className="w-4 h-4" />
                 {boostButtonConfig.text}
                 <span className="ml-1 text-xs">
-                  {language === 'ar' ? 'قريباً' : 'Soon'}
+                  {language === 'ar' ? 'قريباً =' : '= Soon'}
                 </span>
               </div>
             </button>
