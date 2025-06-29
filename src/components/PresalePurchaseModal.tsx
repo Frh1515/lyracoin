@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, memo } from 'react';
 import { X, Wallet } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useTelegram } from '../context/TelegramContext';
@@ -100,6 +100,7 @@ const PresalePurchaseModal: React.FC<PresalePurchaseModalProps> = ({
         <button
           onClick={onClose}
           className="absolute top-4 right-4 text-white/60 hover:text-white transition"
+          aria-label="Close"
         >
           <X className="w-6 h-6" />
         </button>
@@ -110,6 +111,9 @@ const PresalePurchaseModal: React.FC<PresalePurchaseModalProps> = ({
             src="/publiclogo.png"
             alt="LYRA COIN"
             className="w-16 h-16 mx-auto mb-4 drop-shadow-[0_0_20px_#00FF88] animate-float"
+            loading="lazy"
+            width="64"
+            height="64"
           />
           <Wallet className="w-8 h-8 text-neonGreen mx-auto mb-3" />
           <h2 className="text-2xl font-bold text-white">
@@ -178,6 +182,7 @@ const PresalePurchaseModal: React.FC<PresalePurchaseModalProps> = ({
                   <button
                     onClick={() => copyToClipboard(PRESALE_WALLET_ADDRESS)}
                     className="text-neonGreen hover:text-white transition text-sm"
+                    aria-label="Copy address"
                   >
                     {language === 'ar' ? 'نسخ' : 'Copy'}
                   </button>
@@ -220,4 +225,4 @@ const PresalePurchaseModal: React.FC<PresalePurchaseModalProps> = ({
   );
 };
 
-export default PresalePurchaseModal;
+export default memo(PresalePurchaseModal);

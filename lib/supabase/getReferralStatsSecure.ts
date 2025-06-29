@@ -58,7 +58,7 @@ export async function getReferralStatsSecure(): Promise<{
 
     console.log('✅ User authenticated:', { userId: user.id });
 
-    // Get user's telegram_id
+    // Get user's telegram_id - only select the field we need
     const { data: userData, error: userError } = await supabase
       .from('users')
       .select('telegram_id')

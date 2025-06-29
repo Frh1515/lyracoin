@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Clock, Share2, Award, Wallet, Twitter, Users, Star, Trophy } from 'lucide-react';
 import { FaTelegram } from 'react-icons/fa6';
@@ -86,6 +86,9 @@ const HomePage: React.FC<HomePageProps> = ({
             src="/publiclogo.png"
             alt="LYRA COIN"
             className="w-24 h-24 mx-auto mb-6 drop-shadow-[0_0_30px_#00FF88] animate-float"
+            loading="lazy"
+            width="96"
+            height="96"
           />
           <div className="space-y-4 text-white">
             {description[language === 'ar' ? 'ar' : 'en'].map((line, index) => (
@@ -288,4 +291,4 @@ const HomePage: React.FC<HomePageProps> = ({
   );
 };
 
-export default HomePage;
+export default memo(HomePage);

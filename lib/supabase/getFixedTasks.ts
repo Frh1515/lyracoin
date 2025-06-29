@@ -30,19 +30,19 @@ export async function getFixedTasks(): Promise<{
       throw new Error('User not found');
     }
 
-    // Get all fixed tasks
+    // Get all fixed tasks - only select needed fields
     const { data: tasks, error: tasksError } = await supabase
       .from('fixed_tasks')
-      .select('*')
+      .select('id, title, description, points_reward, platform, task_type, is_active')
       .eq('is_active', true)
       .order('created_at');
 
     if (tasksError) throw tasksError;
 
-    // Get user's completed fixed tasks
+    // Get user's completed fixed tasks - only select needed fields
     const { data: completedTasks, error: completedError } = await supabase
       .from('user_fixed_tasks')
-      .select('*')
+      .select('id, user_telegram_id, fixed_task_id, points_earned')
       .eq('user_telegram_id', userData.telegram_id);
 
     if (completedError) throw completedError;

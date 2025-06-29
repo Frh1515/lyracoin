@@ -1,11 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
-import HomePage from './pages/HomePage';
-import TasksPage from './pages/TasksPage';
-import PricesPage from './pages/PricesPage';
-import ReferralsPage from './pages/ReferralsPage';
-import ProfilePage from './pages/ProfilePage';
 import BottomNavbar from './components/BottomNavbar';
 import SplashScreen from './components/SplashScreen';
 import FeaturedTelegramTask from './components/FeaturedTelegramTask';
@@ -16,6 +11,20 @@ import { TelegramProvider, useTelegram } from './context/TelegramContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import LanguageSelector from './components/LanguageSelector';
 import { getUserProfile } from '../lib/supabase/getUserProfile';
+
+// Lazy load pages for code splitting
+const HomePage = lazy(() => import('./pages/HomePage'));
+const TasksPage = lazy(() => import('./pages/TasksPage'));
+const PricesPage = lazy(() => import('./pages/PricesPage'));
+const ReferralsPage = lazy(() => import('./pages/ReferralsPage'));
+const ProfilePage = lazy(() => import('./pages/ProfilePage'));
+
+// Loading fallback component
+const PageLoader = () => (
+  <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-[#041e11] via-[#051a13] to-[#040d0c]">
+    <div className="text-neonGreen animate-pulse">Loading...</div>
+  </div>
+);
 
 function AppContent() {
   const [showSplash, setShowSplash] = useState(true);
@@ -132,33 +141,35 @@ function AppContent() {
         />
       )}
       
-      <Routes>
-        <Route path="/" element={
-          <HomePage 
-            userMinutes={userMinutes} 
-            userPoints={userPoints}
-            userLevel={userLevel}
-          />
-        } />
-        <Route path="/tasks" element={
-          <ProtectedRoute>
-            <TasksPage 
-              onMinutesEarned={handleMinutesEarned}
-              onPointsEarned={handlePointsEarned}
+      <Suspense fallback={<PageLoader />}>
+        <Routes>
+          <Route path="/" element={
+            <HomePage 
+              userMinutes={userMinutes} 
+              userPoints={userPoints}
+              userLevel={userLevel}
             />
-          </ProtectedRoute>
-        } />
-        <Route path="/prices" element={<PricesPage />} />
-        <Route path="/referrals" element={
-          <ProtectedRoute>
-            <ReferralsPage 
-              onMinutesEarned={handleMinutesEarned}
-              onPointsEarned={handlePointsEarned}
-            />
-          </ProtectedRoute>
-        } />
-        <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
-      </Routes>
+          } />
+          <Route path="/tasks" element={
+            <ProtectedRoute>
+              <TasksPage 
+                onMinutesEarned={handleMinutesEarned}
+                onPointsEarned={handlePointsEarned}
+              />
+            </ProtectedRoute>
+          } />
+          <Route path="/prices" element={<PricesPage />} />
+          <Route path="/referrals" element={
+            <ProtectedRoute>
+              <ReferralsPage 
+                onMinutesEarned={handleMinutesEarned}
+                onPointsEarned={handlePointsEarned}
+              />
+            </ProtectedRoute>
+          } />
+          <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+        </Routes>
+      </Suspense>
       <BottomNavbar />
     </>
   );

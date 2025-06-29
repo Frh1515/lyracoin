@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, memo } from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import { CheckCircle, XCircle, Wifi, WifiOff, RefreshCw } from 'lucide-react';
 
@@ -52,6 +52,7 @@ const BackendStatus: React.FC = () => {
           <button
             onClick={refresh}
             className="ml-auto text-red-400 hover:text-red-300 transition"
+            aria-label="Refresh connection status"
           >
             <RefreshCw className="w-3 h-3" />
           </button>
@@ -80,6 +81,7 @@ const BackendStatus: React.FC = () => {
         <button
           onClick={refresh}
           className="ml-2 text-green-400 hover:text-green-300 transition"
+          aria-label="Refresh connection status"
         >
           <RefreshCw className="w-3 h-3" />
         </button>
@@ -88,4 +90,4 @@ const BackendStatus: React.FC = () => {
   );
 };
 
-export default BackendStatus;
+export default memo(BackendStatus);

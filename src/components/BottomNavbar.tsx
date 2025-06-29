@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Home, ListChecks, TrendingUp, Users, UserCircle } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
@@ -34,4 +34,4 @@ const BottomNavbar: React.FC = () => {
   );
 };
 
-export default BottomNavbar;
+export default memo(BottomNavbar);

@@ -18,7 +18,14 @@ const FeaturedTelegramTask: React.FC<FeaturedTelegramTaskProps> = ({ onClose, on
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
       <div className="bg-[#0d1f16] p-6 rounded-xl w-full max-w-sm border border-cyan-400 drop-shadow-[0_0_15px_#00FFFF] relative text-white text-center">
-        <img src="/publiclogo.png" alt="LYRA COIN" className="w-16 h-16 mx-auto mb-4 drop-shadow-[0_0_20px_cyan]" />
+        <img 
+          src="/publiclogo.png" 
+          alt="LYRA COIN" 
+          className="w-16 h-16 mx-auto mb-4 drop-shadow-[0_0_20px_cyan]" 
+          loading="lazy"
+          width="64"
+          height="64"
+        />
         <h2 className="text-xl font-bold">📢 Join Our Telegram</h2>
         <p className="mt-2">Subscribe to our official channel and earn your first 60 minutes!</p>
         <div className="mt-6 flex flex-col gap-3">

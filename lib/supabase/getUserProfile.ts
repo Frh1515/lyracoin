@@ -31,6 +31,7 @@ export async function getUserProfile(): Promise<{
       };
     }
 
+    // Only select the fields we need
     const { data, error } = await supabase
       .from('users')
       .select(`

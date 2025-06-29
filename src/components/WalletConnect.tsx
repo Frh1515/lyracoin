@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, memo } from 'react';
 import { TonConnectButton, useTonWallet } from '@tonconnect/ui-react';
 import PresalePurchaseModal from './PresalePurchaseModal';
 import { useLanguage } from '../context/LanguageContext';
 
-export function WalletConnect() {
+export const WalletConnect = memo(function WalletConnect() {
   const wallet = useTonWallet();
   const [showPresaleModal, setShowPresaleModal] = useState(false);
   const { language } = useLanguage();
@@ -37,4 +37,4 @@ export function WalletConnect() {
       />
     </div>
   );
-}
+});

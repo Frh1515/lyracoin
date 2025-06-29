@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, memo } from 'react';
 import { useLanguage } from '../context/LanguageContext';
 
 interface Coin {
@@ -122,6 +122,8 @@ const PricesPage: React.FC = () => {
               alt={coin.name} 
               className="w-8 h-8"
               loading="lazy"
+              width="32"
+              height="32"
             />
             <div>
               <h2 className="font-semibold">
@@ -144,4 +146,4 @@ const PricesPage: React.FC = () => {
   );
 };
 
-export default PricesPage;
+export default memo(PricesPage);

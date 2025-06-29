@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useTelegram } from '../context/TelegramContext';
 
@@ -6,7 +6,7 @@ interface ProtectedRouteProps {
   children: React.ReactNode;
 }
 
-export function ProtectedRoute({ children }: ProtectedRouteProps) {
+export const ProtectedRoute = memo(function ProtectedRoute({ children }: ProtectedRouteProps) {
   const { isAuthenticated, isLoading } = useTelegram();
 
   if (isLoading) {
@@ -22,4 +22,4 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   }
 
   return <>{children}</>;
-}
+});

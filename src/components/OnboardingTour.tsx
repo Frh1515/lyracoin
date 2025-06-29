@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, memo } from 'react';
 import Joyride, { CallBackProps, STATUS, Step } from 'react-joyride';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../context/LanguageContext';
@@ -201,4 +201,4 @@ const OnboardingTour: React.FC<OnboardingTourProps> = ({ isFirstVisit, onComplet
   );
 };
 
-export default OnboardingTour;
+export default memo(OnboardingTour);

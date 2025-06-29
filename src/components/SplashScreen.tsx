@@ -24,7 +24,12 @@ const SplashScreen: React.FC = () => {
           progress >= 60 ? 'translate-y-[-20px] opacity-100' : 'translate-y-4 opacity-0'
         }`}
       >
-        <img src="/publiclogo.png" alt="LYRA COIN" className="w-full h-full object-contain rounded-full animate-pulse" />
+        <img 
+          src="/publiclogo.png" 
+          alt="LYRA COIN" 
+          className="w-full h-full object-contain rounded-full animate-pulse" 
+          loading="lazy"
+        />
       </div>
       <h2 className="text-lg font-semibold mb-6">Get ready, your LYRA journey begins now...</h2>
       <div className="w-64 h-2 bg-white/20 rounded-full overflow-hidden">

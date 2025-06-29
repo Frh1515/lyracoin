@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, memo } from 'react';
 import { Globe } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 
@@ -16,6 +16,7 @@ const LanguageSelector: React.FC = () => {
       <button
         onClick={() => setShowDropdown(!showDropdown)}
         className="p-2 rounded-full bg-darkGreen/50 backdrop-blur-sm border border-neonGreen/30 text-white hover:scale-110 transition duration-300 shadow-glow"
+        aria-label="Change language"
       >
         <Globe className="w-5 h-5" />
       </button>
@@ -44,4 +45,4 @@ const LanguageSelector: React.FC = () => {
   );
 };
 
-export default LanguageSelector;
+export default memo(LanguageSelector);

@@ -30,20 +30,20 @@ export async function getDailyTasks(): Promise<{
       throw new Error('User not found');
     }
 
-    // Get all daily tasks
+    // Get all daily tasks - only select needed fields
     const { data: tasks, error: tasksError } = await supabase
       .from('daily_tasks')
-      .select('*')
+      .select('id, title, description, points_reward, platform, task_type, is_active')
       .eq('is_active', true)
       .order('created_at');
 
     if (tasksError) throw tasksError;
 
-    // Get user's completed daily tasks for today
+    // Get user's completed daily tasks for today - only select needed fields
     const today = new Date().toISOString().split('T')[0];
     const { data: completedTasks, error: completedError } = await supabase
       .from('user_daily_tasks')
-      .select('*')
+      .select('id, user_telegram_id, daily_task_id, points_earned, completion_date')
       .eq('user_telegram_id', userData.telegram_id)
       .eq('completion_date', today);
 
