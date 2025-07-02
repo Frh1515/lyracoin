@@ -89,10 +89,11 @@ const CryptoCandyCrushGame: React.FC<CryptoCandyCrushGameProps> = ({
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [matchingCells, setMatchingCells] = useState<Set<string>>(new Set());
   const [specialEffectCells, setSpecialEffectCells] = useState<Set<string>>(new Set());
-  const [lyraUsed, setLyraUsed] = useState(false);
+  const [lyraUsedInSession, setLyraUsedInSession] = useState(false); // تتبع استخدام LYRA في الجلسة الحالية
   const [timeRemaining, setTimeRemaining] = useState(GAME_DURATION);
   const [gameEnded, setGameEnded] = useState(false);
   const [isFunSession, setIsFunSession] = useState(false);
+  const [sessionId] = useState(() => Math.random().toString(36).substr(2, 9)); // معرف فريد للجلسة
   
   const { language } = useLanguage();
 
@@ -186,31 +187,33 @@ const CryptoCandyCrushGame: React.FC<CryptoCandyCrushGameProps> = ({
       }
     }
     
-    // Now place one LYRA COIN at a random position
-    const randomRow = Math.floor(Math.random() * BOARD_SIZE);
-    const randomCol = Math.floor(Math.random() * BOARD_SIZE);
-    newBoard[randomRow][randomCol] = 'lyra';
-    
-    // Check if placing LYRA creates immediate matches, if so, move it
-    let attempts = 0;
-    while (attempts < 10) {
-      const matches = findMatches(newBoard);
-      const lyraMatches = matches.filter(match => newBoard[match.row][match.col] === 'lyra');
+    // Now place one LYRA COIN at a random position (only if not used in this session)
+    if (!lyraUsedInSession) {
+      const randomRow = Math.floor(Math.random() * BOARD_SIZE);
+      const randomCol = Math.floor(Math.random() * BOARD_SIZE);
+      newBoard[randomRow][randomCol] = 'lyra';
       
-      if (lyraMatches.length === 0) {
-        break; // LYRA is in a safe position
+      // Check if placing LYRA creates immediate matches, if so, move it
+      let attempts = 0;
+      while (attempts < 10) {
+        const matches = findMatches(newBoard);
+        const lyraMatches = matches.filter(match => newBoard[match.row][match.col] === 'lyra');
+        
+        if (lyraMatches.length === 0) {
+          break; // LYRA is in a safe position
+        }
+        
+        // Move LYRA to a different position
+        newBoard[randomRow][randomCol] = REGULAR_CRYPTO_TYPES[Math.floor(Math.random() * REGULAR_CRYPTO_TYPES.length)];
+        const newRow = Math.floor(Math.random() * BOARD_SIZE);
+        const newCol = Math.floor(Math.random() * BOARD_SIZE);
+        newBoard[newRow][newCol] = 'lyra';
+        attempts++;
       }
-      
-      // Move LYRA to a different position
-      newBoard[randomRow][randomCol] = REGULAR_CRYPTO_TYPES[Math.floor(Math.random() * REGULAR_CRYPTO_TYPES.length)];
-      const newRow = Math.floor(Math.random() * BOARD_SIZE);
-      const newCol = Math.floor(Math.random() * BOARD_SIZE);
-      newBoard[newRow][newCol] = 'lyra';
-      attempts++;
     }
     
     return newBoard;
-  }, []);
+  }, [lyraUsedInSession]);
 
   // Clear all matching crypto types when LYRA is swapped
   const clearAllMatchingCrypto = (gameBoard: GameBoard, cryptoTypeToClear: CryptoType): number => {
@@ -238,9 +241,9 @@ const CryptoCandyCrushGame: React.FC<CryptoCandyCrushGameProps> = ({
     return clearedCount * 10; // 10 minutes per cleared crypto
   };
 
-  // Create LYRA special square after 4+ matches
+  // Create LYRA special square after 4+ matches (only if not used in session)
   const createLyraSpecial = (gameBoard: GameBoard, matchCount: number) => {
-    if (matchCount >= 4 && !lyraUsed) {
+    if (matchCount >= 4 && !lyraUsedInSession) {
       // Find a random position to place LYRA special
       const emptyCells: { row: number; col: number }[] = [];
       for (let row = 0; row < BOARD_SIZE; row++) {
@@ -387,8 +390,8 @@ const CryptoCandyCrushGame: React.FC<CryptoCandyCrushGameProps> = ({
       else if (group.length === 4) minutesEarned += 10;
       else if (group.length >= 5) minutesEarned += 15;
       
-      // Create LYRA special for 4+ matches (only if LYRA hasn't been used)
-      if (group.length >= 4 && !lyraUsed) {
+      // Create LYRA special for 4+ matches (only if LYRA hasn't been used in this session)
+      if (group.length >= 4 && !lyraUsedInSession) {
         createLyraSpecial(gameBoard, group.length);
       }
     });
@@ -422,7 +425,7 @@ const CryptoCandyCrushGame: React.FC<CryptoCandyCrushGameProps> = ({
         }
       }
       
-      // Fill empty spaces with new crypto logos (only regular types)
+      // Fill empty spaces with new crypto logos (only regular types, no LYRA)
       for (let row = writeIndex; row >= 0; row--) {
         const randomCrypto = REGULAR_CRYPTO_TYPES[Math.floor(Math.random() * REGULAR_CRYPTO_TYPES.length)];
         gameBoard[row][col] = randomCrypto;
@@ -452,11 +455,11 @@ const CryptoCandyCrushGame: React.FC<CryptoCandyCrushGameProps> = ({
     return false;
   };
 
-  // Shuffle board when no moves available
+  // Shuffle board when no moves available (preserve LYRA usage state)
   const shuffleBoard = () => {
     const newBoard = initializeBoard();
     setBoard(newBoard);
-    setLyraUsed(false); // Reset LYRA usage when reshuffling
+    // لا نعيد تعيين lyraUsedInSession هنا - يبقى كما هو في الجلسة
     toast.success(
       language === 'ar' 
         ? 'لا توجد حركات متاحة، إعادة خلط اللوحة!' 
@@ -523,19 +526,19 @@ const CryptoCandyCrushGame: React.FC<CryptoCandyCrushGameProps> = ({
     // Check if LYRA COIN is involved in the swap
     const isLyraSwap = sourceCrypto === 'lyra' || targetCrypto === 'lyra';
     
-    if (isLyraSwap && !lyraUsed) {
+    if (isLyraSwap && !lyraUsedInSession) {
       // LYRA COIN special interaction - clear all matching crypto
       const lyraEffectTargetCrypto = sourceCrypto === 'lyra' ? targetCrypto : sourceCrypto;
       
       if (lyraEffectTargetCrypto && lyraEffectTargetCrypto !== 'lyra') {
         playBoomSound();
         setIsProcessing(true);
-        setLyraUsed(true); // Mark LYRA as used
+        setLyraUsedInSession(true); // Mark LYRA as used in this session
         
         // Create a copy of the board for the special effect
         const newBoard = board.map(r => [...r]);
         
-        // Remove LYRA from the board (single use)
+        // Remove LYRA from the board (single use per session)
         if (sourceCrypto === 'lyra') {
           newBoard[sourceRow][sourceCol] = null;
         } else {
@@ -587,11 +590,11 @@ const CryptoCandyCrushGame: React.FC<CryptoCandyCrushGameProps> = ({
           { duration: 1000 }
         );
       }
-    } else if (isLyraSwap && lyraUsed) {
-      // LYRA has already been used
+    } else if (isLyraSwap && lyraUsedInSession) {
+      // LYRA has already been used in this session
       playBuzzSound();
       toast.error(
-        language === 'ar' ? 'تم استخدام LYRA COIN بالفعل!' : 'LYRA COIN already used!',
+        language === 'ar' ? 'تم استخدام LYRA COIN في هذه الجلسة!' : 'LYRA COIN already used in this session!',
         { duration: 1000 }
       );
     } else {
@@ -680,7 +683,7 @@ const CryptoCandyCrushGame: React.FC<CryptoCandyCrushGameProps> = ({
     setGameEnded(false);
     setTotalMinutes(0);
     setFirstClickedItem(null);
-    setLyraUsed(false);
+    setLyraUsedInSession(false); // إعادة تعيين حالة LYRA للجلسة الجديدة
     setTimeRemaining(GAME_DURATION);
     
     // Check if this is a fun session (no sessions remaining)
@@ -831,13 +834,13 @@ const CryptoCandyCrushGame: React.FC<CryptoCandyCrushGameProps> = ({
         {gameStarted && !gameEnded && (
           <div className="mb-3 text-center">
             <div className={`inline-block px-3 py-1 rounded-lg font-semibold text-xs ${
-              lyraUsed 
+              lyraUsedInSession 
                 ? 'bg-red-500/20 border border-red-500/30 text-red-400' 
                 : 'bg-yellow-400/20 border border-yellow-400/30 text-yellow-400'
             }`}>
               {language === 'ar' 
-                ? (lyraUsed ? '❌ تم استخدام LYRA' : '⭐ LYRA متاح')
-                : (lyraUsed ? '❌ LYRA Used' : '⭐ LYRA Available')
+                ? (lyraUsedInSession ? '❌ تم استخدام LYRA في هذه الجلسة' : '⭐ LYRA متاح')
+                : (lyraUsedInSession ? '❌ LYRA Used This Session' : '⭐ LYRA Available')
               }
             </div>
           </div>
@@ -853,7 +856,7 @@ const CryptoCandyCrushGame: React.FC<CryptoCandyCrushGameProps> = ({
                 const isMatching = matchingCells.has(cellKey);
                 const isSelected = firstClickedItem?.row === rowIndex && firstClickedItem?.col === colIndex;
                 const isLyra = crypto === 'lyra';
-                const isLyraDisabled = isLyra && lyraUsed;
+                const isLyraDisabled = isLyra && lyraUsedInSession;
                 
                 return (
                   <div
@@ -946,14 +949,14 @@ const CryptoCandyCrushGame: React.FC<CryptoCandyCrushGameProps> = ({
           </p>
           <p className="text-yellow-400 font-semibold">
             {language === 'ar' 
-              ? '🌟 LYRA: استخدام واحد! انقر عليه ثم على أي عملة لمسح الكل!'
-              : '🌟 LYRA: Single use! Click it then any crypto to clear all!'
+              ? '🌟 LYRA: استخدام واحد لكل جلسة! انقر عليه ثم على أي عملة لمسح الكل!'
+              : '🌟 LYRA: Single use per session! Click it then any crypto to clear all!'
             }
           </p>
           <p className="text-neonGreen">
             {language === 'ar' 
-              ? 'اجمع 4+ لإنتاج LYRA جديد'
-              : 'Match 4+ to generate new LYRA'
+              ? 'اجمع 4+ لإنتاج LYRA جديد (إذا لم يتم استخدامه)'
+              : 'Match 4+ to generate new LYRA (if not used)'
             }
           </p>
           <p className="text-white/50 text-xs">

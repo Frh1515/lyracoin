@@ -1,5 +1,17 @@
 import { supabase } from './client';
-import type { MiningStatus } from './types';
+
+export interface MiningStatus {
+  status: 'idle' | 'active' | 'completed' | 'claimed';
+  session_id?: string;
+  start_time?: string;
+  end_time?: string;
+  minutes_earned?: number;
+  can_claim: boolean;
+  can_start: boolean;
+  session_active: boolean;
+  time_remaining_seconds?: number;
+  last_claim_date?: string;
+}
 
 export async function getMiningStatus(): Promise<{
   data: MiningStatus | null;
@@ -31,7 +43,7 @@ export async function getMiningStatus(): Promise<{
     }
 
     // Get mining status using RPC function
-    const { data, error } = await supabase.rpc('get_mining_status', {
+    const { data, error } = await supabase.rpc('get_current_mining_status', {
       p_user_telegram_id: userData.telegram_id
     });
 
@@ -50,7 +62,8 @@ export async function getMiningStatus(): Promise<{
 export async function startOrResumeMining(): Promise<{
   success: boolean;
   message: string;
-  mining_start_time?: string;
+  session_id?: string;
+  end_time?: string;
 }> {
   try {
     // Get current authenticated user
@@ -78,7 +91,7 @@ export async function startOrResumeMining(): Promise<{
     }
 
     // Start mining using RPC function
-    const { data, error } = await supabase.rpc('start_or_resume_mining', {
+    const { data, error } = await supabase.rpc('start_mining_session', {
       p_user_telegram_id: userData.telegram_id
     });
 
@@ -90,7 +103,8 @@ export async function startOrResumeMining(): Promise<{
     return {
       success: data.success,
       message: data.message,
-      mining_start_time: data.mining_start_time
+      session_id: data.session_id,
+      end_time: data.end_time
     };
   } catch (error) {
     console.error('Error starting mining:', error);
@@ -106,7 +120,6 @@ export async function claimDailyMiningReward(): Promise<{
   message: string;
   minutes_claimed?: number;
   points_awarded?: number;
-  hours_remaining?: number;
 }> {
   try {
     // Get current authenticated user
@@ -134,7 +147,7 @@ export async function claimDailyMiningReward(): Promise<{
     }
 
     // Claim reward using RPC function
-    const { data, error } = await supabase.rpc('claim_daily_mining_reward', {
+    const { data, error } = await supabase.rpc('claim_mining_rewards', {
       p_user_telegram_id: userData.telegram_id
     });
 
@@ -146,9 +159,8 @@ export async function claimDailyMiningReward(): Promise<{
     return {
       success: data.success,
       message: data.message,
-      minutes_claimed: data.minutes_claimed,
-      points_awarded: data.points_awarded,
-      hours_remaining: data.hours_remaining
+      minutes_claimed: data.minutes_earned,
+      points_awarded: data.points_earned
     };
   } catch (error) {
     console.error('Error claiming mining reward:', error);
