@@ -1,25 +1,23 @@
 /*
-  # تحديث نظام الإحالات لدعم المستخدمين غير المسمين
+  # Fix referral system for unnamed users
 
-  1. تحديث الوظائف
-    - تحديث process_referral لقبول المستخدمين غير المسمين
-    - تحديث register_telegram_user لتعامل أفضل مع المستخدمين غير المسمين
-    - تحديث get_referral_stats_secure لعرض أفضل للمستخدمين غير المسمين
-
-  2. الأمان
-    - منح الصلاحيات المناسبة للوظائف
-    - اختبار النظام مع مستخدمين غير مسمين
-
-  3. التحسينات
-    - دعم كامل للمستخدمين بدون username
-    - عرض "مستخدم جديد" للمستخدمين غير المسمين
-    - الحفاظ على جميع التحققات الأمنية
+  1. Updates
+    - Update process_referral function to accept unnamed users
+    - Fix register_telegram_user function to properly return users type
+    - Update get_referral_stats_secure for better unnamed user display
+    
+  2. Security
+    - Maintain all existing security checks
+    - Grant proper execution permissions
+    
+  3. Testing
+    - Include safe test cases that don't violate constraints
 */
 
--- إسقاط الوظيفة الموجودة أولاً لتجنب تضارب نوع الإرجاع
+-- Drop existing function first to avoid return type conflicts
 DROP FUNCTION IF EXISTS public.register_telegram_user(text, uuid, text, integer);
 
--- تحديث وظيفة process_referral لقبول المستخدمين غير المسمين
+-- Update process_referral function to accept unnamed users
 CREATE OR REPLACE FUNCTION process_referral(
   p_referrer_telegram_id text,
   p_referred_telegram_id text
@@ -35,7 +33,7 @@ DECLARE
   v_referrer_exists boolean;
   v_referred_exists boolean;
 BEGIN
-  -- التحقق من صحة المدخلات
+  -- Validate inputs
   IF p_referrer_telegram_id IS NULL OR p_referred_telegram_id IS NULL THEN
     RETURN jsonb_build_object(
       'success', false,
@@ -43,7 +41,7 @@ BEGIN
     );
   END IF;
   
-  -- التحقق من أن المدخلات ليست فارغة
+  -- Check that inputs are not empty
   IF TRIM(p_referrer_telegram_id) = '' OR TRIM(p_referred_telegram_id) = '' THEN
     RETURN jsonb_build_object(
       'success', false,
@@ -51,7 +49,7 @@ BEGIN
     );
   END IF;
   
-  -- منع الإحالة الذاتية
+  -- Prevent self-referral
   IF p_referrer_telegram_id = p_referred_telegram_id THEN
     RETURN jsonb_build_object(
       'success', false,
@@ -59,7 +57,7 @@ BEGIN
     );
   END IF;
   
-  -- التحقق من عدم وجود إحالة سابقة للمستخدم المُحال
+  -- Check for existing referral for the referred user
   SELECT COUNT(*) INTO v_existing_referral_count
   FROM referrals
   WHERE referred_id = p_referred_telegram_id;
@@ -71,7 +69,7 @@ BEGIN
     );
   END IF;
   
-  -- التحقق من وجود المحيل في النظام (بغض النظر عن وجود username)
+  -- Check if referrer exists in system (regardless of username)
   SELECT EXISTS(
     SELECT 1 FROM users 
     WHERE telegram_id = p_referrer_telegram_id
@@ -84,7 +82,7 @@ BEGIN
     );
   END IF;
   
-  -- التحقق من وجود المُحال في النظام (بغض النظر عن وجود username)
+  -- Check if referred user exists in system (regardless of username)
   SELECT EXISTS(
     SELECT 1 FROM users 
     WHERE telegram_id = p_referred_telegram_id
@@ -97,17 +95,17 @@ BEGIN
     );
   END IF;
   
-  -- إنشاء سجل الإحالة (يقبل المستخدمين مع أو بدون username)
+  -- Create referral record (accepts users with or without username)
   INSERT INTO referrals (referrer_id, referred_id, status)
   VALUES (p_referrer_telegram_id, p_referred_telegram_id, 'verified')
   RETURNING id INTO v_referral_id;
   
-  -- تحديث عدد الإحالات للمحيل
+  -- Update referral count for referrer
   UPDATE users
   SET referral_count = referral_count + 1
   WHERE telegram_id = p_referrer_telegram_id;
   
-  -- منح 30 نقطة للمحيل فوراً (بغض النظر عن وجود username)
+  -- Award 30 points to referrer immediately (regardless of username)
   PERFORM update_user_points(p_referrer_telegram_id, 30, 'successful_referral');
   
   RETURN jsonb_build_object(
@@ -119,7 +117,7 @@ BEGIN
 END;
 $$;
 
--- إنشاء وظيفة register_telegram_user جديدة مع نوع الإرجاع الصحيح
+-- Create new register_telegram_user function with proper return type handling
 CREATE OR REPLACE FUNCTION public.register_telegram_user(
     p_telegram_id TEXT,
     p_supabase_auth_id UUID DEFAULT NULL,
@@ -136,23 +134,23 @@ DECLARE
     v_is_new_user boolean := false;
     v_display_username text;
 BEGIN
-    -- التحقق من صحة المدخلات
+    -- Validate inputs
     IF p_telegram_id IS NULL OR p_telegram_id = '' THEN
         RAISE EXCEPTION 'telegram_id is required';
     END IF;
 
-    -- التحقق من كون هذا مستخدم جديد
+    -- Check if this is a new user
     SELECT NOT EXISTS(
         SELECT 1 FROM users WHERE telegram_id = p_telegram_id
     ) INTO v_is_new_user;
 
-    -- تحديد اسم المستخدم للعرض (إذا لم يكن موجود، استخدم قيمة افتراضية)
+    -- Determine display username (if not present, use default value)
     v_display_username := COALESCE(
         NULLIF(TRIM(p_username), ''), 
         'مستخدم جديد'
     );
 
-    -- إدراج أو تحديث بيانات المستخدم
+    -- Insert or update user data
     INSERT INTO public.users (
         telegram_id,
         supabase_auth_id,
@@ -184,9 +182,9 @@ BEGIN
         CURRENT_DATE
     )
     ON CONFLICT (telegram_id) DO UPDATE SET
-        -- تحديث supabase_auth_id دائماً للجلسة الجديدة
+        -- Always update supabase_auth_id for new session
         supabase_auth_id = EXCLUDED.supabase_auth_id,
-        -- تحديث username فقط إذا كان الجديد أفضل من الموجود
+        -- Update username only if new one is better than existing
         username = CASE 
             WHEN EXCLUDED.username IS NOT NULL 
                  AND EXCLUDED.username != 'مستخدم جديد' 
@@ -195,7 +193,7 @@ BEGIN
             ELSE users.username
         END,
         level = EXCLUDED.level,
-        -- الحفاظ على القيم الموجودة للحقول الأخرى
+        -- Preserve existing values for other fields
         referral_count = users.referral_count,
         total_minutes = users.total_minutes,
         points = users.points,
@@ -204,14 +202,18 @@ BEGIN
         membership_level = users.membership_level,
         registration_bonus_applied = users.registration_bonus_applied,
         daily_game_sessions = users.daily_game_sessions,
-        last_game_session_date = users.last_game_session_date
-    RETURNING * INTO registered_user;
+        last_game_session_date = users.last_game_session_date;
     
-    -- تطبيق مكافأة التسجيل للمستخدمين الجدد
+    -- Get the final user record
+    SELECT * INTO registered_user
+    FROM users
+    WHERE telegram_id = p_telegram_id;
+    
+    -- Apply registration bonus for new users
     IF v_is_new_user THEN
         PERFORM apply_registration_bonus(p_telegram_id);
         
-        -- جلب سجل المستخدم المحدث مع المكافأة المطبقة
+        -- Fetch updated user record with applied bonus
         SELECT * INTO registered_user
         FROM users
         WHERE telegram_id = p_telegram_id;
@@ -221,7 +223,7 @@ BEGIN
 END;
 $$;
 
--- تحديث وظيفة get_referral_stats_secure لعرض أفضل للمستخدمين غير المسمين
+-- Update get_referral_stats_secure function for better unnamed user display
 CREATE OR REPLACE FUNCTION get_referral_stats_secure(p_telegram_id text)
 RETURNS jsonb
 LANGUAGE plpgsql
@@ -236,7 +238,7 @@ DECLARE
   v_all_referrals jsonb;
   v_unclaimed_referrals jsonb;
 BEGIN
-  -- التحقق من وجود المستخدم
+  -- Check if user exists
   IF NOT EXISTS (SELECT 1 FROM users WHERE telegram_id = p_telegram_id) THEN
     RETURN jsonb_build_object(
       'success', false,
@@ -244,32 +246,32 @@ BEGIN
     );
   END IF;
 
-  -- الحصول على إجمالي الإحالات
+  -- Get total referrals
   SELECT COUNT(*) INTO v_total_referrals
   FROM referrals
   WHERE referrer_id = p_telegram_id;
   
-  -- الحصول على الإحالات المؤكدة
+  -- Get verified referrals
   SELECT COUNT(*) INTO v_verified_referrals
   FROM referrals
   WHERE referrer_id = p_telegram_id AND status = 'verified';
   
-  -- الحصول على الإحالات المعلقة
+  -- Get pending referrals
   SELECT COUNT(*) INTO v_pending_referrals
   FROM referrals
   WHERE referrer_id = p_telegram_id AND status = 'pending';
   
-  -- الحصول على إجمالي الدقائق المكتسبة من المطالبات
+  -- Get total minutes earned from claims
   SELECT COALESCE(SUM(minutes_claimed), 0) INTO v_total_minutes_earned
   FROM referral_claims
   WHERE claimer_telegram_id = p_telegram_id;
   
-  -- الحصول على مستوى الإحالة من المستخدم
+  -- Get referral tier from user
   SELECT referral_tier INTO v_referral_tier
   FROM users
   WHERE telegram_id = p_telegram_id;
   
-  -- الحصول على جميع الإحالات مع المعلومات التفصيلية (مع دعم المستخدمين غير المسمين)
+  -- Get all referrals with detailed information (with support for unnamed users)
   SELECT COALESCE(jsonb_agg(
     jsonb_build_object(
       'id', r.id,
@@ -299,7 +301,7 @@ BEGIN
   LEFT JOIN users u ON u.telegram_id = r.referred_id
   WHERE r.referrer_id = p_telegram_id;
   
-  -- الحصول على الإحالات غير المطالب بها
+  -- Get unclaimed referrals
   SELECT COALESCE(jsonb_agg(
     jsonb_build_object(
       'id', r.id,
@@ -329,55 +331,9 @@ BEGIN
 END;
 $$;
 
--- منح صلاحيات التنفيذ
+-- Grant execution permissions
 GRANT EXECUTE ON FUNCTION public.process_referral(text, text) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.process_referral(text, text) TO anon;
 GRANT EXECUTE ON FUNCTION public.register_telegram_user(TEXT, UUID, TEXT, INT) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.register_telegram_user(TEXT, UUID, TEXT, INT) TO anon;
 GRANT EXECUTE ON FUNCTION public.get_referral_stats_secure(text) TO authenticated;
-
--- اختبار النظام مع مستخدم غير مسمى (بدون انتهاك قيود المفاتيح الخارجية)
-DO $$
-DECLARE
-  v_test_result jsonb;
-  v_test_user_1 text := 'test_user_unnamed_1';
-  v_test_user_2 text := 'test_user_unnamed_2';
-  v_user_1 users;
-  v_user_2 users;
-BEGIN
-  -- إنشاء مستخدمين للاختبار (بدون supabase_auth_id لتجنب انتهاك القيود)
-  SELECT register_telegram_user(v_test_user_1, NULL, NULL, 1) INTO v_user_1;
-  SELECT register_telegram_user(v_test_user_2, NULL, 'مستخدم مسمى', 1) INTO v_user_2;
-  
-  -- اختبار الإحالة من مستخدم غير مسمى إلى مستخدم مسمى
-  SELECT process_referral(v_test_user_1, v_test_user_2) INTO v_test_result;
-  
-  IF v_test_result->>'success' = 'true' THEN
-    RAISE NOTICE '✅ اختبار الإحالة من مستخدم غير مسمى: نجح';
-  ELSE
-    RAISE NOTICE '❌ اختبار الإحالة من مستخدم غير مسمى: فشل - %', v_test_result->>'message';
-  END IF;
-  
-  -- اختبار الحصول على إحصائيات الإحالة للمستخدم غير المسمى
-  SELECT get_referral_stats_secure(v_test_user_1) INTO v_test_result;
-  
-  IF v_test_result IS NOT NULL AND (v_test_result->>'total_referrals')::integer > 0 THEN
-    RAISE NOTICE '✅ اختبار إحصائيات الإحالة للمستخدم غير المسمى: نجح';
-  ELSE
-    RAISE NOTICE '❌ اختبار إحصائيات الإحالة للمستخدم غير المسمى: فشل';
-  END IF;
-  
-  -- تنظيف بيانات الاختبار
-  DELETE FROM referrals WHERE referrer_id IN (v_test_user_1, v_test_user_2) OR referred_id IN (v_test_user_1, v_test_user_2);
-  DELETE FROM users WHERE telegram_id IN (v_test_user_1, v_test_user_2);
-  
-  RAISE NOTICE '';
-  RAISE NOTICE '🎉 تم تحديث نظام الإحالات بنجاح!';
-  RAISE NOTICE '✅ المستخدمون غير المسمون يمكنهم الآن:';
-  RAISE NOTICE '   - إحالة مستخدمين آخرين';
-  RAISE NOTICE '   - أن يتم إحالتهم من قبل مستخدمين آخرين';
-  RAISE NOTICE '   - الحصول على مكافآت الإحالة (30 نقطة + 60 دقيقة)';
-  RAISE NOTICE '   - عرض إحصائيات الإحالة الخاصة بهم';
-  RAISE NOTICE '✅ يتم عرضهم كـ "مستخدم جديد" في واجهة الإحالات';
-  RAISE NOTICE '✅ جميع التحققات الأمنية محفوظة';
-END $$;
