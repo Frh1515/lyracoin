@@ -57,6 +57,66 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
   
   const { language } = useLanguage();
 
+  // Platform configurations with updated links
+  const platformConfigs: Record<string, any> = {
+    'youtube': {
+      icon: FaYoutube,
+      borderColor: 'border-red-500',
+      glow: 'drop-shadow-[0_0_20px_#FF0000]',
+      bgColor: 'bg-red-500',
+      link: 'https://youtube.com/shorts/9SWH3E8SIxo?si=q5YF3Vk1bwfWqlOM'
+    },
+    'facebook': {
+      icon: FaFacebook,
+      borderColor: 'border-blue-500',
+      glow: 'drop-shadow-[0_0_20px_#1877F2]',
+      bgColor: 'bg-blue-500',
+      link: 'https://www.facebook.com/reel/1064630629067015'
+    },
+    'tiktok': {
+      icon: FaTiktok,
+      borderColor: 'border-pink-500',
+      glow: 'drop-shadow-[0_0_20px_#FF0050]',
+      bgColor: 'bg-pink-500',
+      link: 'https://www.tiktok.com/@lyracoin/video/7521544869249043720'
+    },
+    'telegram': {
+      icon: FaTelegram,
+      borderColor: 'border-cyan-400',
+      glow: 'drop-shadow-[0_0_20px_#0088cc]',
+      bgColor: 'bg-cyan-400',
+      link: 'https://t.me/LYRACOIN25'
+    },
+    'instagram': {
+      icon: FaInstagram,
+      borderColor: 'border-purple-500',
+      glow: 'drop-shadow-[0_0_20px_#C13584]',
+      bgColor: 'bg-purple-500',
+      link: 'https://www.instagram.com/reel/DLgatRZNcJF/?utm_source=ig_web_copy_link&igsh=MzRlODBiNWFlZA=='
+    },
+    'twitter': {
+      icon: FaXTwitter,
+      borderColor: 'border-sky-400',
+      glow: 'drop-shadow-[0_0_20px_#1DA1F2]',
+      bgColor: 'bg-sky-400',
+      link: 'https://x.com/CoinLyra90781/status/1939493388232900942'
+    },
+    'app': {
+      icon: Smartphone,
+      borderColor: 'border-gray-500',
+      glow: 'drop-shadow-[0_0_20px_#888888]',
+      bgColor: 'bg-gray-500',
+      link: ''
+    },
+    'social': {
+      icon: Share2,
+      borderColor: 'border-yellow-400',
+      glow: 'drop-shadow-[0_0_20px_#FACC15]',
+      bgColor: 'bg-yellow-400',
+      link: ''
+    }
+  };
+
   // Load tasks when component mounts
   useEffect(() => {
     const loadTasks = async () => {
@@ -151,44 +211,37 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
 
   // Update mining countdown every second
   useEffect(() => {
-    if (miningStatus?.session_active && miningStatus.time_remaining_seconds && miningStatus.time_remaining_seconds > 0) {
+    if (miningStatus?.mining_active && miningStatus.countdown_remaining_minutes > 0) {
       const interval = setInterval(() => {
-        setMiningStatus(prev => {
-          if (!prev || !prev.time_remaining_seconds || prev.time_remaining_seconds <= 1) {
-            // Refresh mining status when countdown reaches zero
-            refreshMiningStatus();
-            return prev;
-          }
-          
-          return {
-            ...prev,
-            time_remaining_seconds: prev.time_remaining_seconds - 1
-          };
-        });
+        const remainingMinutes = miningStatus.countdown_remaining_minutes;
+        const currentTime = Date.now();
+        const startTime = new Date(miningStatus.mining_start_time!).getTime();
+        const elapsedMs = currentTime - startTime;
+        const remainingMs = Math.max(0, (6 * 60 * 60 * 1000) - elapsedMs); // 6 hours in ms
+        
+        if (remainingMs <= 0) {
+          setMiningCountdown('');
+          // Refresh mining status
+          refreshMiningStatus();
+          clearInterval(interval);
+        } else {
+          const hours = Math.floor(remainingMs / (60 * 60 * 1000));
+          const minutes = Math.floor((remainingMs % (60 * 60 * 1000)) / (60 * 1000));
+          const seconds = Math.floor((remainingMs % (60 * 1000)) / 1000);
+          setMiningCountdown(`${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`);
+        }
       }, 1000);
 
       setMiningInterval(interval);
       return () => clearInterval(interval);
     } else {
+      setMiningCountdown('');
       if (miningInterval) {
         clearInterval(miningInterval);
         setMiningInterval(null);
       }
     }
-  }, [miningStatus?.session_active, miningStatus?.time_remaining_seconds]);
-
-  // Update countdown display
-  useEffect(() => {
-    if (miningStatus?.time_remaining_seconds && miningStatus.time_remaining_seconds > 0) {
-      const totalSeconds = miningStatus.time_remaining_seconds;
-      const hours = Math.floor(totalSeconds / 3600);
-      const minutes = Math.floor((totalSeconds % 3600) / 60);
-      const seconds = totalSeconds % 60;
-      setMiningCountdown(`${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`);
-    } else {
-      setMiningCountdown('');
-    }
-  }, [miningStatus?.time_remaining_seconds]);
+  }, [miningStatus]);
 
   // Cleanup timers on unmount
   useEffect(() => {
@@ -279,10 +332,16 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
       const result = await claimDailyMiningReward();
       
       if (result.success) {
+        const boostMessage = result.boost_multiplier && result.boost_multiplier > 1
+          ? (language === 'ar' 
+              ? ` (مضاعفة ×${result.boost_multiplier})`
+              : ` (boosted ×${result.boost_multiplier})`)
+          : '';
+          
         toast.success(
           language === 'ar' 
-            ? `🎉 تم استلام المكافأة! +${result.minutes_claimed} دقيقة و +${result.points_awarded} نقطة`
-            : `🎉 Reward claimed! +${result.minutes_claimed} minutes & +${result.points_awarded} points`,
+            ? `🎉 تم استلام المكافأة! +${result.minutes_claimed} دقيقة${boostMessage} و +${result.points_awarded} نقطة`
+            : `🎉 Reward claimed! +${result.minutes_claimed} minutes${boostMessage} & +${result.points_awarded} points`,
           { 
             duration: 4000,
             style: {
@@ -367,10 +426,10 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
       };
     }
 
-    // Check if user can claim
-    if (miningStatus.can_claim) {
+    // Check if user can claim (24 hours passed and has accumulated minutes)
+    if (miningStatus.can_claim && miningStatus.total_accumulated_minutes > 0) {
       return {
-        text: language === 'ar' ? 'سحب الأرباح' : 'Claim Rewards',
+        text: language === 'ar' ? 'استلام' : 'Claim',
         disabled: isMiningLoading,
         onClick: handleClaimClick,
         className: 'bg-yellow-400 text-black hover:brightness-110 animate-pulse shadow-[0_0_15px_rgba(255,204,21,0.5)]'
@@ -378,7 +437,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
     }
 
     // If mining is active
-    if (miningStatus.session_active) {
+    if (miningStatus.mining_active) {
       return {
         text: language === 'ar' ? 'جاري التعدين...' : 'Mining...',
         disabled: true,
@@ -389,7 +448,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
 
     // Default mine button
     return {
-      text: language === 'ar' ? 'ابدأ التعدين' : 'Start Mining',
+      text: language === 'ar' ? 'تعدين' : 'Mine',
       disabled: isMiningLoading,
       onClick: handleMineClick,
       className: 'bg-neonGreen text-black hover:brightness-110'
@@ -674,28 +733,19 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
         setGameSessionsRemaining(result.sessionsRemaining || 0);
         setShowCryptoCandyCrushGame(true);
         
-        if (result.canEarnPoints) {
-          toast.success(
-            language === 'ar'
-              ? `🎮 جلسة لعب مسجلة! +${result.pointsEarned} نقطة`
-              : `🎮 Game session recorded! +${result.pointsEarned} points`,
-            { 
-              duration: 3000,
-              style: {
-                background: '#00FFAA',
-                color: '#000',
-                fontWeight: 'bold'
-              }
+        toast.success(
+          language === 'ar'
+            ? `🎮 جلسة لعب مسجلة! +${result.pointsEarned} نقطة`
+            : `🎮 Game session recorded! +${result.pointsEarned} points`,
+          { 
+            duration: 3000,
+            style: {
+              background: '#00FFAA',
+              color: '#000',
+              fontWeight: 'bold'
             }
-          );
-        } else {
-          toast.info(
-            language === 'ar' 
-              ? 'جلسة للمتعة - تم الوصول للحد اليومي للنقاط'
-              : 'Fun session - daily points limit reached',
-            { duration: 3000 }
-          );
-        }
+          }
+        );
       } else {
         // Allow unlimited sessions but only count first 3
         setShowCryptoCandyCrushGame(true);
@@ -718,65 +768,6 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
 
   // Helper function to get platform icon and styling based on platform name
   const getPlatformConfig = (platform: string) => {
-    const platformConfigs: Record<string, any> = {
-      'youtube': {
-        icon: FaYoutube,
-        borderColor: 'border-red-500',
-        glow: 'drop-shadow-[0_0_20px_#FF0000]',
-        bgColor: 'bg-red-500',
-        link: 'https://youtube.com/shorts/9SWH3E8SIxo?si=q5YF3Vk1bwfWqlOM'
-      },
-      'facebook': {
-        icon: FaFacebook,
-        borderColor: 'border-blue-500',
-        glow: 'drop-shadow-[0_0_20px_#1877F2]',
-        bgColor: 'bg-blue-500',
-        link: 'https://www.facebook.com/reel/1064630629067015'
-      },
-      'tiktok': {
-        icon: FaTiktok,
-        borderColor: 'border-pink-500',
-        glow: 'drop-shadow-[0_0_20px_#FF0050]',
-        bgColor: 'bg-pink-500',
-        link: 'https://www.tiktok.com/@lyracoin/video/7521544869249043720'
-      },
-      'telegram': {
-        icon: FaTelegram,
-        borderColor: 'border-cyan-400',
-        glow: 'drop-shadow-[0_0_20px_#0088cc]',
-        bgColor: 'bg-cyan-400',
-        link: 'https://t.me/LYRACOIN25'
-      },
-      'instagram': {
-        icon: FaInstagram,
-        borderColor: 'border-purple-500',
-        glow: 'drop-shadow-[0_0_20px_#C13584]',
-        bgColor: 'bg-purple-500',
-        link: 'https://www.instagram.com/reel/DLgatRZNcJF/?utm_source=ig_web_copy_link&igsh=MzRlODBiNWFlZA=='
-      },
-      'twitter': {
-        icon: FaXTwitter,
-        borderColor: 'border-sky-400',
-        glow: 'drop-shadow-[0_0_20px_#1DA1F2]',
-        bgColor: 'bg-sky-400',
-        link: 'https://x.com/CoinLyra90781/status/1939493388232900942'
-      },
-      'app': {
-        icon: Smartphone,
-        borderColor: 'border-gray-500',
-        glow: 'drop-shadow-[0_0_20px_#888888]',
-        bgColor: 'bg-gray-500',
-        link: ''
-      },
-      'social': {
-        icon: Share2,
-        borderColor: 'border-yellow-400',
-        glow: 'drop-shadow-[0_0_20px_#FACC15]',
-        bgColor: 'bg-yellow-400',
-        link: ''
-      }
-    };
-
     return platformConfigs[platform.toLowerCase()] || {
       icon: FaTelegram,
       borderColor: 'border-gray-500',
@@ -983,8 +974,8 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
               <Timer className="w-4 h-4 text-neonGreen" />
               <span className="text-sm text-neonGreen">
                 {language === 'ar' 
-                  ? `الدقائق المجمعة: ${miningStatus.minutes_earned || 0}`
-                  : `Accumulated Minutes: ${miningStatus.minutes_earned || 0}`
+                  ? `الدقائق المجمعة: ${miningStatus.total_accumulated_minutes}`
+                  : `Accumulated Minutes: ${miningStatus.total_accumulated_minutes}`
                 }
                 <span className="ml-2 px-2 py-0.5 bg-yellow-400/20 text-yellow-400 text-xs rounded-full border border-yellow-400/30">
                   {language === 'ar' ? 'قريباً =' : '= Soon'}
@@ -1252,8 +1243,8 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
             </li>
             <li>
               {language === 'ar' 
-                ? '5. التعدين: اضغط "ابدأ التعدين" لبدء جلسة 6 ساعات، استلم المكافآت كل 24 ساعة'
-                : '5. Mining: Click "Start Mining" to start 6-hour session, claim rewards every 24 hours'
+                ? '5. التعدين: اضغط "تعدين" لبدء جلسة 6 ساعات، استلم المكافآت كل 24 ساعة'
+                : '5. Mining: Click "Mine" to start 6-hour session, claim rewards every 24 hours'
               }
             </li>
           </ul>

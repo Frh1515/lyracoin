@@ -5,7 +5,6 @@ export async function recordGameSession(): Promise<{
   message: string;
   pointsEarned?: number;
   sessionsRemaining?: number;
-  canEarnPoints?: boolean;
 }> {
   try {
     // Get current authenticated user
@@ -32,7 +31,7 @@ export async function recordGameSession(): Promise<{
       };
     }
 
-    // Record game session using updated RPC function
+    // Record game session using new RPC function
     const { data, error } = await supabase.rpc('record_daily_game_session', {
       p_user_telegram_id: userData.telegram_id
     });
@@ -46,8 +45,7 @@ export async function recordGameSession(): Promise<{
       success: data.success,
       message: data.message,
       pointsEarned: data.points_earned,
-      sessionsRemaining: data.sessions_remaining,
-      canEarnPoints: data.can_earn_points
+      sessionsRemaining: data.sessions_remaining
     };
   } catch (error) {
     console.error('Error recording game session:', error);
