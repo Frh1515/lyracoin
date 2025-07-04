@@ -84,31 +84,44 @@ export function TelegramProvider({ children }: { children: React.ReactNode }) {
           console.log('❌ لم يتم العثور على معامل الإحالة (startParam)');
         }
 
-        // Get or create Supabase auth session
-        const getSupabaseAuthId = async (): Promise<string> => {
-          // First, check if there's an existing session
-          const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-          
-          if (sessionError) {
-            console.error('Error getting session:', sessionError);
+        // Get or create Supabase auth session with error handling
+        const getSupabaseAuthId = async (): Promise<string | null> => {
+          try {
+            // First, check if there's an existing session
+            const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+            
+            if (sessionError) {
+              console.error('Error getting session:', sessionError);
+              throw sessionError;
+            }
+
+            if (sessionData?.session?.user?.id) {
+              console.log('🔑 استخدام جلسة Supabase موجودة:', sessionData.session.user.id);
+              return sessionData.session.user.id;
+            }
+
+            // If no session exists, create anonymous auth session
+            console.log('🔐 إنشاء جلسة Supabase جديدة...');
+            const { data: authData, error: authError } = await supabase.auth.signInAnonymously();
+
+            if (authError || !authData.user) {
+              console.error('Anonymous auth error:', authError);
+              throw authError || new Error('Failed to authenticate anonymously');
+            }
+
+            console.log('✅ تم إنشاء جلسة Supabase جديدة:', authData.user.id);
+            return authData.user.id;
+          } catch (error) {
+            console.error('❌ خطأ في الاتصال بـ Supabase:', error);
+            
+            // In development mode, return null to allow fallback behavior
+            if (import.meta.env.DEV) {
+              console.log('🔧 وضع التطوير: المتابعة بدون Supabase');
+              return null;
+            }
+            
+            throw error;
           }
-
-          if (sessionData?.session?.user?.id) {
-            console.log('🔑 استخدام جلسة Supabase موجودة:', sessionData.session.user.id);
-            return sessionData.session.user.id;
-          }
-
-          // If no session exists, create anonymous auth session
-          console.log('🔐 إنشاء جلسة Supabase جديدة...');
-          const { data: authData, error: authError } = await supabase.auth.signInAnonymously();
-
-          if (authError || !authData.user) {
-            console.error('Anonymous auth error:', authError);
-            throw authError || new Error('Failed to authenticate anonymously');
-          }
-
-          console.log('✅ تم إنشاء جلسة Supabase جديدة:', authData.user.id);
-          return authData.user.id;
         };
 
         // Allow development mode without Telegram WebApp
@@ -118,17 +131,22 @@ export function TelegramProvider({ children }: { children: React.ReactNode }) {
           try {
             const supabaseAuthId = await getSupabaseAuthId();
             
-            const { success, user: registeredUser, error: registerError } = await registerUser(
-              mockUser.id.toString(),
-              supabaseAuthId,
-              mockUser.username
-            );
+            // Only try to register if we have a valid Supabase connection
+            if (supabaseAuthId) {
+              const { success, user: registeredUser, error: registerError } = await registerUser(
+                mockUser.id.toString(),
+                supabaseAuthId,
+                mockUser.username
+              );
 
-            if (!success || registerError) {
-              console.error('❌ فشل تسجيل المستخدم الوهمي:', registerError);
-              console.warn('⚠️ المتابعة مع المستخدم الوهمي رغم خطأ التسجيل');
+              if (!success || registerError) {
+                console.error('❌ فشل تسجيل المستخدم الوهمي:', registerError);
+                console.warn('⚠️ المتابعة مع المستخدم الوهمي رغم خطأ التسجيل');
+              } else {
+                console.log('✅ تم تسجيل المستخدم الوهمي بنجاح:', registeredUser);
+              }
             } else {
-              console.log('✅ تم تسجيل المستخدم الوهمي بنجاح:', registeredUser);
+              console.log('⚠️ لا يوجد اتصال بـ Supabase - المتابعة في وضع التطوير المحلي');
             }
 
             setUser(mockUser);
@@ -139,6 +157,8 @@ export function TelegramProvider({ children }: { children: React.ReactNode }) {
             return;
           } catch (devError) {
             console.error('❌ خطأ في وضع التطوير:', devError);
+            // Even if there's an error, continue with mock user in dev mode
+            console.log('🔧 المتابعة مع المستخدم الوهمي رغم الخطأ');
             setUser(mockUser);
             setIsDev(true);
             setIsAuthenticated(true);
@@ -166,6 +186,10 @@ export function TelegramProvider({ children }: { children: React.ReactNode }) {
         
         // Get Supabase auth ID
         const supabaseAuthId = await getSupabaseAuthId();
+        
+        if (!supabaseAuthId) {
+          throw new Error('Failed to get Supabase authentication ID');
+        }
         
         // Register user with Supabase using RPC function
         const { success, user: registeredUser, error: registerError } = await registerUser(
@@ -252,8 +276,18 @@ export function TelegramProvider({ children }: { children: React.ReactNode }) {
 
       } catch (err) {
         console.error('❌ خطأ في تهيئة Telegram:', err);
-        setError(err instanceof Error ? err.message : 'Failed to initialize Telegram WebApp');
-        setIsAuthenticated(false);
+        
+        // In development mode, fallback to mock user even on errors
+        if (import.meta.env.DEV) {
+          console.log('🔧 خطأ في الإنتاج - التبديل إلى وضع التطوير');
+          setUser(mockUser);
+          setIsDev(true);
+          setIsAuthenticated(true);
+          setError(null);
+        } else {
+          setError(err instanceof Error ? err.message : 'Failed to initialize Telegram WebApp');
+          setIsAuthenticated(false);
+        }
       } finally {
         setIsLoading(false);
       }
