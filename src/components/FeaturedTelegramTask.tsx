@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { FaTelegram } from 'react-icons/fa6';
 
 interface FeaturedTelegramTaskProps {
@@ -7,6 +7,8 @@ interface FeaturedTelegramTaskProps {
 }
 
 const FeaturedTelegramTask: React.FC<FeaturedTelegramTaskProps> = ({ onClose, onReward }) => {
+  const [logoError, setLogoError] = useState(false);
+
   useEffect(() => {
     const timeout = setTimeout(() => {
       onClose();
@@ -15,17 +17,32 @@ const FeaturedTelegramTask: React.FC<FeaturedTelegramTaskProps> = ({ onClose, on
     return () => clearTimeout(timeout);
   }, [onClose]);
 
+  const handleLogoError = () => {
+    setLogoError(true);
+  };
+
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
       <div className="bg-[#0d1f16] p-6 rounded-xl w-full max-w-sm border border-cyan-400 drop-shadow-[0_0_15px_#00FFFF] relative text-white text-center">
-        <img 
-          src="/publiclogo.png" 
-          alt="LYRA COIN" 
-          className="w-16 h-16 mx-auto mb-4 drop-shadow-[0_0_20px_cyan]" 
-          loading="lazy"
-          width="64"
-          height="64"
-        />
+        {!logoError ? (
+          <img 
+            src="/publiclogo.png" 
+            alt="LYRA COIN" 
+            className="w-16 h-16 mx-auto mb-4 drop-shadow-[0_0_20px_cyan]" 
+            loading="lazy"
+            width="64"
+            height="64"
+            onError={handleLogoError}
+          />
+        ) : (
+          // Fallback logo using CSS and text
+          <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-cyan-400 to-cyan-600 rounded-full flex items-center justify-center drop-shadow-[0_0_20px_cyan]">
+            <div className="text-center">
+              <div className="text-black font-bold text-sm leading-tight">LYRA</div>
+              <div className="text-black font-bold text-xs">COIN</div>
+            </div>
+          </div>
+        )}
         <h2 className="text-xl font-bold">📢 Join Our Telegram</h2>
         <p className="mt-2">Subscribe to our official channel and earn your first 60 minutes!</p>
         <div className="mt-6 flex flex-col gap-3">

@@ -18,6 +18,7 @@ const HomePage: React.FC<HomePageProps> = ({
 }) => {
   const navigate = useNavigate();
   const { language } = useLanguage();
+  const [logoError, setLogoError] = React.useState(false);
 
   const getLevelColor = (level: string) => {
     switch (level) {
@@ -43,6 +44,10 @@ const HomePage: React.FC<HomePageProps> = ({
     if (points >= 501) return Math.min(((points - 501) / 500) * 100 + 75, 100); // Gold range
     if (points >= 201) return Math.min(((points - 201) / 300) * 100 + 50, 75); // Silver range
     return Math.min((points / 200) * 50, 50); // Bronze range
+  };
+
+  const handleLogoError = () => {
+    setLogoError(true);
   };
 
   const description = {
@@ -82,14 +87,25 @@ const HomePage: React.FC<HomePageProps> = ({
       <div className="max-w-2xl mx-auto space-y-8">
         {/* Logo and Description */}
         <div className="text-center">
-          <img
-            src="/publiclogo.png"
-            alt="LYRA COIN"
-            className="w-24 h-24 mx-auto mb-6 drop-shadow-[0_0_30px_#00FF88] animate-float"
-            loading="lazy"
-            width="96"
-            height="96"
-          />
+          {!logoError ? (
+            <img
+              src="/publiclogo.png"
+              alt="LYRA COIN"
+              className="w-24 h-24 mx-auto mb-6 drop-shadow-[0_0_30px_#00FF88] animate-float"
+              loading="lazy"
+              width="96"
+              height="96"
+              onError={handleLogoError}
+            />
+          ) : (
+            // Fallback logo using CSS and text
+            <div className="w-24 h-24 mx-auto mb-6 bg-gradient-to-br from-[#00FF88] to-[#00e078] rounded-full flex items-center justify-center drop-shadow-[0_0_30px_#00FF88] animate-float">
+              <div className="text-center">
+                <div className="text-black font-bold text-xl leading-tight">LYRA</div>
+                <div className="text-black font-bold text-sm">COIN</div>
+              </div>
+            </div>
+          )}
           <div className="space-y-4 text-white">
             {description[language === 'ar' ? 'ar' : 'en'].map((line, index) => (
               <p

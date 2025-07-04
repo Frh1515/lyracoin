@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 
 const SplashScreen: React.FC = () => {
   const [progress, setProgress] = useState(0);
+  const [logoError, setLogoError] = useState(false);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -17,6 +18,10 @@ const SplashScreen: React.FC = () => {
     return () => clearInterval(timer);
   }, []);
 
+  const handleLogoError = () => {
+    setLogoError(true);
+  };
+
   return (
     <div className="fixed inset-0 bg-gradient-to-b from-[#041e11] via-[#051a13] to-[#040d0c] flex flex-col items-center justify-center text-white z-50">
       <div
@@ -24,12 +29,23 @@ const SplashScreen: React.FC = () => {
           progress >= 60 ? 'translate-y-[-20px] opacity-100' : 'translate-y-4 opacity-0'
         }`}
       >
-        <img 
-          src="/publiclogo.png" 
-          alt="LYRA COIN" 
-          className="w-full h-full object-contain rounded-full animate-pulse" 
-          loading="lazy"
-        />
+        {!logoError ? (
+          <img 
+            src="/publiclogo.png" 
+            alt="LYRA COIN" 
+            className="w-full h-full object-contain rounded-full animate-pulse" 
+            loading="lazy"
+            onError={handleLogoError}
+          />
+        ) : (
+          // Fallback logo using CSS and text
+          <div className="w-full h-full bg-gradient-to-br from-[#00FF88] to-[#00e078] rounded-full flex items-center justify-center animate-pulse">
+            <div className="text-center">
+              <div className="text-black font-bold text-lg leading-tight">LYRA</div>
+              <div className="text-black font-bold text-xs">COIN</div>
+            </div>
+          </div>
+        )}
       </div>
       <h2 className="text-lg font-semibold mb-6">Get ready, your LYRA journey begins now...</h2>
       <div className="w-64 h-2 bg-white/20 rounded-full overflow-hidden">
