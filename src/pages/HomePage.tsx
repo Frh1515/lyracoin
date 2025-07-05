@@ -119,9 +119,10 @@ const PresalePurchaseModal: React.FC<PresalePurchaseModalProps> = ({
           <h2 className="text-2xl font-bold text-white">
             {showPaymentStep 
               ? (language === 'ar' ? 'إكمال الدفع' : 'Complete Payment')
-              : (language === 'ar' ? 'شراء LYRA COIN' : 'Purchase LYRA COIN')
-          <div className="w-40 h-40 mx-auto mb-6 bg-gradient-to-br from-[#00FF88] to-[#00e078] rounded-full flex items-center justify-center drop-shadow-[0_0_40px_#00FF88] animate-float border-4 border-neonGreen/50 shadow-[0_0_20px_rgba(0,255,136,0.3)]">
+              : (language === 'ar' ? 'شراء LYRA COIN' : 'Purchase LYRA COIN')}
           </h2>
+          <div className="w-40 h-40 mx-auto mb-6 bg-gradient-to-br from-[#00FF88] to-[#00e078] rounded-full flex items-center justify-center drop-shadow-[0_0_40px_#00FF88] animate-float border-4 border-neonGreen/50 shadow-[0_0_20px_rgba(0,255,136,0.3)]">
+          </div>
         </div>
 
         {!showPaymentStep ? (
@@ -169,7 +170,6 @@ const PresalePurchaseModal: React.FC<PresalePurchaseModalProps> = ({
             <div className="text-center">
               <div className="text-black font-bold text-2xl leading-tight">LYRA</div>
               <div className="text-black font-bold text-lg">COIN</div>
-              </p>
               
               <div className="bg-black/30 rounded-lg p-4 border border-neonGreen/20">
                 <p className="text-white/70 text-sm mb-2">
