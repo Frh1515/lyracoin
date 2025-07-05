@@ -28,18 +28,18 @@ const FeaturedTelegramTask: React.FC<FeaturedTelegramTaskProps> = ({ onClose, on
           <img 
             src="/publiclogo.png" 
             alt="LYRA COIN" 
-            className="w-16 h-16 mx-auto mb-4 drop-shadow-[0_0_20px_cyan]" 
+            className="w-20 h-20 mx-auto mb-4 drop-shadow-[0_0_25px_cyan] rounded-full border-2 border-cyan-400/50 shadow-[0_0_15px_rgba(0,255,255,0.3)]" 
             loading="lazy"
-            width="64"
-            height="64"
+            width="80"
+            height="80"
             onError={handleLogoError}
           />
         ) : (
           // Fallback logo using CSS and text
-          <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-cyan-400 to-cyan-600 rounded-full flex items-center justify-center drop-shadow-[0_0_20px_cyan]">
+          <div className="w-20 h-20 mx-auto mb-4 bg-gradient-to-br from-cyan-400 to-cyan-600 rounded-full flex items-center justify-center drop-shadow-[0_0_25px_cyan] border-2 border-cyan-400/50 shadow-[0_0_15px_rgba(0,255,255,0.3)]">
             <div className="text-center">
-              <div className="text-black font-bold text-sm leading-tight">LYRA</div>
-              <div className="text-black font-bold text-xs">COIN</div>
+              <div className="text-black font-bold text-base leading-tight">LYRA</div>
+              <div className="text-black font-bold text-sm">COIN</div>
             </div>
           </div>
         )}

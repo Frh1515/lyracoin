@@ -110,10 +110,10 @@ const PresalePurchaseModal: React.FC<PresalePurchaseModalProps> = ({
           <img
             src="/publiclogo.png"
             alt="LYRA COIN"
-            className="w-16 h-16 mx-auto mb-4 drop-shadow-[0_0_20px_#00FF88] animate-float"
+            className="w-20 h-20 mx-auto mb-4 drop-shadow-[0_0_25px_#00FF88] animate-float rounded-full border-2 border-neonGreen/50 shadow-[0_0_15px_rgba(0,255,136,0.3)]"
             loading="lazy"
-            width="64"
-            height="64"
+            width="80"
+            height="80"
           />
           <Wallet className="w-8 h-8 text-neonGreen mx-auto mb-3" />
           <h2 className="text-2xl font-bold text-white">
