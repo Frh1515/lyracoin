@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { ExternalLink, DollarSign, Users, Clock } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
-import { recordTaskClick } from '../../lib/supabase/taskConsumptionSystem';
+import { recordTaskClick } from '../lib/supabase/taskConsumptionSystem';
+import { supabase } from '../lib/supabase/client';
 import toast from 'react-hot-toast';
 
 interface PaidTask {
@@ -34,8 +34,6 @@ const PaidTaskCard: React.FC<PaidTaskCardProps> = ({
   const [isClicking, setIsClicking] = useState(false);
   const [startTime, setStartTime] = useState<number | null>(null);
   const [hasWaited, setHasWaited] = useState(false);
-  
-  const progressPercentage = (task.completedClicks / task.totalClicks) * 100;
 
   const getPlatformInfo = (platform: string, link: string) => {
     const domain = link.toLowerCase();
@@ -55,20 +53,6 @@ const PaidTaskCard: React.FC<PaidTaskCardProps> = ({
     } else {
       return { title: 'LYRA Task', icon: '🎯', color: 'border-neonGreen bg-neonGreen/10' };
     }
-  };
-
-  const getCommunityFlag = (community: string) => {
-    const flags: { [key: string]: string } = {
-      'AR': '🇸🇦',
-      'EN': '🇺🇸',
-      'RU': '🇷🇺',
-      'FR': '🇫🇷',
-      'FA': '🇮🇷',
-      'ID': '🇮🇩',
-      'ES': '🇪🇸',
-      'UZ': '🇺🇿'
-    };
-    return flags[community] || '🌍';
   };
 
   const handleStartTask = () => {
@@ -135,8 +119,8 @@ const PaidTaskCard: React.FC<PaidTaskCardProps> = ({
         
         toast.success(
           language === 'ar'
-            ? 'تم تسجيل النقرة بنجاح!'
-            : 'Click recorded successfully!',
+            ? 'تم إكمال المهمة بنجاح!'
+            : 'Task completed successfully!',
           { 
             duration: 3000,
             style: {
@@ -218,55 +202,13 @@ const PaidTaskCard: React.FC<PaidTaskCardProps> = ({
     <div className={`p-4 backdrop-blur-sm border rounded-xl text-white transition-all duration-300 ${
       isCompleted
         ? `bg-neonGreen/10 ${platformInfo.color} opacity-50` 
-        : `bg-black/40 ${platformInfo.color} hover:scale-105 hover:brightness-110 shadow-[0_0_15px_rgba(0,255,136,0.3)]`
+        : `bg-black/40 ${platformInfo.color} hover:scale-105 hover:brightness-110`
     }`}>
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-3">
-          <div className="text-2xl">{platformInfo.icon}</div>
-          <div>
-            <h5 className="font-medium text-sm">{task.title}</h5>
-            <div className="flex items-center gap-1 mt-1">
-              <DollarSign className="w-3 h-3 text-neonGreen" />
-              <span className="text-xs text-neonGreen">
-                {language === 'ar' ? 'مهمة مدفوعة' : 'Paid Task'}
-              </span>
-            </div>
-          </div>
-        </div>
-        
-        <div className="flex items-center gap-2">
-          {/* Community Badge */}
-          <div className="bg-black/30 px-2 py-1 rounded-full flex items-center gap-1">
-            <span className="text-sm">{getCommunityFlag(task.targetCommunity)}</span>
-            <span className="text-white font-medium text-xs">{task.targetCommunity}</span>
-          </div>
-          
-          {/* Fire Badge for Paid Task */}
-          <div className="bg-red-500/20 border border-red-500/30 px-2 py-1 rounded-full">
-            <span className="text-red-400 text-xs">🔥</span>
-          </div>
-        </div>
+      <div className="flex items-center gap-3 mb-3">
+        <div className="text-2xl">{platformInfo.icon}</div>
+        <h5 className="font-medium text-sm">{task.title}</h5>
       </div>
       
-      {/* Progress Bar */}
-      <div className="mb-3">
-        <div className="flex items-center justify-between mb-1">
-          <span className="text-white/70 text-xs">
-            {language === 'ar' ? 'التقدم:' : 'Progress:'}
-          </span>
-          <span className="text-white text-xs font-bold">
-            {task.completedClicks.toLocaleString()} / {task.totalClicks.toLocaleString()}
-          </span>
-        </div>
-        <div className="w-full bg-black/30 rounded-full h-2 overflow-hidden">
-          <div 
-            className="h-full bg-neonGreen transition-all duration-500 rounded-full"
-            style={{ width: `${Math.min(progressPercentage, 100)}%` }}
-          />
-        </div>
-      </div>
-      
-      {/* Task Description */}
       <p className="text-xs text-white/70 mb-3 line-clamp-2">
         {task.description || (language === 'ar' 
           ? 'انقر للمشاركة والتفاعل مع المحتوى'
@@ -275,13 +217,9 @@ const PaidTaskCard: React.FC<PaidTaskCardProps> = ({
       </p>
       
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-1">
-          <Clock className="w-3 h-3 text-white/60" />
-          <span className="text-white/60 text-xs">
-            {language === 'ar' ? 'قيمة الكليك:' : 'Click value:'} 
-            <span className="text-neonGreen ml-1">{task.lyraPerClick.toFixed(2)} LYRA</span>
-          </span>
-        </div>
+        <span className="text-xs text-neonGreen">
+          +10 {language === 'ar' ? 'نقطة' : 'points'} & +10 {language === 'ar' ? 'دقيقة' : 'minutes'}
+        </span>
         
         <button
           onClick={buttonConfig.onClick}
