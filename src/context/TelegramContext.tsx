@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { registerUser } from '../../lib/supabase/registerUser';
-import { processReferral } from '../../lib/supabase/processReferral';
 import { supabase } from '../../lib/supabase/client';
+import { registerReferral } from '../../lib/supabase/registerReferral';
 import toast from 'react-hot-toast';
 
 interface TelegramUser {
@@ -212,12 +212,12 @@ export function TelegramProvider({ children }: { children: React.ReactNode }) {
           try {
             console.log('📞 استدعاء وظيفة processReferral مع:', {
               referrerTelegramId: startParam,
-              referredTelegramId: telegramUser.id.toString()
+              referredId: telegramUser.id.toString() 
             });
             
             const referralResult = await processReferral(
               startParam, // referrer's telegram_id
-              telegramUser.id.toString() // referred user's telegram_id
+              telegramUser.id.toString() // referred user's telegram_id 
             );
 
             console.log('📊 نتيجة معالجة الإحالة:', referralResult);
