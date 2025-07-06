@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, Wallet, Zap, Clock, TrendingUp } from 'lucide-react';
+import { ArrowLeft, Plus, Wallet, Zap, Clock, TrendingUp, List } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { getUserProfile, type UserProfile } from '../../lib/supabase/getUserProfile';
 import { updateUserMinutes } from '../../lib/supabase/updateUserMinutes';
 import ChargeBalanceModal from '../components/ChargeBalanceModal';
+import AddTaskInterface from '../components/AddTaskInterface';
 import toast from 'react-hot-toast';
 
 const NewTaskPage: React.FC = () => {
@@ -14,6 +15,8 @@ const NewTaskPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [showChargeModal, setShowChargeModal] = useState(false);
   const [logoError, setLogoError] = useState(false);
+  const [showAddTask, setShowAddTask] = useState(false);
+  const [hasCreatedTasks, setHasCreatedTasks] = useState(false); // This would come from database in real implementation
 
   useEffect(() => {
     fetchUserProfile();
@@ -56,6 +59,12 @@ const NewTaskPage: React.FC = () => {
         lyra_balance: prev.lyra_balance + lyraEarned
       } : null);
     }
+  };
+
+  const handleTaskCreated = () => {
+    setHasCreatedTasks(true);
+    // Refresh user profile to update LYRA balance
+    fetchUserProfile();
   };
 
   if (loading) {
@@ -208,8 +217,48 @@ const NewTaskPage: React.FC = () => {
             </div>
           </div>
 
+          {/* Task Management Buttons */}
+          <div className="flex gap-4 mb-8">
+            <button
+              onClick={() => setShowAddTask(false)}
+              className={`flex-1 py-3 px-6 rounded-lg font-semibold transition duration-300 flex items-center justify-center gap-2 ${
+                !showAddTask 
+                  ? 'bg-neonGreen text-black shadow-[0_0_15px_rgba(0,255,136,0.5)]'
+                  : 'bg-black/40 border border-white/20 text-white hover:bg-white/5'
+              }`}
+            >
+              <List className="w-5 h-5" />
+              {language === 'ar' ? 'MY TASKS' : 'MY TASKS'}
+            </button>
+            
+            {!hasCreatedTasks && (
+              <button
+                onClick={() => setShowAddTask(true)}
+                className={`flex-1 py-3 px-6 rounded-lg font-semibold transition duration-300 flex items-center justify-center gap-2 ${
+                  showAddTask 
+                    ? 'bg-purple-600 text-white shadow-[0_0_15px_rgba(168,85,247,0.5)]'
+                    : 'bg-black/40 border border-purple-500/30 text-white hover:bg-purple-500/10'
+                }`}
+              >
+                <Plus className="w-5 h-5" />
+                {language === 'ar' ? 'ADD TASK' : 'ADD TASK'}
+              </button>
+            )}
+          </div>
+
+          {/* Add Task Interface */}
+          {showAddTask && (
+            <AddTaskInterface
+              isVisible={showAddTask}
+              onClose={() => setShowAddTask(false)}
+              userLyraBalance={profile?.lyra_balance || 0}
+              onTaskCreated={handleTaskCreated}
+            />
+          )}
+
           {/* Quick Actions */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+          {!showAddTask && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
             {/* Create Paid Task */}
             <div className="bg-black/40 backdrop-blur-sm border border-purple-500/30 rounded-xl p-6 shadow-[0_0_15px_rgba(168,85,247,0.3)] hover:scale-105 transition duration-300 cursor-pointer">
               <div className="flex items-center gap-3 mb-4">
@@ -257,10 +306,12 @@ const NewTaskPage: React.FC = () => {
                 </p>
               </div>
             </div>
-          </div>
+            </div>
+          )}
 
           {/* Exchange Rate Info */}
-          <div className="bg-black/40 backdrop-blur-sm border border-neonGreen/30 rounded-xl p-6 mb-8">
+          {!showAddTask && (
+            <div className="bg-black/40 backdrop-blur-sm border border-neonGreen/30 rounded-xl p-6 mb-8">
             <div className="flex items-center gap-3 mb-4">
               <Zap className="w-6 h-6 text-neonGreen" />
               <h3 className="text-lg font-semibold text-white">
@@ -283,10 +334,12 @@ const NewTaskPage: React.FC = () => {
                 </p>
               </div>
             </div>
-          </div>
+            </div>
+          )}
 
           {/* How It Works */}
-          <div className="bg-black/40 backdrop-blur-sm border border-neonGreen/30 rounded-xl p-6">
+          {!showAddTask && (
+            <div className="bg-black/40 backdrop-blur-sm border border-neonGreen/30 rounded-xl p-6">
             <h3 className="text-lg font-semibold text-white mb-4">
               {language === 'ar' ? 'كيف يعمل النظام' : 'How It Works'}
             </h3>
@@ -332,7 +385,8 @@ const NewTaskPage: React.FC = () => {
                 </p>
               </div>
             </div>
-          </div>
+            </div>
+          )}
         </div>
       </div>
 
