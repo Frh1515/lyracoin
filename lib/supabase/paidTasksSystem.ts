@@ -28,6 +28,7 @@ export interface PaidTask {
   publishedAt?: string;
   paymentStatus?: string;
   transactionHash?: string;
+  lyraPerClick?: number;
 }
 
 export interface PaymentVerification {
@@ -376,7 +377,8 @@ export async function getUserPaidTasks(): Promise<{
       createdAt: task.created_at,
       publishedAt: task.published_at,
       paymentStatus: task.payment_status,
-      transactionHash: task.transaction_hash
+      transactionHash: task.transaction_hash,
+      lyraPerClick: task.price_paid / task.total_clicks
     }));
 
     return {
