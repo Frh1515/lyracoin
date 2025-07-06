@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useLanguage } from '../context/LanguageContext';
-import { recordTaskClick } from '../lib/supabase/taskConsumptionSystem';
+import { recordTaskClick } from '../../lib/supabase/taskConsumptionSystem';
 import { supabase } from '../lib/supabase/client';
 import toast from 'react-hot-toast';
 
