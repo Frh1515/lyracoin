@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Play, Pause, Trash2, ExternalLink, Plus, Globe, TrendingUp, Clock, DollarSign, Users, AlertCircle } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { getUserPaidTasks } from '../../lib/supabase/paidTasksSystem';
-import { updateTaskBalance, pauseTask, deleteTask } from '../../lib/supabase/managePaidTasks';
+import { updateTaskBalance, pauseTask, deleteTask, testTaskLink } from '../../lib/supabase/managePaidTasks';
+import { addTaskBalance, simulateTaskClicks } from '../../lib/supabase/taskConsumptionSystem';
 import toast from 'react-hot-toast';
 
 interface MyTasksInterfaceProps {
@@ -35,6 +36,10 @@ const MyTasksInterface: React.FC<MyTasksInterfaceProps> = ({
   const [loading, setLoading] = useState(true);
   const [addingBalance, setAddingBalance] = useState<string | null>(null);
   const [additionalBalance, setAdditionalBalance] = useState<{ [key: string]: number }>({});
+
+  // Simulation states
+  const [simulatingClicks, setSimulatingClicks] = useState<string | null>(null);
+  const [simulationAmount, setSimulationAmount] = useState<{ [key: string]: number }>({});
 
   useEffect(() => {
     if (isVisible) {
@@ -186,13 +191,25 @@ const MyTasksInterface: React.FC<MyTasksInterfaceProps> = ({
     setAddingBalance(taskId);
     
     try {
-      // In real implementation, call updateTaskBalance API
-      // For demo, just update local state
-      setTasks(prev => prev.map(task => 
-        task.id === taskId 
-          ? { ...task, balanceUsed: task.balanceUsed + amount }
-          : task
-      ));
+      // Call the addTaskBalance function
+      const result = await addTaskBalance(taskId, amount);
+      
+      if (!result.success) {
+        throw new Error(result.message);
+      }
+      
+      // Update local state
+      setTasks(prev => prev.map(task => {
+        if (task.id === taskId) {
+          return { 
+            ...task, 
+            balanceUsed: task.balanceUsed + amount,
+            totalClicks: result.newTotalClicks || task.totalClicks,
+            status: result.newStatus as 'active' | 'paused' | 'completed' || task.status
+          };
+        }
+        return task;
+      }));
       
       // Clear input
       setAdditionalBalance(prev => ({ ...prev, [taskId]: 0 }));
@@ -222,6 +239,72 @@ const MyTasksInterface: React.FC<MyTasksInterfaceProps> = ({
       );
     } finally {
       setAddingBalance(null);
+    }
+  };
+
+  // Function to simulate clicks for testing
+  const handleSimulateClicks = async (taskId: string) => {
+    const clicksToSimulate = simulationAmount[taskId];
+    
+    if (!clicksToSimulate || clicksToSimulate <= 0) {
+      toast.error(
+        language === 'ar' 
+          ? 'يرجى إدخال عدد صحيح من الكليكات'
+          : 'Please enter a valid number of clicks'
+      );
+      return;
+    }
+
+    setSimulatingClicks(taskId);
+    
+    try {
+      // Call the simulateTaskClicks function
+      const result = await simulateTaskClicks(taskId, clicksToSimulate);
+      
+      if (!result.success) {
+        throw new Error(result.message);
+      }
+      
+      // Update local state
+      setTasks(prev => prev.map(task => {
+        if (task.id === taskId) {
+          const newCompletedClicks = result.completedClicks || task.completedClicks;
+          const isCompleted = result.isCompleted || newCompletedClicks >= task.totalClicks;
+          
+          return { 
+            ...task, 
+            completedClicks: newCompletedClicks,
+            status: isCompleted ? 'completed' : task.status
+          };
+        }
+        return task;
+      }));
+      
+      // Clear input
+      setSimulationAmount(prev => ({ ...prev, [taskId]: 0 }));
+      
+      toast.success(
+        language === 'ar'
+          ? `تمت محاكاة ${clicksToSimulate} كليكة بنجاح`
+          : `Successfully simulated ${clicksToSimulate} clicks`,
+        { 
+          duration: 3000,
+          style: {
+            background: '#00FFAA',
+            color: '#000',
+            fontWeight: 'bold'
+          }
+        }
+      );
+    } catch (error) {
+      console.error('Error simulating clicks:', error);
+      toast.error(
+        language === 'ar' 
+          ? 'فشل في محاكاة الكليكات'
+          : 'Failed to simulate clicks'
+      );
+    } finally {
+      setSimulatingClicks(null);
     }
   };
 
@@ -533,6 +616,50 @@ const MyTasksInterface: React.FC<MyTasksInterfaceProps> = ({
                 </div>
               </div>
             );
+              {/* Simulate Clicks Section (for testing) */}
+              <div className="mb-4 p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+                <div className="flex items-center gap-2 mb-2">
+                  <Plus className="w-4 h-4 text-blue-500" />
+                  <span className="text-white font-medium text-sm">
+                    {language === 'ar' ? 'محاكاة الكليكات (للاختبار)' : 'Simulate Clicks (Testing)'}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    value={simulationAmount[task.id] || ''}
+                    onChange={(e) => setSimulationAmount(prev => ({
+                      ...prev,
+                      [task.id]: Number(e.target.value)
+                    }))}
+                    placeholder="10"
+                    min="1"
+                    max={task.totalClicks - task.completedClicks}
+                    className="flex-1 bg-black/30 border border-white/20 rounded-lg px-3 py-2 text-white text-sm focus:border-blue-500 focus:outline-none transition"
+                  />
+                  <button
+                    onClick={() => handleSimulateClicks(task.id)}
+                    disabled={simulatingClicks === task.id || !simulationAmount[task.id] || task.status !== 'active'}
+                    className="bg-blue-500 text-white px-4 py-2 rounded-lg font-medium hover:brightness-110 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                  >
+                    {simulatingClicks === task.id ? (
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                    ) : (
+                      <Plus className="w-4 h-4" />
+                    )}
+                    <span className="text-sm">
+                      {language === 'ar' ? 'محاكاة' : 'Simulate'}
+                    </span>
+                  </button>
+                </div>
+                <p className="text-white/50 text-xs mt-1">
+                  {language === 'ar' 
+                    ? `الكليكات المتبقية: ${task.totalClicks - task.completedClicks}`
+                    : `Remaining clicks: ${task.totalClicks - task.completedClicks}`
+                  }
+                </p>
+              </div>
+
           })}
       </div>
 

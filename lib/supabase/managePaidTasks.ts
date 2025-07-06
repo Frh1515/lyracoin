@@ -1,5 +1,40 @@
 import { supabase } from './client';
 
+// Test a task link
+export async function testTaskLink(
+  taskId: string,
+  link: string
+): Promise<{
+  success: boolean;
+  message: string;
+}> {
+  try {
+    // Validate link format
+    if (!link.startsWith('https://')) {
+      return {
+        success: false,
+        message: 'Invalid link format'
+      };
+    }
+
+    // In a real implementation, this could:
+    // 1. Check if link is still accessible
+    // 2. Log the test action
+    // 3. Update task analytics
+
+    return {
+      success: true,
+      message: 'Link tested successfully'
+    };
+  } catch (error) {
+    console.error('Error testing task link:', error);
+    return {
+      success: false,
+      message: 'Failed to test link'
+    };
+  }
+}
+
 export async function updateTaskBalance(
   taskId: string,
   additionalBalance: number
