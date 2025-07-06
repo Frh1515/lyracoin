@@ -12,8 +12,10 @@ import { claimDailyTask } from '../../lib/supabase/claimDailyTask';
 import { claimFixedTask } from '../../lib/supabase/claimFixedTask';
 import { recordGameSession } from '../../lib/supabase/recordGameSession';
 import { getMiningStatus, startOrResumeMining, claimDailyMiningReward } from '../../lib/supabase/mining';
+import { getUserPaidTasks } from '../../lib/supabase/paidTasksSystem';
 import { getActiveBoost, applyBoostToMining } from '../../lib/supabase/boostSystem';
 import type { MiningStatus } from '../../lib/supabase/types';
+import PaidTaskCard from '../components/PaidTaskCard';
 import toast from 'react-hot-toast';
 
 interface TasksPageProps {
@@ -29,6 +31,9 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
   const [completedDailyTasks, setCompletedDailyTasks] = useState<Set<string>>(new Set());
   const [completedFixedTasks, setCompletedFixedTasks] = useState<Set<string>>(new Set());
   const [claimingTasks, setClaimingTasks] = useState<Set<string>>(new Set());
+  const [paidTasks, setPaidTasks] = useState<any[]>([]);
+  const [completedPaidTasks, setCompletedPaidTasks] = useState<Set<string>>(new Set());
+  const [paidTasksLoaded, setPaidTasksLoaded] = useState(false);
   const [taskTimers, setTaskTimers] = useState<Map<string, NodeJS.Timeout>>(new Map());
   const [taskStartedTimes, setTaskStartedTimes] = useState<Map<string, number>>(new Map());
   const [tasksLoaded, setTasksLoaded] = useState(false);
@@ -123,7 +128,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
   useEffect(() => {
     const loadTasks = async () => {
       try {
-        console.log('🔄 Loading tasks...');
+        console.log('🔄 Loading all tasks...');
         
         // Load daily tasks
         const { data: dailyData, error: dailyError } = await getDailyTasks();
@@ -157,6 +162,23 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
           const completedFixed = new Set(fixedData.completedTasks.map(ct => ct.fixed_task_id));
           setCompletedFixedTasks(completedFixed);
           console.log('✅ Completed fixed tasks:', completedFixed.size);
+        }
+
+        // Load paid tasks
+        const { data: paidData, error: paidError } = await getUserPaidTasks();
+        if (paidError) {
+          console.error('Error loading paid tasks:', paidError);
+          toast.error(
+            language === 'ar' 
+              ? 'فشل في تحميل المهام المدفوعة' 
+              : 'Failed to load paid tasks'
+          );
+        } else if (paidData) {
+          console.log('✅ Paid tasks loaded:', paidData.length);
+          setPaidTasks(paidData);
+          // For now, we don't have a way to track completed paid tasks per user
+          // This would be implemented with a separate table in a real app
+          setPaidTasksLoaded(true);
         }
 
         setTasksLoaded(true);
@@ -802,6 +824,25 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
     }
   };
 
+  // Function to handle paid task click
+  const handlePaidTaskClick = () => {
+    // Refresh paid tasks after a click
+    const refreshPaidTasks = async () => {
+      try {
+        const { data, error } = await getUserPaidTasks();
+        if (error) {
+          console.error('Error refreshing paid tasks:', error);
+        } else if (data) {
+          setPaidTasks(data);
+        }
+      } catch (error) {
+        console.error('Error refreshing paid tasks:', error);
+      }
+    };
+    
+    refreshPaidTasks();
+  };
+
   // Get task button configuration based on task state
   const getTaskButton = (taskId: string, taskType: 'daily' | 'fixed') => {
     const isCompleted = taskType === 'daily' 
@@ -1150,9 +1191,43 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
       {/* Daily Tasks Section */}
       {tasksLoaded && dailyTasks.length > 0 && (
         <div className="px-6 daily-tasks-section">
-          <h3 className="text-xl font-bold text-white mb-6">
+          <h3 className="text-xl font-bold text-white mb-4">
             {language === 'ar' ? '📋 المهام اليومية' : '📋 Daily Tasks'}
           </h3>
+          
+          {/* Paid Tasks Section - Integrated with Daily Tasks */}
+          {paidTasksLoaded && paidTasks.length > 0 && (
+            <div className="mb-6">
+              <div className="flex items-center gap-2 mb-3">
+                <DollarSign className="w-5 h-5 text-red-400" />
+                <h4 className="text-lg font-semibold text-red-400">
+                  {language === 'ar' ? '🔥 مهام مدفوعة' : '🔥 Paid Tasks'}
+                </h4>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                {paidTasks
+                  .filter(task => task.status === 'active')
+                  .map((task) => (
+                    <PaidTaskCard
+                      key={task.id}
+                      task={task}
+                      isCompleted={completedPaidTasks.has(task.id)}
+                      onTaskClick={handlePaidTaskClick}
+                    />
+                  ))}
+              </div>
+              
+              <div className="bg-black/30 border border-red-400/30 rounded-lg p-3 mb-6">
+                <p className="text-center text-red-400 text-xs">
+                  {language === 'ar' 
+                    ? '🔥 المهام المدفوعة هي مهام أنشأها مستخدمون آخرون. أكملها للمساعدة في نمو مجتمع LYRA COIN!'
+                    : '🔥 Paid tasks are created by other users. Complete them to help grow the LYRA COIN community!'
+                  }
+                </p>
+              </div>
+            </div>
+          )}
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {dailyTasks.map((task) => {
@@ -1260,6 +1335,12 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
               {language === 'ar' 
                 ? '5. التعدين: اضغط "تعدين" لبدء جلسة 6 ساعات، استلم المكافآت كل 24 ساعة'
                 : '5. Mining: Click "Mine" to start 6-hour session, claim rewards every 24 hours'
+              }
+            </li>
+            <li className="text-red-400">
+              {language === 'ar' 
+                ? '6. المهام المدفوعة 🔥: مهام أنشأها مستخدمون آخرون، أكملها للمساعدة في نمو المجتمع'
+                : '6. Paid Tasks 🔥: Tasks created by other users, complete them to help grow the community'
               }
             </li>
           </ul>
