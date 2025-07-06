@@ -2,44 +2,19 @@ import React, { useState, useEffect } from 'react';
 import { Trophy, Clock, Star, DollarSign } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { useTelegram } from '../context/TelegramContext';
-import { getFixedTasks, getDailyTasks } from '../lib/supabase/getDailyTasks';
-import { claimFixedTask, claimDailyTask } from '../lib/supabase/claimFixedTask';
+import { getDailyTasks } from '../lib/supabase/getDailyTasks';
+import { getFixedTasks } from '../lib/supabase/getFixedTasks';
+import { claimFixedTask } from '../lib/supabase/claimFixedTask';
+import { claimDailyTask } from '../lib/supabase/claimDailyTask';
 import { getUserProfile } from '../lib/supabase/getUserProfile';
-import { getPaidTasks } from '../lib/supabase/paidTasksSystem';
-import { handleTaskClick } from '../lib/supabase/taskConsumptionSystem';
+import { getActivePaidTasksForDaily, recordTaskClickWithRewards } from '../lib/supabase/taskConsumptionSystem';
+import type { FixedTask, DailyTask, UserFixedTask, UserDailyTask } from '../lib/supabase/types';
+import type { PaidTask } from '../lib/supabase/paidTasksSystem';
 import PasswordInputModal from '../components/PasswordInputModal';
 import TaskCompletionModal from '../components/TaskCompletionModal';
 import PaidTaskCard from '../components/PaidTaskCard';
 
-interface Task {
-  id: string;
-  title: string;
-  description: string;
-  points_reward: number;
-  platform: string;
-  task_type: string;
-  is_active: boolean;
-  created_at: string;
-}
-
-interface PaidTask {
-  id: string;
-  title: string;
-  description: string | null;
-  link: string;
-  platform: string;
-  total_clicks: number;
-  completed_clicks: number;
-  target_community: string;
-  price_paid: number;
-  payment_method: string;
-  status: string;
-  payment_verified: boolean;
-  published_at: string | null;
-  expires_at: string | null;
-  created_at: string;
-  updated_at: string;
-}
+type Task = FixedTask | DailyTask;
 
 const TasksPage: React.FC = () => {
   const { language } = useLanguage();
@@ -90,8 +65,9 @@ const TasksPage: React.FC = () => {
     if (!user?.id) return;
     
     try {
-      const profile = await getUserProfile(user.id);
-      setUserProfile(profile);
+      const { data: profileData, error: profileError } = await getUserProfile();
+      if (profileError) throw profileError;
+      setUserProfile(profileData);
     } catch (error) {
       console.error('Error loading user profile:', error);
     }
@@ -103,14 +79,19 @@ const TasksPage: React.FC = () => {
     try {
       setLoading(true);
       const [fixedTasksData, dailyTasksData] = await Promise.all([
-        getFixedTasks(user.id),
-        getDailyTasks(user.id)
+        getFixedTasks(),
+        getDailyTasks()
       ]);
       
-      setFixedTasks(fixedTasksData.tasks);
-      setDailyTasks(dailyTasksData.tasks);
-      setCompletedFixedTasks(new Set(fixedTasksData.completedTaskIds));
-      setCompletedDailyTasks(new Set(dailyTasksData.completedTaskIds));
+      if (fixedTasksData.data) {
+        setFixedTasks(fixedTasksData.data.tasks);
+        setCompletedFixedTasks(new Set(fixedTasksData.data.completedTasks.map(t => t.fixed_task_id)));
+      }
+      
+      if (dailyTasksData.data) {
+        setDailyTasks(dailyTasksData.data.tasks);
+        setCompletedDailyTasks(new Set(dailyTasksData.data.completedTasks.map(t => t.daily_task_id)));
+      }
     } catch (error) {
       console.error('Error loading tasks:', error);
     } finally {
@@ -122,9 +103,13 @@ const TasksPage: React.FC = () => {
     if (!user?.id) return;
     
     try {
-      const paidTasksData = await getPaidTasks(user.id);
-      setPaidTasks(paidTasksData.tasks);
-      setCompletedPaidTasks(new Set(paidTasksData.completedTaskIds));
+      const { data: paidTasksResult, error: paidTasksError } = await getActivePaidTasksForDaily();
+      if (paidTasksError) throw paidTasksError;
+      
+      if (paidTasksResult) {
+        setPaidTasks(paidTasksResult.tasks);
+        setCompletedPaidTasks(new Set(paidTasksResult.completedTasks.map(t => t.task_id)));
+      }
       setPaidTasksLoaded(true);
     } catch (error) {
       console.error('Error loading paid tasks:', error);
@@ -136,7 +121,7 @@ const TasksPage: React.FC = () => {
     if (!user?.id) return;
     
     try {
-      const result = await handleTaskClick(user.id, taskId);
+      const result = await recordTaskClickWithRewards(taskId);
       
       if (result.success) {
         // Update completed paid tasks
@@ -316,9 +301,9 @@ const TasksPage: React.FC = () => {
     try {
       let result;
       if (taskType === 'fixed') {
-        result = await claimFixedTask(user.id, taskId);
+        result = await claimFixedTask(taskId);
       } else {
-        result = await claimDailyTask(user.id, taskId);
+        result = await claimDailyTask(taskId);
       }
       
       if (result.success) {
