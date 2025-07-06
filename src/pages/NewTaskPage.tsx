@@ -311,58 +311,6 @@ const NewTaskPage: React.FC = () => {
           {/* Quick Actions */}
           {!showAddTask && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-            {/* Exchange Currency */}
-            <div 
-              onClick={() => navigate('/exchange')}
-              className="bg-black/40 backdrop-blur-sm border border-neonGreen/30 rounded-xl p-6 shadow-[0_0_15px_rgba(0,255,136,0.3)] hover:scale-105 transition duration-300 cursor-pointer"
-            >
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 bg-neonGreen rounded-full flex items-center justify-center">
-                  <ArrowRightLeft className="w-5 h-5 text-black" />
-                </div>
-                <h3 className="text-lg font-semibold text-white">
-                  {language === 'ar' ? 'تحويل العملات' : 'Exchange Currency'}
-                </h3>
-              </div>
-              
-              <p className="text-white/70 text-sm mb-4">
-                {language === 'ar' 
-                  ? 'شراء وبيع LYRA وتحويل الدقائق'
-                  : 'Buy and sell LYRA and convert minutes'
-                }
-              </p>
-              
-              <div className="bg-neonGreen/10 border border-neonGreen/30 rounded-lg p-3">
-                <p className="text-neonGreen font-medium text-sm text-center">
-                  {language === 'ar' ? 'متاح الآن' : 'Available Now'}
-                </p>
-              </div>
-            </div>
-
-            {/* Create Paid Task */}
-            <div className="bg-black/40 backdrop-blur-sm border border-purple-500/30 rounded-xl p-6 shadow-[0_0_15px_rgba(168,85,247,0.3)] hover:scale-105 transition duration-300 cursor-pointer">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 bg-purple-500 rounded-full flex items-center justify-center">
-                  <Plus className="w-5 h-5 text-white" />
-                </div>
-                <h3 className="text-lg font-semibold text-white">
-                  {language === 'ar' ? 'إنشاء مهمة مدفوعة' : 'Create Paid Task'}
-                </h3>
-              </div>
-              
-              <p className="text-white/70 text-sm mb-4">
-                {language === 'ar' 
-                  ? 'أنشئ مهام مخصصة للمستخدمين مقابل عملة LYRA'
-                  : 'Create custom tasks for users in exchange for LYRA coins'
-                }
-              </p>
-              
-              <div className="bg-purple-500/10 border border-purple-500/30 rounded-lg p-3">
-                <p className="text-purple-400 font-medium text-sm text-center">
-                  {language === 'ar' ? 'قريباً...' : 'Coming Soon...'}
-                </p>
-              </div>
-            </div>
             </div>
           )}
 
