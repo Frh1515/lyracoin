@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Check, X, Globe, Users, DollarSign, Link, AlertCircle } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
-import { createPaidTask, type PaidTaskData } from '../../lib/supabase/createPaidTask';
+import { createPaidTask, type PaidTaskData } from '../../lib/supabase/paidTasksSystem';
+import PaymentVerificationModal from './PaymentVerificationModal';
 import toast from 'react-hot-toast';
 
 interface AddTaskInterfaceProps {
@@ -35,6 +36,13 @@ const AddTaskInterface: React.FC<AddTaskInterfaceProps> = ({
   });
   const [isCreating, setIsCreating] = useState(false);
   const [showInsufficientBalance, setShowInsufficientBalance] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [paymentData, setPaymentData] = useState<{
+    paymentId: string;
+    paymentMethod: 'lyra' | 'ton';
+    amount: number;
+    currency: string;
+  } | null>(null);
 
   const clickOptions = [500, 1000, 2000, 5000, 10000];
   const communities = [
@@ -119,7 +127,8 @@ const AddTaskInterface: React.FC<AddTaskInterfaceProps> = ({
 
     const totalPrice = calculatePrice();
     
-    if (userLyraBalance < totalPrice) {
+    // للدفع بـ LYRA، التحقق من الرصيد
+    if (totalPrice > userLyraBalance) {
       setShowInsufficientBalance(true);
       toast.error(
         language === 'ar' 
@@ -141,56 +150,27 @@ const AddTaskInterface: React.FC<AddTaskInterfaceProps> = ({
     
     try {
       const taskPayload: PaidTaskData = {
+        title: getPlatformTitle(taskData.link),
+        description: getTaskDescription(taskData.link, taskData.clicks, taskData.community),
         link: taskData.link,
-        clicks: taskData.clicks,
-        community: taskData.community,
-        price: totalPrice
+        platform: getPlatformFromLink(taskData.link),
+        totalClicks: taskData.clicks,
+        targetCommunity: taskData.community,
+        price: totalPrice,
+        paymentMethod: 'lyra' // افتراضياً LYRA، يمكن إضافة خيار للمستخدم لاحقاً
       };
 
       const result = await createPaidTask(taskPayload);
       
       if (result.success) {
-        toast.success(
-          language === 'ar'
-            ? `🎉 تم إنشاء المهمة بنجاح! تم خصم ${totalPrice} LYRA من رصيدك`
-            : `🎉 Task created successfully! ${totalPrice} LYRA deducted from your balance`,
-          { 
-            duration: 6000,
-            style: {
-              background: '#00FFAA',
-              color: '#000',
-              fontWeight: 'bold'
-            }
-          }
-        );
-        
-        // Show additional info about verification
-        setTimeout(() => {
-          toast.info(
-            language === 'ar'
-              ? 'ℹ️ المهمة في انتظار التحقق من الدفع قبل النشر'
-              : 'ℹ️ Task is pending payment verification before publishing',
-            { 
-              duration: 4000,
-              style: {
-                background: '#3B82F6',
-                color: '#fff'
-              }
-            }
-          );
-        }, 1000);
-        
-        // Reset form
-        setTaskData({
-          link: '',
-          clicks: 500,
-          community: '',
-          isLinkValid: false,
-          isLinkChecked: false
+        // إظهار نافذة التحقق من الدفع
+        setPaymentData({
+          paymentId: result.paymentId!,
+          paymentMethod: 'lyra',
+          amount: totalPrice,
+          currency: 'LYRA'
         });
-        
-        onTaskCreated();
-        onClose();
+        setShowPaymentModal(true);
       } else {
         throw new Error(result.message);
       }
@@ -206,6 +186,68 @@ const AddTaskInterface: React.FC<AddTaskInterfaceProps> = ({
       setIsCreating(false);
       setShowInsufficientBalance(false);
     }
+  };
+
+  const handlePaymentSuccess = () => {
+    setShowPaymentModal(false);
+    setPaymentData(null);
+    
+    toast.success(
+      language === 'ar'
+        ? '🎉 تم إنشاء المهمة ونشرها بنجاح!'
+        : '🎉 Task created and published successfully!',
+      { 
+        duration: 5000,
+        style: {
+          background: '#00FFAA',
+          color: '#000',
+          fontWeight: 'bold'
+        }
+      }
+    );
+    
+    // Reset form
+    setTaskData({
+      link: '',
+      clicks: 500,
+      community: '',
+      isLinkValid: false,
+      isLinkChecked: false
+    });
+    
+    onTaskCreated();
+    onClose();
+  };
+
+  // Helper functions
+  const getPlatformFromLink = (link: string): string => {
+    const domain = link.toLowerCase();
+    if (domain.includes('facebook.com')) return 'facebook';
+    if (domain.includes('instagram.com')) return 'instagram';
+    if (domain.includes('twitter.com') || domain.includes('x.com')) return 'twitter';
+    if (domain.includes('tiktok.com')) return 'tiktok';
+    if (domain.includes('youtube.com')) return 'youtube';
+    if (domain.includes('telegram.org') || domain.includes('t.me')) return 'telegram';
+    return 'website';
+  };
+
+  const getPlatformTitle = (link: string): string => {
+    const platform = getPlatformFromLink(link);
+    const titles: { [key: string]: string } = {
+      facebook: 'Facebook Task',
+      instagram: 'Instagram Task',
+      twitter: 'Twitter Task',
+      tiktok: 'TikTok Task',
+      youtube: 'YouTube Task',
+      telegram: 'Telegram Task',
+      website: 'Website Task'
+    };
+    return titles[platform] || 'Custom Task';
+  };
+
+  const getTaskDescription = (link: string, clicks: number, community: string): string => {
+    const platform = getPlatformFromLink(link);
+    return `${platform.charAt(0).toUpperCase() + platform.slice(1)} engagement task for ${community} community - ${clicks} clicks required`;
   };
 
   return (
@@ -462,6 +504,22 @@ const AddTaskInterface: React.FC<AddTaskInterfaceProps> = ({
           </p>
         </div>
       </div>
+
+      {/* Payment Verification Modal */}
+      {showPaymentModal && paymentData && (
+        <PaymentVerificationModal
+          isOpen={showPaymentModal}
+          onClose={() => {
+            setShowPaymentModal(false);
+            setPaymentData(null);
+          }}
+          paymentId={paymentData.paymentId}
+          paymentMethod={paymentData.paymentMethod}
+          amount={paymentData.amount}
+          currency={paymentData.currency}
+          onPaymentSuccess={handlePaymentSuccess}
+        />
+      )}
     </div>
   );
 };

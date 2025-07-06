@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Play, Pause, Trash2, ExternalLink, Plus, Globe, TrendingUp, Clock, DollarSign, Users, AlertCircle } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
-import { getUserPaidTasks } from '../../lib/supabase/createPaidTask';
+import { getUserPaidTasks } from '../../lib/supabase/paidTasksSystem';
 import { updateTaskBalance, pauseTask, deleteTask } from '../../lib/supabase/managePaidTasks';
 import toast from 'react-hot-toast';
 
@@ -45,51 +45,30 @@ const MyTasksInterface: React.FC<MyTasksInterfaceProps> = ({
   const fetchTasks = async () => {
     try {
       setLoading(true);
+
+      // الحصول على المهام الحقيقية من قاعدة البيانات
+      const { data, error } = await getUserPaidTasks();
       
-      // For demo purposes, create mock tasks since we don't have a real paid_tasks table yet
-      const mockTasks: PaidTask[] = [
-        {
-          id: 'task_1',
-          title: 'Facebook',
-          platform: 'facebook',
-          link: 'https://facebook.com/lyracoin',
-          totalClicks: 1000,
-          completedClicks: 350,
-          community: 'AR',
-          status: 'active',
-          balanceUsed: 400,
-          createdAt: new Date().toISOString(),
-          icon: '📘'
-        },
-        {
-          id: 'task_2',
-          title: 'Instagram',
-          platform: 'instagram',
-          link: 'https://instagram.com/lyracoin',
-          totalClicks: 500,
-          completedClicks: 500,
-          community: 'EN',
-          status: 'completed',
-          balanceUsed: 200,
-          createdAt: new Date(Date.now() - 86400000).toISOString(),
-          icon: '📷'
-        },
-        {
-          id: 'task_3',
-          title: 'Twitter',
-          platform: 'twitter',
-          link: 'https://twitter.com/lyracoin',
-          totalClicks: 2000,
-          completedClicks: 150,
-          community: 'RU',
-          status: 'paused',
-          balanceUsed: 800,
-          createdAt: new Date(Date.now() - 172800000).toISOString(),
-          icon: '🐦'
-        }
-      ];
+      if (error) {
+        throw error;
+      }
+
+      // تحويل البيانات إلى التنسيق المطلوب
+      const formattedTasks: PaidTask[] = (data || []).map(task => ({
+        id: task.id,
+        title: task.title,
+        platform: task.platform,
+        link: task.link,
+        totalClicks: task.totalClicks,
+        completedClicks: task.completedClicks,
+        community: task.targetCommunity,
+        status: mapTaskStatus(task.status),
+        balanceUsed: task.pricePaid,
+        createdAt: task.createdAt,
+        icon: getPlatformIcon(task.platform)
+      }));
       
-      setTasks(mockTasks);
+      setTasks(formattedTasks);
     } catch (error) {
       console.error('Error fetching tasks:', error);
       toast.error(
@@ -100,6 +79,35 @@ const MyTasksInterface: React.FC<MyTasksInterfaceProps> = ({
     } finally {
       setLoading(false);
     }
+  };
+
+  // تحويل حالة المهمة من قاعدة البيانات إلى التنسيق المطلوب
+  const mapTaskStatus = (dbStatus: string): 'active' | 'paused' | 'completed' => {
+    switch (dbStatus) {
+      case 'payment_verified':
+      case 'active':
+        return 'active';
+      case 'paused':
+        return 'paused';
+      case 'completed':
+        return 'completed';
+      default:
+        return 'paused';
+    }
+  };
+
+  // الحصول على أيقونة المنصة
+  const getPlatformIcon = (platform: string): string => {
+    const icons: { [key: string]: string } = {
+      facebook: '📘',
+      instagram: '📷',
+      twitter: '🐦',
+      tiktok: '🎵',
+      youtube: '📺',
+      telegram: '✈️',
+      website: '🎯'
+    };
+    return icons[platform] || '🎯';
   };
 
   const getPlatformInfo = (platform: string, link: string) => {
