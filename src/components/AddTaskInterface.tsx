@@ -515,3 +515,5 @@ const AddTaskInterface: React.FC<AddTaskInterfaceProps> = ({
 };
 
 export default AddTaskInterface;
+
+export default AddTaskInterface
