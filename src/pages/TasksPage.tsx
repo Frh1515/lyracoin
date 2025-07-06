@@ -1337,12 +1337,6 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
                 : '5. Mining: Click "Mine" to start 6-hour session, claim rewards every 24 hours'
               }
             </li>
-            <li className="text-red-400">
-              {language === 'ar' 
-                ? '6. المهام المدفوعة 🔥: مهام أنشأها مستخدمون آخرون، أكملها للمساعدة في نمو المجتمع'
-                : '6. Paid Tasks 🔥: Tasks created by other users, complete them to help grow the community'
-              }
-            </li>
           </ul>
         </div>
       </div>
