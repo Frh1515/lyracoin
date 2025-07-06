@@ -11,8 +11,8 @@ import { getFixedTasks } from '../../lib/supabase/getFixedTasks';
 import { claimDailyTask } from '../../lib/supabase/claimDailyTask';
 import { claimFixedTask } from '../../lib/supabase/claimFixedTask';
 import { recordGameSession } from '../../lib/supabase/recordGameSession';
+import { getActivePaidTasksForDaily } from '../../lib/supabase/taskConsumptionSystem';
 import { getMiningStatus, startOrResumeMining, claimDailyMiningReward } from '../../lib/supabase/mining';
-import { getUserPaidTasks } from '../../lib/supabase/paidTasksSystem';
 import { getActiveBoost, applyBoostToMining } from '../../lib/supabase/boostSystem';
 import type { MiningStatus } from '../../lib/supabase/types';
 import PaidTaskCard from '../components/PaidTaskCard';
@@ -29,6 +29,8 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
   const [dailyTasks, setDailyTasks] = useState<any[]>([]);
   const [fixedTasks, setFixedTasks] = useState<any[]>([]);
   const [completedDailyTasks, setCompletedDailyTasks] = useState<Set<string>>(new Set());
+  const [paidTasks, setPaidTasks] = useState<any[]>([]);
+  const [completedPaidTasks, setCompletedPaidTasks] = useState<Set<string>>(new Set());
   const [completedFixedTasks, setCompletedFixedTasks] = useState<Set<string>>(new Set());
   const [claimingTasks, setClaimingTasks] = useState<Set<string>>(new Set());
   const [paidTasks, setPaidTasks] = useState<any[]>([]);
@@ -37,6 +39,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
   const [taskTimers, setTaskTimers] = useState<Map<string, NodeJS.Timeout>>(new Map());
   const [taskStartedTimes, setTaskStartedTimes] = useState<Map<string, number>>(new Map());
   const [tasksLoaded, setTasksLoaded] = useState(false);
+  const [paidTasksLoaded, setPaidTasksLoaded] = useState(false);
   const [gameSessionsRemaining, setGameSessionsRemaining] = useState(3);
   
   // Password modal states
@@ -162,6 +165,17 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
           const completedFixed = new Set(fixedData.completedTasks.map(ct => ct.fixed_task_id));
           setCompletedFixedTasks(completedFixed);
           console.log('✅ Completed fixed tasks:', completedFixed.size);
+        }
+
+        // Load paid tasks for daily tasks section
+        const { success: paidSuccess, tasks: paidTasksData, completedTasks: completedPaidTasksData } = await getActivePaidTasksForDaily();
+        if (paidSuccess) {
+          console.log('✅ Paid tasks loaded for daily section:', paidTasksData.length);
+          setPaidTasks(paidTasksData);
+          const completedPaid = new Set(completedPaidTasksData);
+          setCompletedPaidTasks(completedPaid);
+          console.log('✅ Completed paid tasks:', completedPaid.size);
+          setPaidTasksLoaded(true);
         }
 
         // Load paid tasks
@@ -825,22 +839,28 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
   };
 
   // Function to handle paid task click
-  const handlePaidTaskClick = () => {
+  const handlePaidTaskClick = async () => {
     // Refresh paid tasks after a click
-    const refreshPaidTasks = async () => {
-      try {
-        const { data, error } = await getUserPaidTasks();
-        if (error) {
-          console.error('Error refreshing paid tasks:', error);
-        } else if (data) {
-          setPaidTasks(data);
-        }
-      } catch (error) {
-        console.error('Error refreshing paid tasks:', error);
+    try {
+      const { success, tasks, completedTasks } = await getActivePaidTasksForDaily();
+      if (success) {
+        setPaidTasks(tasks);
+        setCompletedPaidTasks(new Set(completedTasks));
+      } else {
+        console.error('Error refreshing paid tasks');
       }
-    };
-    
-    refreshPaidTasks();
+      
+      // Update points and minutes if provided in the callback
+      if (onPointsEarned) {
+        onPointsEarned(10); // Default points for paid task
+      }
+      
+      if (onMinutesEarned) {
+        onMinutesEarned(10); // Default minutes for paid task
+      }
+    } catch (error) {
+      console.error('Error refreshing paid tasks:', error);
+    }
   };
 
   // Get task button configuration based on task state
@@ -1198,16 +1218,15 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
           {/* Paid Tasks Section - Integrated with Daily Tasks */}
           {paidTasksLoaded && paidTasks.length > 0 && (
             <div className="mb-6">
-              <div className="flex items-center gap-2 mb-3">
+              <div className="flex items-center gap-2 mb-4">
                 <DollarSign className="w-5 h-5 text-red-400" />
                 <h4 className="text-lg font-semibold text-red-400">
                   {language === 'ar' ? '🔥 مهام مدفوعة' : '🔥 Paid Tasks'}
                 </h4>
               </div>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 {paidTasks
-                  .filter(task => task.status === 'active')
                   .map((task) => (
                     <PaidTaskCard
                       key={task.id}
@@ -1218,7 +1237,7 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
                   ))}
               </div>
               
-            </div>
+              <div className="bg-black/30 border border-red-400/30 rounded-lg p-3 mb-4">
           )}
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
