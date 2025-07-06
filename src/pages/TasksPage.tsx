@@ -1218,14 +1218,6 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
                   ))}
               </div>
               
-              <div className="bg-black/30 border border-red-400/30 rounded-lg p-3 mb-6">
-                <p className="text-center text-red-400 text-xs">
-                  {language === 'ar' 
-                    ? '🔥 المهام المدفوعة هي مهام أنشأها مستخدمون آخرون. أكملها للمساعدة في نمو مجتمع LYRA COIN!'
-                    : '🔥 Paid tasks are created by other users. Complete them to help grow the LYRA COIN community!'
-                  }
-                </p>
-              </div>
             </div>
           )}
           
