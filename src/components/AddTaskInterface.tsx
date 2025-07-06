@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Check, X, Globe, Users, DollarSign, Link } from 'lucide-react';
+import { Check, X, Globe, Users, DollarSign, Link, AlertCircle } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
+import { createPaidTask, type PaidTaskData } from '../../lib/supabase/createPaidTask';
 import toast from 'react-hot-toast';
 
 interface AddTaskInterfaceProps {
@@ -15,6 +16,7 @@ interface TaskData {
   clicks: number;
   community: string;
   isLinkValid: boolean;
+  isLinkChecked: boolean;
 }
 
 const AddTaskInterface: React.FC<AddTaskInterfaceProps> = ({
@@ -28,9 +30,11 @@ const AddTaskInterface: React.FC<AddTaskInterfaceProps> = ({
     link: '',
     clicks: 500,
     community: '',
-    isLinkValid: false
+    isLinkValid: false,
+    isLinkChecked: false
   });
   const [isCreating, setIsCreating] = useState(false);
+  const [showInsufficientBalance, setShowInsufficientBalance] = useState(false);
 
   const clickOptions = [500, 1000, 2000, 5000, 10000];
   const communities = [
@@ -47,18 +51,38 @@ const AddTaskInterface: React.FC<AddTaskInterfaceProps> = ({
   if (!isVisible) return null;
 
   const validateLink = () => {
-    const isValid = taskData.link.startsWith('https://') && taskData.link.length > 10;
-    setTaskData(prev => ({ ...prev, isLinkValid: isValid }));
+    if (!taskData.link.trim()) {
+      toast.error(
+        language === 'ar' ? '❌ يرجى إدخال رابط أولاً' : '❌ Please enter a link first'
+      );
+      return;
+    }
+
+    const isValid = taskData.link.startsWith('https://') && taskData.link.length > 12;
+    setTaskData(prev => ({ ...prev, isLinkValid: isValid, isLinkChecked: true }));
     
     if (isValid) {
       toast.success(
-        language === 'ar' ? '✅ الرابط صحيح!' : '✅ Link is valid!',
-        { duration: 2000 }
+        language === 'ar' ? '✅ الرابط صحيح ومُفعّل!' : '✅ Link is valid and activated!',
+        { 
+          duration: 3000,
+          style: {
+            background: '#00FFAA',
+            color: '#000',
+            fontWeight: 'bold'
+          }
+        }
       );
     } else {
       toast.error(
-        language === 'ar' ? '❌ الرابط يجب أن يبدأ بـ https://' : '❌ Link must start with https://',
-        { duration: 2000 }
+        language === 'ar' ? '❌ الرابط يجب أن يبدأ بـ https:// ويكون صحيحاً' : '❌ Link must start with https:// and be valid',
+        { 
+          duration: 3000,
+          style: {
+            background: '#FF6347',
+            color: '#fff'
+          }
+        }
       );
     }
   };
@@ -72,15 +96,23 @@ const AddTaskInterface: React.FC<AddTaskInterfaceProps> = ({
   };
 
   const canCreateTask = () => {
-    return taskData.isLinkValid && taskData.clicks > 0 && taskData.community !== '';
+    return taskData.isLinkValid && taskData.isLinkChecked && taskData.clicks > 0 && taskData.community !== '';
   };
 
   const handleCreateTask = async () => {
     if (!canCreateTask()) {
+      let missingFields = [];
+      if (!taskData.isLinkChecked || !taskData.isLinkValid) {
+        missingFields.push(language === 'ar' ? 'التحقق من الرابط' : 'Link verification');
+      }
+      if (!taskData.community) {
+        missingFields.push(language === 'ar' ? 'اختيار الجمهور' : 'Community selection');
+      }
+      
       toast.error(
         language === 'ar' 
-          ? 'يرجى إكمال جميع الحقول المطلوبة'
-          : 'Please complete all required fields'
+          ? `يرجى إكمال: ${missingFields.join(' و ')}`
+          : `Please complete: ${missingFields.join(' and ')}`
       );
       return;
     }
@@ -88,15 +120,17 @@ const AddTaskInterface: React.FC<AddTaskInterfaceProps> = ({
     const totalPrice = calculatePrice();
     
     if (userLyraBalance < totalPrice) {
+      setShowInsufficientBalance(true);
       toast.error(
         language === 'ar' 
           ? 'الرصيد غير كافٍ، الرجاء شحن المحفظة'
           : 'Insufficient balance, please charge your wallet',
         { 
-          duration: 4000,
+          duration: 5000,
           style: {
             background: '#FF6347',
-            color: '#fff'
+            color: '#fff',
+            fontWeight: 'bold'
           }
         }
       );
@@ -106,41 +140,71 @@ const AddTaskInterface: React.FC<AddTaskInterfaceProps> = ({
     setIsCreating(true);
     
     try {
-      // Simulate task creation process
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      const taskPayload: PaidTaskData = {
+        link: taskData.link,
+        clicks: taskData.clicks,
+        community: taskData.community,
+        price: totalPrice
+      };
+
+      const result = await createPaidTask(taskPayload);
       
-      toast.success(
-        language === 'ar'
-          ? `🎉 تم إنشاء المهمة بنجاح! تم خصم ${totalPrice} LYRA من رصيدك`
-          : `🎉 Task created successfully! ${totalPrice} LYRA deducted from your balance`,
-        { 
-          duration: 5000,
-          style: {
-            background: '#00FFAA',
-            color: '#000',
-            fontWeight: 'bold'
+      if (result.success) {
+        toast.success(
+          language === 'ar'
+            ? `🎉 تم إنشاء المهمة بنجاح! تم خصم ${totalPrice} LYRA من رصيدك`
+            : `🎉 Task created successfully! ${totalPrice} LYRA deducted from your balance`,
+          { 
+            duration: 6000,
+            style: {
+              background: '#00FFAA',
+              color: '#000',
+              fontWeight: 'bold'
+            }
           }
-        }
-      );
+        );
+        
+        // Show additional info about verification
+        setTimeout(() => {
+          toast.info(
+            language === 'ar'
+              ? 'ℹ️ المهمة في انتظار التحقق من الدفع قبل النشر'
+              : 'ℹ️ Task is pending payment verification before publishing',
+            { 
+              duration: 4000,
+              style: {
+                background: '#3B82F6',
+                color: '#fff'
+              }
+            }
+          );
+        }, 1000);
+        
+        // Reset form
+        setTaskData({
+          link: '',
+          clicks: 500,
+          community: '',
+          isLinkValid: false,
+          isLinkChecked: false
+        });
+        
+        onTaskCreated();
+        onClose();
+      } else {
+        throw new Error(result.message);
+      }
       
-      // Reset form
-      setTaskData({
-        link: '',
-        clicks: 500,
-        community: '',
-        isLinkValid: false
-      });
-      
-      onTaskCreated();
-      onClose();
     } catch (error) {
+      console.error('Error creating task:', error);
       toast.error(
         language === 'ar' 
-          ? 'فشل في إنشاء المهمة'
-          : 'Failed to create task'
+          ? `فشل في إنشاء المهمة: ${error instanceof Error ? error.message : 'خطأ غير معروف'}`
+          : `Failed to create task: ${error instanceof Error ? error.message : 'Unknown error'}`
       );
     } finally {
       setIsCreating(false);
+      setShowInsufficientBalance(false);
     }
   };
 
@@ -163,7 +227,7 @@ const AddTaskInterface: React.FC<AddTaskInterfaceProps> = ({
         {/* Link Input */}
         <div>
           <label className="block text-white/70 text-sm font-medium mb-2">
-            {language === 'ar' ? 'رابط المهمة' : 'Task Link'}
+            {language === 'ar' ? 'رابط المهمة *' : 'Task Link *'}
           </label>
           <div className="flex items-center gap-2">
             <div className="flex-1 relative">
@@ -171,29 +235,69 @@ const AddTaskInterface: React.FC<AddTaskInterfaceProps> = ({
               <input
                 type="url"
                 value={taskData.link}
-                onChange={(e) => setTaskData(prev => ({ ...prev, link: e.target.value, isLinkValid: false }))}
+                onChange={(e) => setTaskData(prev => ({ 
+                  ...prev, 
+                  link: e.target.value, 
+                  isLinkValid: false, 
+                  isLinkChecked: false 
+                }))}
                 className="w-full bg-black/30 border border-white/20 rounded-lg pl-10 pr-4 py-3 text-white focus:border-neonGreen focus:outline-none transition"
                 placeholder="https://your-link.com"
+                onPaste={(e) => {
+                  // Allow paste functionality
+                  setTimeout(() => {
+                    const pastedValue = e.currentTarget.value;
+                    setTaskData(prev => ({ 
+                      ...prev, 
+                      link: pastedValue, 
+                      isLinkValid: false, 
+                      isLinkChecked: false 
+                    }));
+                  }, 0);
+                }}
               />
             </div>
+            
+            {/* Check Button */}
             <button
               onClick={validateLink}
               disabled={!taskData.link}
-              className="w-12 h-12 bg-neonGreen text-black rounded-lg hover:brightness-110 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+              className={`w-12 h-12 rounded-lg transition flex items-center justify-center ${
+                taskData.isLinkValid 
+                  ? 'bg-green-500 text-white' 
+                  : 'bg-neonGreen text-black hover:brightness-110'
+              } disabled:opacity-50 disabled:cursor-not-allowed`}
+              title={language === 'ar' ? 'التحقق من الرابط' : 'Verify link'}
             >
               <Check className="w-5 h-5" />
             </button>
+            
+            {/* Clear Button */}
             <button
-              onClick={() => setTaskData(prev => ({ ...prev, link: '', isLinkValid: false }))}
+              onClick={() => setTaskData(prev => ({ 
+                ...prev, 
+                link: '', 
+                isLinkValid: false, 
+                isLinkChecked: false 
+              }))}
               className="w-12 h-12 bg-red-500 text-white rounded-lg hover:brightness-110 transition flex items-center justify-center"
+              title={language === 'ar' ? 'مسح الرابط' : 'Clear link'}
             >
               <X className="w-5 h-5" />
             </button>
           </div>
+          
+          {/* Link Status */}
           {taskData.isLinkValid && (
             <p className="text-neonGreen text-xs mt-1 flex items-center gap-1">
               <Check className="w-3 h-3" />
-              {language === 'ar' ? 'الرابط صحيح' : 'Link verified'}
+              {language === 'ar' ? 'الرابط صحيح ومُفعّل' : 'Link verified and activated'}
+            </p>
+          )}
+          {taskData.isLinkChecked && !taskData.isLinkValid && (
+            <p className="text-red-400 text-xs mt-1 flex items-center gap-1">
+              <X className="w-3 h-3" />
+              {language === 'ar' ? 'الرابط غير صحيح' : 'Link is invalid'}
             </p>
           )}
         </div>
@@ -201,7 +305,7 @@ const AddTaskInterface: React.FC<AddTaskInterfaceProps> = ({
         {/* Clicks Selection */}
         <div>
           <label className="block text-white/70 text-sm font-medium mb-2">
-            {language === 'ar' ? 'عدد الكليكات المطلوبة' : 'Required Clicks'}
+            {language === 'ar' ? 'عدد الكليكات المطلوبة *' : 'Required Clicks *'}
           </label>
           <select
             value={taskData.clicks}
@@ -219,7 +323,7 @@ const AddTaskInterface: React.FC<AddTaskInterfaceProps> = ({
         {/* Community Selection */}
         <div>
           <label className="block text-white/70 text-sm font-medium mb-2">
-            <span className="text-red-400">*</span> {language === 'ar' ? 'الجمهور المستهدف' : 'Target Community'}
+            <span className="text-red-400">*</span> {language === 'ar' ? 'الجمهور المستهدف (إلزامي)' : 'Target Community (Required)'}
           </label>
           <select
             value={taskData.community}
@@ -236,6 +340,12 @@ const AddTaskInterface: React.FC<AddTaskInterfaceProps> = ({
               </option>
             ))}
           </select>
+          <p className="text-white/50 text-xs mt-1">
+            {language === 'ar' 
+              ? 'اختيار الجمهور يضاعف السعر ×2 لضمان الاستهداف الدقيق'
+              : 'Community selection doubles the price ×2 for precise targeting'
+            }
+          </p>
         </div>
 
         {/* Price Display */}
@@ -247,7 +357,9 @@ const AddTaskInterface: React.FC<AddTaskInterfaceProps> = ({
                 {language === 'ar' ? 'السعر النهائي' : 'Final Price'}
               </span>
             </div>
-            <div className="text-3xl font-bold text-neonGreen drop-shadow-[0_0_10px_#00FF88]">
+            <div className={`text-3xl font-bold drop-shadow-[0_0_10px_#00FF88] ${
+              calculatePrice() > userLyraBalance ? 'text-red-400' : 'text-neonGreen'
+            }`}>
               {calculatePrice().toLocaleString()} LYRA COIN
             </div>
             <div className="text-white/60 text-xs mt-2">
@@ -256,6 +368,14 @@ const AddTaskInterface: React.FC<AddTaskInterfaceProps> = ({
                 : `${taskData.clicks.toLocaleString()} clicks ${taskData.community ? '× 2 (targeted community)' : ''}`
               }
             </div>
+            {calculatePrice() > userLyraBalance && (
+              <div className="mt-2 p-2 bg-red-500/20 border border-red-500/30 rounded text-red-400 text-xs">
+                {language === 'ar' 
+                  ? `تحتاج ${(calculatePrice() - userLyraBalance).toLocaleString()} LYRA إضافية`
+                  : `Need ${(calculatePrice() - userLyraBalance).toLocaleString()} more LYRA`
+                }
+              </div>
+            )}
           </div>
         </div>
 
@@ -266,11 +386,43 @@ const AddTaskInterface: React.FC<AddTaskInterfaceProps> = ({
             {language === 'ar' ? 'تفاصيل التسعير' : 'Pricing Details'}
           </h4>
           <div className="space-y-1 text-sm text-white/70">
-            <p>• {language === 'ar' ? 'كل 500 كليكة = 100 LYRA' : 'Every 500 clicks = 100 LYRA'}</p>
-            <p>• {language === 'ar' ? 'الجمهور المستهدف = ×2 السعر' : 'Targeted community = ×2 price'}</p>
-            <p>• {language === 'ar' ? 'رصيدك الحالي:' : 'Your current balance:'} <span className="text-neonGreen font-bold">{userLyraBalance.toLocaleString()} LYRA</span></p>
+            <p>• {language === 'ar' ? 'السعر الأساسي: كل 500 كليكة = 100 LYRA' : 'Base price: Every 500 clicks = 100 LYRA'}</p>
+            <p>• {language === 'ar' ? 'الجمهور المستهدف: مضاعفة السعر ×2' : 'Targeted community: Double price ×2'}</p>
+            <p>• {language === 'ar' ? 'رصيدك الحالي:' : 'Your current balance:'} 
+              <span className={`font-bold ml-1 ${userLyraBalance >= calculatePrice() ? 'text-neonGreen' : 'text-red-400'}`}>
+                {userLyraBalance.toLocaleString()} LYRA
+              </span>
+            </p>
+            <p>• {language === 'ar' ? 'الرصيد المتبقي بعد الشراء:' : 'Remaining balance after purchase:'} 
+              <span className={`font-bold ml-1 ${(userLyraBalance - calculatePrice()) >= 0 ? 'text-neonGreen' : 'text-red-400'}`}>
+                {(userLyraBalance - calculatePrice()).toLocaleString()} LYRA
+              </span>
+            </p>
           </div>
         </div>
+
+        {/* Insufficient Balance Warning */}
+        {showInsufficientBalance && (
+          <div className="bg-red-500/20 border border-red-500/30 rounded-lg p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <AlertCircle className="w-5 h-5 text-red-400" />
+              <h4 className="text-red-400 font-medium">
+                {language === 'ar' ? 'الرصيد غير كافٍ' : 'Insufficient Balance'}
+              </h4>
+            </div>
+            <p className="text-red-400 text-sm mb-3">
+              {language === 'ar' 
+                ? `تحتاج ${(calculatePrice() - userLyraBalance).toLocaleString()} LYRA إضافية لإنشاء هذه المهمة`
+                : `You need ${(calculatePrice() - userLyraBalance).toLocaleString()} more LYRA to create this task`
+              }
+            </p>
+            <div className="text-white/70 text-xs">
+              <p>{language === 'ar' ? 'خيارات الشحن:' : 'Charging options:'}</p>
+              <p>• {language === 'ar' ? 'تحويل الدقائق إلى LYRA (1000 دقيقة = 1 LYRA)' : 'Convert minutes to LYRA (1000 minutes = 1 LYRA)'}</p>
+              <p>• {language === 'ar' ? 'شراء بعملة TON (1 TON = 100 LYRA)' : 'Purchase with TON (1 TON = 100 LYRA)'}</p>
+            </div>
+          </div>
+        )}
 
         {/* Create Task Button */}
         <button
@@ -285,12 +437,17 @@ const AddTaskInterface: React.FC<AddTaskInterfaceProps> = ({
           {isCreating ? (
             <>
               <div className="w-5 h-5 border-2 border-black/30 border-t-black rounded-full animate-spin"></div>
-              {language === 'ar' ? 'جاري الإنشاء...' : 'Creating...'}
+              {language === 'ar' ? 'جاري إنشاء المهمة...' : 'Creating Task...'}
             </>
           ) : (
             <>
               <DollarSign className="w-5 h-5" />
-              {language === 'ar' ? 'شراء الخدمة' : 'BUY TASK'}
+              {language === 'ar' ? 'شراء الخدمة' : 'BUY TASK'} 
+              {canCreateTask() && (
+                <span className="text-sm opacity-80">
+                  ({calculatePrice().toLocaleString()} LYRA)
+                </span>
+              )}
             </>
           )}
         </button>
@@ -299,8 +456,8 @@ const AddTaskInterface: React.FC<AddTaskInterfaceProps> = ({
         <div className="bg-yellow-400/10 border border-yellow-400/30 rounded-lg p-3">
           <p className="text-yellow-400 text-xs text-center">
             {language === 'ar' 
-              ? 'ملاحظة: المهمة لن تُنشر حتى يتم التحقق من الدفع الفعلي'
-              : 'Note: Task will not be published until actual payment is verified'
+              ? 'ℹ️ ملاحظة هامة: المهمة لن تُنشر ضمن المهام اليومية حتى يتم التحقق من الدفع الفعلي كما هو موضح في القسم الرابع'
+              : 'ℹ️ Important note: Task will not be published in daily tasks until actual payment is verified as outlined in section four'
             }
           </p>
         </div>

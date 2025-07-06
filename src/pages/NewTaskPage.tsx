@@ -16,7 +16,7 @@ const NewTaskPage: React.FC = () => {
   const [showChargeModal, setShowChargeModal] = useState(false);
   const [logoError, setLogoError] = useState(false);
   const [showAddTask, setShowAddTask] = useState(false);
-  const [hasCreatedTasks, setHasCreatedTasks] = useState(false); // This would come from database in real implementation
+  const [hasCreatedTasks, setHasCreatedTasks] = useState(false);
 
   useEffect(() => {
     fetchUserProfile();
@@ -63,6 +63,7 @@ const NewTaskPage: React.FC = () => {
 
   const handleTaskCreated = () => {
     setHasCreatedTasks(true);
+    setShowAddTask(false); // Close the add task interface
     // Refresh user profile to update LYRA balance
     fetchUserProfile();
   };
@@ -231,29 +232,62 @@ const NewTaskPage: React.FC = () => {
               {language === 'ar' ? 'MY TASKS' : 'MY TASKS'}
             </button>
             
-            {!hasCreatedTasks && (
-              <button
-                onClick={() => setShowAddTask(true)}
-                className={`flex-1 py-3 px-6 rounded-lg font-semibold transition duration-300 flex items-center justify-center gap-2 ${
-                  showAddTask 
-                    ? 'bg-purple-600 text-white shadow-[0_0_15px_rgba(168,85,247,0.5)]'
-                    : 'bg-black/40 border border-purple-500/30 text-white hover:bg-purple-500/10'
-                }`}
-              >
-                <Plus className="w-5 h-5" />
-                {language === 'ar' ? 'ADD TASK' : 'ADD TASK'}
-              </button>
-            )}
+            <button
+              onClick={() => setShowAddTask(true)}
+              className={`flex-1 py-3 px-6 rounded-lg font-semibold transition duration-300 flex items-center justify-center gap-2 ${
+                showAddTask 
+                  ? 'bg-purple-600 text-white shadow-[0_0_15px_rgba(168,85,247,0.5)]'
+                  : 'bg-black/40 border border-purple-500/30 text-white hover:bg-purple-500/10'
+              } ${hasCreatedTasks ? 'opacity-50 cursor-not-allowed' : ''}`}
+              disabled={hasCreatedTasks}
+              title={hasCreatedTasks ? (language === 'ar' ? 'لقد أنشأت مهمة بالفعل' : 'You have already created a task') : ''}
+            >
+              <Plus className="w-5 h-5" />
+              {language === 'ar' ? 'ADD TASK' : 'ADD TASK'}
+              {hasCreatedTasks && (
+                <span className="text-xs opacity-70">
+                  ({language === 'ar' ? 'مُستخدم' : 'Used'})
+                </span>
+              )}
+            </button>
           </div>
 
           {/* Add Task Interface */}
-          {showAddTask && (
+          {showAddTask && !hasCreatedTasks && (
             <AddTaskInterface
               isVisible={showAddTask}
               onClose={() => setShowAddTask(false)}
               userLyraBalance={profile?.lyra_balance || 0}
               onTaskCreated={handleTaskCreated}
             />
+          )}
+
+          {/* Task Created Message */}
+          {showAddTask && hasCreatedTasks && (
+            <div className="bg-green-500/20 border border-green-500/30 rounded-xl p-6 mb-8">
+              <div className="text-center">
+                <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Check className="w-8 h-8 text-white" />
+                </div>
+                <h3 className="text-xl font-bold text-green-400 mb-2">
+                  {language === 'ar' ? 'تم إنشاء المهمة بنجاح!' : 'Task Created Successfully!'}
+                </h3>
+                <p className="text-white/70 mb-4">
+                  {language === 'ar' 
+                    ? 'مهمتك في انتظار التحقق من الدفع قبل النشر في المهام اليومية'
+                    : 'Your task is pending payment verification before being published in daily tasks'
+                  }
+                </p>
+                <div className="bg-blue-500/20 border border-blue-500/30 rounded-lg p-3">
+                  <p className="text-blue-400 text-sm">
+                    {language === 'ar' 
+                      ? 'ℹ️ ستتمكن من إنشاء مهام إضافية بعد التحقق من هذه المهمة'
+                      : 'ℹ️ You will be able to create additional tasks after this one is verified'
+                    }
+                  </p>
+                </div>
+              </div>
+            </div>
           )}
 
           {/* Quick Actions */}
