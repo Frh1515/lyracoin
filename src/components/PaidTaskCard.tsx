@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { FaYoutube, FaFacebook, FaTiktok, FaTelegram, FaInstagram, FaXTwitter } from 'react-icons/fa6';
 import { Share2, Smartphone } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
-import { recordTaskClick } from '../../lib/supabase/taskConsumptionSystem';
+import { recordTaskClickWithRewards } from '../../lib/supabase/taskConsumptionSystem';
 import { supabase } from '../../lib/supabase/client';
 import toast from 'react-hot-toast';
 
@@ -123,7 +123,7 @@ const PaidTaskCard: React.FC<PaidTaskCardProps> = ({
       }
       
       // Record the click
-      const result = await recordTaskClick(task.id, userData.telegram_id);
+      const result = await recordTaskClickWithRewards(task.id);
       
       if (result.success) {
         // Notify parent component to refresh tasks
@@ -131,8 +131,8 @@ const PaidTaskCard: React.FC<PaidTaskCardProps> = ({
         
         toast.success(
           language === 'ar'
-            ? 'تم إكمال المهمة بنجاح!'
-            : 'Task completed successfully!',
+            ? `تم إكمال المهمة بنجاح! +${result.pointsEarned} نقطة و +${result.minutesEarned} دقيقة`
+            : `Task completed successfully! +${result.pointsEarned} points & +${result.minutesEarned} minutes`,
           { 
             duration: 3000,
             style: {

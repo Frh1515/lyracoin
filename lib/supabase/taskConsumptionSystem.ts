@@ -1,5 +1,17 @@
 import { supabase } from './client';
 
+export interface TaskClickWithRewardsResult {
+  success: boolean;
+  message: string;
+  clickId?: string;
+  lyraConsumed?: number;
+  completedClicks?: number;
+  totalClicks?: number;
+  isCompleted?: boolean;
+  pointsEarned?: number;
+  minutesEarned?: number;
+}
+
 export interface TaskClickResult {
   success: boolean;
   message: string;
@@ -158,6 +170,175 @@ export async function updateTaskCompletionStatus(
     return {
       success: false,
       message: error instanceof Error ? error.message : 'Failed to update task status'
+    };
+  }
+}
+
+/**
+ * Records a click on a paid task and awards points and minutes to the user
+ */
+export async function recordTaskClickWithRewards(
+  taskId: string
+): Promise<TaskClickWithRewardsResult> {
+  try {
+    console.log('🔄 Recording task click with rewards:', { taskId });
+    
+    // Get current authenticated user
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    
+    if (authError || !user) {
+      return {
+        success: false,
+        message: 'User not authenticated'
+      };
+    }
+
+    // Get user's telegram_id
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('telegram_id')
+      .eq('supabase_auth_id', user.id)
+      .single();
+
+    if (userError || !userData) {
+      return {
+        success: false,
+        message: 'User not found'
+      };
+    }
+    
+    // Call RPC function to record click with rewards
+    const { data, error } = await supabase.rpc('record_task_click_with_rewards', {
+      p_task_id: taskId,
+      p_user_telegram_id: userData.telegram_id
+    });
+
+    if (error) {
+      console.error('❌ RPC Error recording task click with rewards:', error);
+      throw error;
+    }
+
+    console.log('✅ Click with rewards recorded successfully:', data);
+
+    return {
+      success: data.success,
+      message: data.message,
+      clickId: data.click_id,
+      lyraConsumed: data.lyra_consumed,
+      completedClicks: data.completed_clicks,
+      totalClicks: data.total_clicks,
+      isCompleted: data.is_completed,
+      pointsEarned: data.points_earned,
+      minutesEarned: data.minutes_earned
+    };
+  } catch (error) {
+    console.error('Error recording task click with rewards:', error);
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : 'Failed to record task click with rewards'
+    };
+  }
+}
+
+/**
+ * Checks if a user has completed a paid task today
+ */
+export async function hasCompletedPaidTaskToday(
+  taskId: string
+): Promise<boolean> {
+  try {
+    // Get current authenticated user
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    
+    if (authError || !user) {
+      return false;
+    }
+
+    // Get user's telegram_id
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('telegram_id')
+      .eq('supabase_auth_id', user.id)
+      .single();
+
+    if (userError || !userData) {
+      return false;
+    }
+    
+    // Call RPC function to check if task is completed today
+    const { data, error } = await supabase.rpc('has_completed_paid_task_today', {
+      p_task_id: taskId,
+      p_user_telegram_id: userData.telegram_id
+    });
+
+    if (error) {
+      console.error('❌ RPC Error checking completed task:', error);
+      return false;
+    }
+
+    return data || false;
+  } catch (error) {
+    console.error('Error checking completed task:', error);
+    return false;
+  }
+}
+
+/**
+ * Gets all active paid tasks for the daily tasks section
+ */
+export async function getActivePaidTasksForDaily(): Promise<{
+  success: boolean;
+  tasks: any[];
+  completedTasks: string[];
+}> {
+  try {
+    // Get current authenticated user
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    
+    if (authError || !user) {
+      return {
+        success: false,
+        tasks: [],
+        completedTasks: []
+      };
+    }
+
+    // Get user's telegram_id
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('telegram_id')
+      .eq('supabase_auth_id', user.id)
+      .single();
+
+    if (userError || !userData) {
+      return {
+        success: false,
+        tasks: [],
+        completedTasks: []
+      };
+    }
+    
+    // Call RPC function to get active paid tasks
+    const { data, error } = await supabase.rpc('get_active_paid_tasks_for_daily', {
+      p_user_telegram_id: userData.telegram_id
+    });
+
+    if (error) {
+      console.error('❌ RPC Error getting active paid tasks:', error);
+      throw error;
+    }
+
+    return {
+      success: true,
+      tasks: data?.tasks || [],
+      completedTasks: data?.completed_tasks || []
+    };
+  } catch (error) {
+    console.error('Error getting active paid tasks:', error);
+    return {
+      success: false,
+      tasks: [],
+      completedTasks: []
     };
   }
 }
