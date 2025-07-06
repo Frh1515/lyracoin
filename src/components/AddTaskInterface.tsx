@@ -493,16 +493,6 @@ const AddTaskInterface: React.FC<AddTaskInterfaceProps> = ({
             </>
           )}
         </button>
-
-        {/* Requirements Notice */}
-        <div className="bg-yellow-400/10 border border-yellow-400/30 rounded-lg p-3">
-          <p className="text-yellow-400 text-xs text-center">
-            {language === 'ar' 
-              ? 'ℹ️ ملاحظة هامة: المهمة لن تُنشر ضمن المهام اليومية حتى يتم التحقق من الدفع الفعلي كما هو موضح في القسم الرابع'
-              : 'ℹ️ Important note: Task will not be published in daily tasks until actual payment is verified as outlined in section four'
-            }
-          </p>
-        </div>
       </div>
 
       {/* Payment Verification Modal */}
