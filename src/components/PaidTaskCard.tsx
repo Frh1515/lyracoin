@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { FaYoutube, FaFacebook, FaTiktok, FaTelegram, FaInstagram, FaXTwitter } from 'react-icons/fa6';
+import { Share2, Smartphone } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { recordTaskClick } from '../../lib/supabase/taskConsumptionSystem';
 import { supabase } from '../../lib/supabase/client';
@@ -38,20 +40,30 @@ const PaidTaskCard: React.FC<PaidTaskCardProps> = ({
   const getPlatformInfo = (platform: string, link: string) => {
     const domain = link.toLowerCase();
     
+    // Create platform icon component
+    let IconComponent;
+    
     if (domain.includes('facebook.com')) {
-      return { title: 'Facebook', icon: '📘', color: 'border-blue-500 bg-blue-500/10' };
+      IconComponent = <FaFacebook className="w-6 h-6 bg-blue-500 rounded-lg p-1 text-white" />;
+      return { title: 'Facebook', icon: IconComponent, color: 'border-blue-500 bg-blue-500/10' };
     } else if (domain.includes('instagram.com')) {
-      return { title: 'Instagram', icon: '📷', color: 'border-pink-500 bg-pink-500/10' };
+      IconComponent = <FaInstagram className="w-6 h-6 bg-pink-500 rounded-lg p-1 text-white" />;
+      return { title: 'Instagram', icon: IconComponent, color: 'border-pink-500 bg-pink-500/10' };
     } else if (domain.includes('twitter.com') || domain.includes('x.com')) {
-      return { title: 'Twitter', icon: '🐦', color: 'border-sky-400 bg-sky-400/10' };
+      IconComponent = <FaXTwitter className="w-6 h-6 bg-sky-400 rounded-lg p-1 text-white" />;
+      return { title: 'Twitter', icon: IconComponent, color: 'border-sky-400 bg-sky-400/10' };
     } else if (domain.includes('tiktok.com')) {
-      return { title: 'TikTok', icon: '🎵', color: 'border-pink-600 bg-pink-600/10' };
+      IconComponent = <FaTiktok className="w-6 h-6 bg-pink-600 rounded-lg p-1 text-white" />;
+      return { title: 'TikTok', icon: IconComponent, color: 'border-pink-600 bg-pink-600/10' };
     } else if (domain.includes('youtube.com')) {
-      return { title: 'YouTube', icon: '📺', color: 'border-red-500 bg-red-500/10' };
+      IconComponent = <FaYoutube className="w-6 h-6 bg-red-500 rounded-lg p-1 text-white" />;
+      return { title: 'YouTube', icon: IconComponent, color: 'border-red-500 bg-red-500/10' };
     } else if (domain.includes('telegram.org') || domain.includes('t.me')) {
-      return { title: 'Telegram', icon: '✈️', color: 'border-cyan-400 bg-cyan-400/10' };
+      IconComponent = <FaTelegram className="w-6 h-6 bg-cyan-400 rounded-lg p-1 text-white" />;
+      return { title: 'Telegram', icon: IconComponent, color: 'border-cyan-400 bg-cyan-400/10' };
     } else {
-      return { title: 'LYRA Task', icon: '🎯', color: 'border-neonGreen bg-neonGreen/10' };
+      IconComponent = <Share2 className="w-6 h-6 bg-neonGreen rounded-lg p-1 text-white" />;
+      return { title: 'LYRA Task', icon: IconComponent, color: 'border-neonGreen bg-neonGreen/10' };
     }
   };
 
@@ -205,7 +217,7 @@ const PaidTaskCard: React.FC<PaidTaskCardProps> = ({
         : `bg-black/40 ${platformInfo.color} hover:scale-105 hover:brightness-110`
     }`}>
       <div className="flex items-center gap-3 mb-3">
-        <div className="text-2xl">{platformInfo.icon}</div>
+        {platformInfo.icon}
         <h5 className="font-medium text-sm">{task.title}</h5>
       </div>
       
