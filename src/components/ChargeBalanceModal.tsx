@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X, Wallet, ArrowRightLeft, Clock, Zap, ExternalLink } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import ExchangeModal from './ExchangeModal';
+import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
 interface ChargeBalanceModalProps {
@@ -22,6 +23,7 @@ const ChargeBalanceModal: React.FC<ChargeBalanceModalProps> = ({
   onMinutesConverted
 }) => {
   const { language } = useLanguage();
+  const navigate = useNavigate();
   const [currentView, setCurrentView] = useState<ModalView>('main');
   const [showExchangeModal, setShowExchangeModal] = useState(false);
 
@@ -63,8 +65,11 @@ const ChargeBalanceModal: React.FC<ChargeBalanceModalProps> = ({
 
       <div className="space-y-4">
         {/* TON Wallet Option */}
-        <button
-          onClick={() => setShowExchangeModal(true)}
+        <button 
+          onClick={() => {
+            onClose();
+            setShowExchangeModal(true);
+          }}
           className="w-full p-6 bg-black/40 border border-blue-500/30 rounded-xl hover:scale-105 transition duration-300 shadow-[0_0_15px_rgba(59,130,246,0.3)]"
         >
           <div className="flex items-center gap-4">
@@ -87,8 +92,11 @@ const ChargeBalanceModal: React.FC<ChargeBalanceModalProps> = ({
         </button>
 
         {/* Minutes Exchange Option */}
-        <button
-          onClick={() => setShowExchangeModal(true)}
+        <button 
+          onClick={() => {
+            onClose();
+            setShowExchangeModal(true);
+          }}
           className="w-full p-6 bg-black/40 border border-yellow-400/30 rounded-xl hover:scale-105 transition duration-300 shadow-[0_0_15px_rgba(255,204,21,0.3)]"
         >
           <div className="flex items-center gap-4">
