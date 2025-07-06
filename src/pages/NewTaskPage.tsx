@@ -221,44 +221,6 @@ const NewTaskPage: React.FC = () => {
           </div>
 
           {/* Task Management Buttons */}
-          <div className="flex gap-4 mb-8">
-            <button
-              onClick={() => {
-                setShowAddTask(false);
-                setShowMyTasks(true);
-              }}
-              className={`flex-1 py-3 px-6 rounded-lg font-semibold transition duration-300 flex items-center justify-center gap-2 ${
-                !showAddTask && showMyTasks
-                  ? 'bg-neonGreen text-black shadow-[0_0_15px_rgba(0,255,136,0.5)]'
-                  : 'bg-black/40 border border-white/20 text-white hover:bg-white/5'
-              }`}
-            >
-              <List className="w-5 h-5" />
-              {language === 'ar' ? 'MY TASKS' : 'MY TASKS'}
-            </button>
-            
-            <button
-              onClick={() => {
-                setShowAddTask(true);
-                setShowMyTasks(false);
-              }}
-              className={`flex-1 py-3 px-6 rounded-lg font-semibold transition duration-300 flex items-center justify-center gap-2 ${
-                showAddTask 
-                  ? 'bg-purple-600 text-white shadow-[0_0_15px_rgba(168,85,247,0.5)]'
-                  : 'bg-black/40 border border-purple-500/30 text-white hover:bg-purple-500/10'
-              } ${hasCreatedTasks ? 'opacity-50 cursor-not-allowed' : ''}`}
-              disabled={hasCreatedTasks}
-              title={hasCreatedTasks ? (language === 'ar' ? 'لقد أنشأت مهمة بالفعل' : 'You have already created a task') : ''}
-            >
-              <Plus className="w-5 h-5" />
-              {language === 'ar' ? 'ADD TASK' : 'ADD TASK'}
-              {hasCreatedTasks && (
-                <span className="text-xs opacity-70">
-                  ({language === 'ar' ? 'مُستخدم' : 'Used'})
-                </span>
-              )}
-            </button>
-          </div>
 
           {/* My Tasks Interface */}
           {!showAddTask && showMyTasks && (
