@@ -15,6 +15,7 @@ import { getUserProfile } from '../lib/supabase/getUserProfile';
 // Lazy load pages for code splitting
 const HomePage = lazy(() => import('./pages/HomePage'));
 const TasksPage = lazy(() => import('./pages/TasksPage'));
+const NewTaskPage = lazy(() => import('./pages/NewTaskPage'));
 const PricesPage = lazy(() => import('./pages/PricesPage'));
 const ReferralsPage = lazy(() => import('./pages/ReferralsPage'));
 const ProfilePage = lazy(() => import('./pages/ProfilePage'));
@@ -156,6 +157,11 @@ function AppContent() {
                 onMinutesEarned={handleMinutesEarned}
                 onPointsEarned={handlePointsEarned}
               />
+            </ProtectedRoute>
+          } />
+          <Route path="/new-task" element={
+            <ProtectedRoute>
+              <NewTaskPage />
             </ProtectedRoute>
           } />
           <Route path="/prices" element={<PricesPage />} />

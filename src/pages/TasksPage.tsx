@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { FaYoutube, FaFacebook, FaTiktok, FaTelegram, FaInstagram, FaXTwitter } from 'react-icons/fa6';
-import { Gamepad2, Clock, Pickaxe, Timer, Share2, Smartphone, Zap } from 'lucide-react';
+import { Gamepad2, Clock, Pickaxe, Timer, Share2, Smartphone, Zap, Plus } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../context/LanguageContext';
 import CryptoCandyCrushGame from '../components/CryptoCandyCrushGame';
 import PasswordInputModal from '../components/PasswordInputModal';
@@ -22,6 +23,7 @@ interface TasksPageProps {
 
 const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }) => {
   const [showCryptoCandyCrushGame, setShowCryptoCandyCrushGame] = useState(false);
+  const navigate = useNavigate();
   const [dailyTasks, setDailyTasks] = useState<any[]>([]);
   const [fixedTasks, setFixedTasks] = useState<any[]>([]);
   const [completedDailyTasks, setCompletedDailyTasks] = useState<Set<string>>(new Set());
@@ -1076,6 +1078,19 @@ const TasksPage: React.FC<TasksPageProps> = ({ onMinutesEarned, onPointsEarned }
             {language === 'ar' ? 'ابدأ اللعب' : 'Start Playing'}
           </button>
         </div>
+      </div>
+
+      {/* NEW TASK Button */}
+      <div className="px-6 mb-6">
+        <button
+          onClick={() => navigate('/new-task')}
+          className="w-full p-4 bg-gradient-to-r from-purple-600 to-purple-800 border-2 border-purple-500 rounded-xl text-white font-bold hover:scale-105 transition duration-300 shadow-[0_0_15px_rgba(168,85,247,0.5)] flex items-center justify-center gap-3"
+        >
+          <Plus className="w-6 h-6" />
+          <span className="text-lg">
+            {language === 'ar' ? 'NEW TASK - إدارة LYRA COIN' : 'NEW TASK - LYRA COIN Management'}
+          </span>
+        </button>
       </div>
 
       {/* Fixed Tasks Section - Now using database data */}
