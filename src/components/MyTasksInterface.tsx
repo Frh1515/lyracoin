@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { Play, Pause, Trash2, ExternalLink, Plus, Globe, TrendingUp, Clock, DollarSign, Users, AlertCircle } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { getUserPaidTasks } from '../../lib/supabase/paidTasksSystem';
-import { updateTaskBalance, pauseTask, deleteTask, testTaskLink } from '../../lib/supabase/managePaidTasks';
+import { pauseTask, deleteTask, testTaskLink } from '../../lib/supabase/managePaidTasks';
 import { addTaskBalance, simulateTaskClicks } from '../../lib/supabase/taskConsumptionSystem';
 import toast from 'react-hot-toast';
+import TaskCompletionModal from './TaskCompletionModal';
 
 interface MyTasksInterfaceProps {
   isVisible: boolean;
@@ -40,6 +41,15 @@ const MyTasksInterface: React.FC<MyTasksInterfaceProps> = ({
   // Simulation states
   const [simulatingClicks, setSimulatingClicks] = useState<string | null>(null);
   const [simulationAmount, setSimulationAmount] = useState<{ [key: string]: number }>({});
+  
+  // Task completion modal
+  const [showCompletionModal, setShowCompletionModal] = useState(false);
+  const [completedTask, setCompletedTask] = useState<{
+    title: string;
+    platform: string;
+    totalClicks: number;
+    lyraSpent: number;
+  } | null>(null);
 
   useEffect(() => {
     if (isVisible) {
@@ -274,11 +284,25 @@ const MyTasksInterface: React.FC<MyTasksInterfaceProps> = ({
           return { 
             ...task, 
             completedClicks: newCompletedClicks,
-            status: isCompleted ? 'completed' : task.status
+            status: isCompleted ? 'completed' as 'active' | 'paused' | 'completed' : task.status
           };
         }
         return task;
       }));
+      
+      // Show completion modal if task is completed
+      if (result.isCompleted) {
+        const completedTaskData = tasks.find(t => t.id === taskId);
+        if (completedTaskData) {
+          setCompletedTask({
+            title: completedTaskData.title,
+            platform: completedTaskData.platform,
+            totalClicks: completedTaskData.totalClicks,
+            lyraSpent: completedTaskData.balanceUsed
+          });
+          setShowCompletionModal(true);
+        }
+      }
       
       // Clear input
       setSimulationAmount(prev => ({ ...prev, [taskId]: 0 }));
@@ -424,6 +448,18 @@ const MyTasksInterface: React.FC<MyTasksInterfaceProps> = ({
           </div>
         </div>
       </div>
+      
+      {/* Task Completion Modal */}
+      {showCompletionModal && completedTask && (
+        <TaskCompletionModal
+          isOpen={showCompletionModal}
+          onClose={() => setShowCompletionModal(false)}
+          taskTitle={completedTask.title}
+          platform={completedTask.platform}
+          totalClicks={completedTask.totalClicks}
+          lyraSpent={completedTask.lyraSpent}
+        />
+      )}
     );
   }
 
