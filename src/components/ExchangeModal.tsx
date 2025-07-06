@@ -385,7 +385,7 @@ const ExchangeModal: React.FC<ExchangeModalProps> = ({
   const generateMockTransactionHash = () => {
     const mockHash = `valid_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     setTransactionHash(mockHash);
-    toast.info(
+    toast(
       language === 'ar'
         ? 'تم إنشاء hash تجريبي للاختبار'
         : 'Generated mock hash for testing',
