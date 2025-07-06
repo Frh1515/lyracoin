@@ -424,42 +424,44 @@ const MyTasksInterface: React.FC<MyTasksInterfaceProps> = ({
 
   if (tasks.length === 0) {
     return (
-      <div className="bg-black/40 backdrop-blur-sm border border-neonGreen/30 rounded-xl p-8 mt-6">
-        <div className="text-center">
-          <div className="w-20 h-20 bg-neonGreen/20 rounded-full flex items-center justify-center mx-auto mb-6">
-            <TrendingUp className="w-10 h-10 text-neonGreen" />
-          </div>
-          <h3 className="text-xl font-bold text-white mb-4">
-            {language === 'ar' ? 'لا توجد مهام بعد' : 'No Tasks Yet'}
-          </h3>
-          <p className="text-white/70 mb-6">
-            {language === 'ar' 
-              ? 'لم تقم بإضافة أي مهام بعد، ابدأ الآن عبر ADD TASK'
-              : 'You haven\'t added any tasks yet, start now via ADD TASK'
-            }
-          </p>
-          <div className="bg-neonGreen/10 border border-neonGreen/30 rounded-lg p-4">
-            <p className="text-neonGreen font-medium text-sm">
+      <>
+        <div className="bg-black/40 backdrop-blur-sm border border-neonGreen/30 rounded-xl p-8 mt-6">
+          <div className="text-center">
+            <div className="w-20 h-20 bg-neonGreen/20 rounded-full flex items-center justify-center mx-auto mb-6">
+              <TrendingUp className="w-10 h-10 text-neonGreen" />
+            </div>
+            <h3 className="text-xl font-bold text-white mb-4">
+              {language === 'ar' ? 'لا توجد مهام بعد' : 'No Tasks Yet'}
+            </h3>
+            <p className="text-white/70 mb-6">
               {language === 'ar' 
-                ? '💡 نصيحة: استخدم زر ADD TASK لإنشاء مهامك المدفوعة الأولى'
-                : '💡 Tip: Use the ADD TASK button to create your first paid tasks'
+                ? 'لم تقم بإضافة أي مهام بعد، ابدأ الآن عبر ADD TASK'
+                : 'You haven\'t added any tasks yet, start now via ADD TASK'
               }
             </p>
+            <div className="bg-neonGreen/10 border border-neonGreen/30 rounded-lg p-4">
+              <p className="text-neonGreen font-medium text-sm">
+                {language === 'ar' 
+                  ? '💡 نصيحة: استخدم زر ADD TASK لإنشاء مهامك المدفوعة الأولى'
+                  : '💡 Tip: Use the ADD TASK button to create your first paid tasks'
+                }
+              </p>
+            </div>
           </div>
         </div>
-      </div>
-      
-      {/* Task Completion Modal */}
-      {showCompletionModal && completedTask && (
-        <TaskCompletionModal
-          isOpen={showCompletionModal}
-          onClose={() => setShowCompletionModal(false)}
-          taskTitle={completedTask.title}
-          platform={completedTask.platform}
-          totalClicks={completedTask.totalClicks}
-          lyraSpent={completedTask.lyraSpent}
-        />
-      )}
+        
+        {/* Task Completion Modal */}
+        {showCompletionModal && completedTask && (
+          <TaskCompletionModal
+            isOpen={showCompletionModal}
+            onClose={() => setShowCompletionModal(false)}
+            taskTitle={completedTask.title}
+            platform={completedTask.platform}
+            totalClicks={completedTask.totalClicks}
+            lyraSpent={completedTask.lyraSpent}
+          />
+        )}
+      </>
     );
   }
 
@@ -592,6 +594,50 @@ const MyTasksInterface: React.FC<MyTasksInterfaceProps> = ({
                   </p>
                 </div>
 
+                {/* Simulate Clicks Section (for testing) */}
+                <div className="mb-4 p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Plus className="w-4 h-4 text-blue-500" />
+                    <span className="text-white font-medium text-sm">
+                      {language === 'ar' ? 'محاكاة الكليكات (للاختبار)' : 'Simulate Clicks (Testing)'}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      value={simulationAmount[task.id] || ''}
+                      onChange={(e) => setSimulationAmount(prev => ({
+                        ...prev,
+                        [task.id]: Number(e.target.value)
+                      }))}
+                      placeholder="10"
+                      min="1"
+                      max={task.totalClicks - task.completedClicks}
+                      className="flex-1 bg-black/30 border border-white/20 rounded-lg px-3 py-2 text-white text-sm focus:border-blue-500 focus:outline-none transition"
+                    />
+                    <button
+                      onClick={() => handleSimulateClicks(task.id)}
+                      disabled={simulatingClicks === task.id || !simulationAmount[task.id] || task.status !== 'active'}
+                      className="bg-blue-500 text-white px-4 py-2 rounded-lg font-medium hover:brightness-110 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                    >
+                      {simulatingClicks === task.id ? (
+                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                      ) : (
+                        <Plus className="w-4 h-4" />
+                      )}
+                      <span className="text-sm">
+                        {language === 'ar' ? 'محاكاة' : 'Simulate'}
+                      </span>
+                    </button>
+                  </div>
+                  <p className="text-white/50 text-xs mt-1">
+                    {language === 'ar' 
+                      ? `الكليكات المتبقية: ${task.totalClicks - task.completedClicks}`
+                      : `Remaining clicks: ${task.totalClicks - task.completedClicks}`
+                    }
+                  </p>
+                </div>
+
                 {/* Control Buttons */}
                 <div className="flex items-center gap-3">
                   {/* Play/Pause Button */}
@@ -652,49 +698,6 @@ const MyTasksInterface: React.FC<MyTasksInterfaceProps> = ({
                 </div>
               </div>
             );
-              {/* Simulate Clicks Section (for testing) */}
-              <div className="mb-4 p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
-                <div className="flex items-center gap-2 mb-2">
-                  <Plus className="w-4 h-4 text-blue-500" />
-                  <span className="text-white font-medium text-sm">
-                    {language === 'ar' ? 'محاكاة الكليكات (للاختبار)' : 'Simulate Clicks (Testing)'}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="number"
-                    value={simulationAmount[task.id] || ''}
-                    onChange={(e) => setSimulationAmount(prev => ({
-                      ...prev,
-                      [task.id]: Number(e.target.value)
-                    }))}
-                    placeholder="10"
-                    min="1"
-                    max={task.totalClicks - task.completedClicks}
-                    className="flex-1 bg-black/30 border border-white/20 rounded-lg px-3 py-2 text-white text-sm focus:border-blue-500 focus:outline-none transition"
-                  />
-                  <button
-                    onClick={() => handleSimulateClicks(task.id)}
-                    disabled={simulatingClicks === task.id || !simulationAmount[task.id] || task.status !== 'active'}
-                    className="bg-blue-500 text-white px-4 py-2 rounded-lg font-medium hover:brightness-110 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
-                  >
-                    {simulatingClicks === task.id ? (
-                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                    ) : (
-                      <Plus className="w-4 h-4" />
-                    )}
-                    <span className="text-sm">
-                      {language === 'ar' ? 'محاكاة' : 'Simulate'}
-                    </span>
-                  </button>
-                </div>
-                <p className="text-white/50 text-xs mt-1">
-                  {language === 'ar' 
-                    ? `الكليكات المتبقية: ${task.totalClicks - task.completedClicks}`
-                    : `Remaining clicks: ${task.totalClicks - task.completedClicks}`
-                  }
-                </p>
-              </div>
 
           })}
       </div>
@@ -728,6 +731,18 @@ const MyTasksInterface: React.FC<MyTasksInterfaceProps> = ({
           </p>
         </div>
       </div>
+
+      {/* Task Completion Modal */}
+      {showCompletionModal && completedTask && (
+        <TaskCompletionModal
+          isOpen={showCompletionModal}
+          onClose={() => setShowCompletionModal(false)}
+          taskTitle={completedTask.title}
+          platform={completedTask.platform}
+          totalClicks={completedTask.totalClicks}
+          lyraSpent={completedTask.lyraSpent}
+        />
+      )}
     </div>
   );
 };
