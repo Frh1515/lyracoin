@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, Wallet, Zap, Clock, TrendingUp, List } from 'lucide-react';
+import { ArrowLeft, Plus, Wallet, Zap, Clock, TrendingUp, List, ArrowRightLeft } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { getUserProfile, type UserProfile } from '../../lib/supabase/getUserProfile';
-import { updateUserMinutes } from '../../lib/supabase/updateUserMinutes';
+import { convertMinutesToLyra } from '../../lib/supabase/exchangeSystem';
 import ChargeBalanceModal from '../components/ChargeBalanceModal';
 import AddTaskInterface from '../components/AddTaskInterface';
 import MyTasksInterface from '../components/MyTasksInterface';
@@ -55,11 +55,11 @@ const NewTaskPage: React.FC = () => {
   const handleMinutesConverted = (minutesConverted: number, lyraEarned: number) => {
     // Update local profile state
     if (profile) {
-      setProfile(prev => prev ? {
-        ...prev,
-        total_minutes: prev.total_minutes - minutesConverted,
-        lyra_balance: prev.lyra_balance + lyraEarned
-      } : null);
+      setProfile({
+        ...profile,
+        total_minutes: profile.total_minutes - minutesConverted,
+        lyra_balance: profile.lyra_balance + lyraEarned
+      });
     }
   };
 
@@ -310,6 +310,34 @@ const NewTaskPage: React.FC = () => {
           {/* Quick Actions */}
           {!showAddTask && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            {/* Exchange Currency */}
+            <div 
+              onClick={() => navigate('/exchange')}
+              className="bg-black/40 backdrop-blur-sm border border-neonGreen/30 rounded-xl p-6 shadow-[0_0_15px_rgba(0,255,136,0.3)] hover:scale-105 transition duration-300 cursor-pointer"
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 bg-neonGreen rounded-full flex items-center justify-center">
+                  <ArrowRightLeft className="w-5 h-5 text-black" />
+                </div>
+                <h3 className="text-lg font-semibold text-white">
+                  {language === 'ar' ? 'تحويل العملات' : 'Exchange Currency'}
+                </h3>
+              </div>
+              
+              <p className="text-white/70 text-sm mb-4">
+                {language === 'ar' 
+                  ? 'شراء وبيع LYRA وتحويل الدقائق'
+                  : 'Buy and sell LYRA and convert minutes'
+                }
+              </p>
+              
+              <div className="bg-neonGreen/10 border border-neonGreen/30 rounded-lg p-3">
+                <p className="text-neonGreen font-medium text-sm text-center">
+                  {language === 'ar' ? 'متاح الآن' : 'Available Now'}
+                </p>
+              </div>
+            </div>
+
             {/* Create Paid Task */}
             <div className="bg-black/40 backdrop-blur-sm border border-purple-500/30 rounded-xl p-6 shadow-[0_0_15px_rgba(168,85,247,0.3)] hover:scale-105 transition duration-300 cursor-pointer">
               <div className="flex items-center gap-3 mb-4">
@@ -330,29 +358,6 @@ const NewTaskPage: React.FC = () => {
               
               <div className="bg-purple-500/10 border border-purple-500/30 rounded-lg p-3">
                 <p className="text-purple-400 font-medium text-sm text-center">
-                  {language === 'ar' ? 'قريباً...' : 'Coming Soon...'}
-                </p>
-              </div>
-            </div>
-
-            {/* Task Analytics */}
-            <div className="bg-black/40 backdrop-blur-sm border border-blue-500/30 rounded-xl p-6 shadow-[0_0_15px_rgba(59,130,246,0.3)] hover:scale-105 transition duration-300 cursor-pointer">
-              <div className="flex items-center gap-3 mb-4">
-                <TrendingUp className="w-10 h-10 text-blue-500" />
-                <h3 className="text-lg font-semibold text-white">
-                  {language === 'ar' ? 'إحصائيات المهام' : 'Task Analytics'}
-                </h3>
-              </div>
-              
-              <p className="text-white/70 text-sm mb-4">
-                {language === 'ar' 
-                  ? 'تتبع أداء مهامك وعائد الاستثمار'
-                  : 'Track your task performance and ROI'
-                }
-              </p>
-              
-              <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3">
-                <p className="text-blue-400 font-medium text-sm text-center">
                   {language === 'ar' ? 'قريباً...' : 'Coming Soon...'}
                 </p>
               </div>

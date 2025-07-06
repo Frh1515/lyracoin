@@ -16,6 +16,7 @@ import { getUserProfile } from '../lib/supabase/getUserProfile';
 const HomePage = lazy(() => import('./pages/HomePage'));
 const TasksPage = lazy(() => import('./pages/TasksPage'));
 const NewTaskPage = lazy(() => import('./pages/NewTaskPage'));
+const ExchangePage = lazy(() => import('./components/ExchangePage'));
 const PricesPage = lazy(() => import('./pages/PricesPage'));
 const ReferralsPage = lazy(() => import('./pages/ReferralsPage'));
 const ProfilePage = lazy(() => import('./pages/ProfilePage'));
@@ -162,6 +163,11 @@ function AppContent() {
           <Route path="/new-task" element={
             <ProtectedRoute>
               <NewTaskPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/exchange" element={
+            <ProtectedRoute>
+              <ExchangePage />
             </ProtectedRoute>
           } />
           <Route path="/prices" element={<PricesPage />} />
