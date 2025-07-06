@@ -1,9 +1,13 @@
 import React, { memo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Clock, Share2, Award, Wallet, Twitter, Users, Star, Trophy } from 'lucide-react';
+import { Clock, Share2, Award, Wallet, Twitter, Users, Star, Trophy, ArrowRightLeft } from 'lucide-react';
 import { FaTelegram } from 'react-icons/fa6';
 import { useLanguage } from '../context/LanguageContext';
 import { WalletConnect } from '../components/WalletConnect';
+import ExchangeModal from '../components/ExchangeModal';
+import { useState, useEffect } from 'react';
+import { getUserProfile } from '../../lib/supabase/getUserProfile';
+import toast from 'react-hot-toast';
 
 interface HomePageProps {
   userMinutes?: number;
@@ -17,8 +21,59 @@ const HomePage: React.FC<HomePageProps> = ({
   userLevel = 'bronze' 
 }) => {
   const navigate = useNavigate();
+  const [showExchangeModal, setShowExchangeModal] = useState(false);
   const { language } = useLanguage();
   const [logoError, setLogoError] = React.useState(false);
+  const [profile, setProfile] = useState<any>(null);
+
+  useEffect(() => {
+    fetchUserProfile();
+  }, []);
+
+  const fetchUserProfile = async () => {
+    try {
+      const { data, error } = await getUserProfile();
+      
+      if (error) {
+        throw error;
+      }
+
+      if (data) {
+        setProfile(data);
+      }
+    } catch (err) {
+      console.error('Error fetching profile:', err);
+    }
+  };
+
+  const handleExchangeComplete = (
+    type: 'buy' | 'sell' | 'convert', 
+    amountIn: number, 
+    currencyIn: string, 
+    amountOut: number, 
+    currencyOut: string
+  ) => {
+    // Update profile based on exchange type
+    if (profile) {
+      let updatedProfile = { ...profile };
+      
+      if (type === 'buy' && currencyOut === 'LYRA') {
+        updatedProfile.lyra_balance += amountOut;
+      } else if (type === 'sell' && currencyIn === 'LYRA') {
+        updatedProfile.lyra_balance -= amountIn;
+      } else if (type === 'convert') {
+        if (currencyIn === 'MINUTES' && currencyOut === 'LYRA') {
+          updatedProfile.total_minutes -= amountIn;
+          updatedProfile.lyra_balance += amountOut;
+        }
+      }
+      
+      setProfile(updatedProfile);
+    }
+    
+    // Close modal
+    setShowExchangeModal(false);
+  };
 
   const getLevelColor = (level: string) => {
     switch (level) {
@@ -182,6 +237,61 @@ const HomePage: React.FC<HomePageProps> = ({
           </div>
         </div>
 
+        {/* Exchange Button */}
+        <div className="mb-8">
+          <button
+            onClick={() => setShowExchangeModal(true)}
+            className="w-full p-6 bg-gradient-to-r from-neonGreen to-blue-500 border-2 border-neonGreen/50 rounded-xl text-white font-bold hover:scale-105 transition duration-300 shadow-[0_0_20px_rgba(0,255,136,0.5)] flex items-center justify-center gap-3"
+          >
+            <ArrowRightLeft className="w-8 h-8" />
+            <span className="text-xl">
+              {language === 'ar' ? 'تحويل العملات' : 'Exchange Currencies'}
+            </span>
+          </button>
+        </div>
+
+        {/* Exchange Rates */}
+        <div className="bg-black/40 backdrop-blur-sm border border-neonGreen/30 rounded-xl p-6 mb-8">
+          <div className="flex items-center gap-3 mb-6">
+            <ArrowRightLeft className="w-6 h-6 text-neonGreen" />
+            <h3 className="text-xl font-semibold text-white">
+              {language === 'ar' ? 'أسعار التحويل' : 'Exchange Rates'}
+            </h3>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="bg-neonGreen/10 border border-neonGreen/30 rounded-lg p-4 text-center">
+              <div className="text-2xl font-bold text-neonGreen mb-2">1000</div>
+              <p className="text-white/70 text-sm">
+                {language === 'ar' ? 'دقيقة = 1 LYRA' : 'Minutes = 1 LYRA'}
+              </p>
+            </div>
+            
+            <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4 text-center">
+              <div className="text-2xl font-bold text-blue-500 mb-2">100</div>
+              <p className="text-white/70 text-sm">
+                {language === 'ar' ? 'LYRA = 1 TON' : 'LYRA = 1 TON'}
+              </p>
+            </div>
+            
+            <div className="bg-yellow-400/10 border border-yellow-400/30 rounded-lg p-4 text-center">
+              <div className="text-2xl font-bold text-yellow-400 mb-2">0.01</div>
+              <p className="text-white/70 text-sm">
+                {language === 'ar' ? 'TON = 1 LYRA' : 'TON = 1 LYRA'}
+              </p>
+            </div>
+          </div>
+          
+          <div className="mt-4 p-3 bg-white/5 border border-white/10 rounded-lg">
+            <p className="text-center text-white/70 text-sm">
+              {language === 'ar' 
+                ? '⚠️ ملاحظة: أسعار التحويل ثابتة ولا تتغير'
+                : '⚠️ Note: Exchange rates are fixed and do not change'
+              }
+            </p>
+          </div>
+        </div>
+
         {/* Wallet Connect */}
         <div className="bg-black/40 backdrop-blur-sm border border-neonGreen/30 rounded-xl p-6 text-white shadow-[0_0_15px_rgba(0,255,136,0.3)]">
           <div className="flex items-center gap-3 mb-4">
@@ -303,6 +413,15 @@ const HomePage: React.FC<HomePageProps> = ({
           </div>
         </div>
       </div>
+      
+      {/* Exchange Modal */}
+      <ExchangeModal
+        isOpen={showExchangeModal}
+        onClose={() => setShowExchangeModal(false)}
+        userMinutes={profile?.total_minutes || userMinutes || 0}
+        userLyraBalance={profile?.lyra_balance || 0}
+        onExchangeComplete={handleExchangeComplete}
+      />
     </div>
   );
 };
