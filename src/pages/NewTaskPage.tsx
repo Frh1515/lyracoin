@@ -6,6 +6,7 @@ import { getUserProfile, type UserProfile } from '../../lib/supabase/getUserProf
 import { updateUserMinutes } from '../../lib/supabase/updateUserMinutes';
 import ChargeBalanceModal from '../components/ChargeBalanceModal';
 import AddTaskInterface from '../components/AddTaskInterface';
+import MyTasksInterface from '../components/MyTasksInterface';
 import toast from 'react-hot-toast';
 
 const NewTaskPage: React.FC = () => {
@@ -17,6 +18,7 @@ const NewTaskPage: React.FC = () => {
   const [logoError, setLogoError] = useState(false);
   const [showAddTask, setShowAddTask] = useState(false);
   const [hasCreatedTasks, setHasCreatedTasks] = useState(false);
+  const [showMyTasks, setShowMyTasks] = useState(true); // Default to MY TASKS view
 
   useEffect(() => {
     fetchUserProfile();
@@ -221,9 +223,12 @@ const NewTaskPage: React.FC = () => {
           {/* Task Management Buttons */}
           <div className="flex gap-4 mb-8">
             <button
-              onClick={() => setShowAddTask(false)}
+              onClick={() => {
+                setShowAddTask(false);
+                setShowMyTasks(true);
+              }}
               className={`flex-1 py-3 px-6 rounded-lg font-semibold transition duration-300 flex items-center justify-center gap-2 ${
-                !showAddTask 
+                !showAddTask && showMyTasks
                   ? 'bg-neonGreen text-black shadow-[0_0_15px_rgba(0,255,136,0.5)]'
                   : 'bg-black/40 border border-white/20 text-white hover:bg-white/5'
               }`}
@@ -233,7 +238,10 @@ const NewTaskPage: React.FC = () => {
             </button>
             
             <button
-              onClick={() => setShowAddTask(true)}
+              onClick={() => {
+                setShowAddTask(true);
+                setShowMyTasks(false);
+              }}
               className={`flex-1 py-3 px-6 rounded-lg font-semibold transition duration-300 flex items-center justify-center gap-2 ${
                 showAddTask 
                   ? 'bg-purple-600 text-white shadow-[0_0_15px_rgba(168,85,247,0.5)]'
@@ -251,6 +259,15 @@ const NewTaskPage: React.FC = () => {
               )}
             </button>
           </div>
+
+          {/* My Tasks Interface */}
+          {!showAddTask && showMyTasks && (
+            <MyTasksInterface
+              isVisible={showMyTasks}
+              userLyraBalance={profile?.lyra_balance || 0}
+              onBalanceUpdate={fetchUserProfile}
+            />
+          )}
 
           {/* Add Task Interface */}
           {showAddTask && !hasCreatedTasks && (
