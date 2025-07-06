@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { FaYoutube, FaFacebook, FaTiktok, FaTelegram, FaInstagram, FaXTwitter } from 'react-icons/fa6';
-import { Gamepad2, Clock, Pickaxe, Timer, Share2, Smartphone, Zap, Plus } from 'lucide-react';
+import { Gamepad2, Clock, Pickaxe, Timer, Share2, Smartphone, Zap, Plus, DollarSign } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../context/LanguageContext';
 import CryptoCandyCrushGame from '../components/CryptoCandyCrushGame';
