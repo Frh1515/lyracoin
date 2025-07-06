@@ -10,6 +10,7 @@ export interface TaskClickResult {
   isCompleted?: boolean;
   pointsEarned?: number;
   minutesEarned?: number;
+  taskTitle?: string;
 }
 
 export async function recordTaskClickWithRewards(
@@ -189,6 +190,127 @@ export async function getActivePaidTasksForDaily(): Promise<{
     return {
       data: null,
       error: error as Error
+    };
+  }
+}
+
+export async function simulateTaskClicks(
+  taskId: string,
+  clicksCount: number
+): Promise<{
+  success: boolean;
+  message: string;
+  completedClicks?: number;
+  totalClicks?: number;
+  isCompleted?: boolean;
+}> {
+  try {
+    // Get current authenticated user
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    
+    if (authError || !user) {
+      return {
+        success: false,
+        message: 'User not authenticated'
+      };
+    }
+
+    // Get user's telegram_id
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('telegram_id')
+      .eq('supabase_auth_id', user.id)
+      .single();
+
+    if (userError || !userData) {
+      return {
+        success: false,
+        message: 'User not found'
+      };
+    }
+
+    // Call RPC function to simulate clicks
+    const { data, error } = await supabase.rpc('simulate_task_clicks', {
+      p_task_id: taskId,
+      p_clicks_count: clicksCount
+    });
+
+    if (error) {
+      throw error;
+    }
+
+    return {
+      success: data.success,
+      message: data.message,
+      completedClicks: data.completed_clicks,
+      totalClicks: data.total_clicks,
+      isCompleted: data.is_completed
+    };
+  } catch (error) {
+    console.error('Error simulating task clicks:', error);
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : 'Failed to simulate clicks'
+    };
+  }
+}
+
+export async function addTaskBalance(
+  taskId: string,
+  additionalBalance: number
+): Promise<{
+  success: boolean;
+  message: string;
+  newTotalClicks?: number;
+  newStatus?: string;
+}> {
+  try {
+    // Get current authenticated user
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    
+    if (authError || !user) {
+      return {
+        success: false,
+        message: 'User not authenticated'
+      };
+    }
+
+    // Get user's telegram_id
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('telegram_id')
+      .eq('supabase_auth_id', user.id)
+      .single();
+
+    if (userError || !userData) {
+      return {
+        success: false,
+        message: 'User not found'
+      };
+    }
+
+    // Call RPC function to add balance
+    const { data, error } = await supabase.rpc('add_task_balance', {
+      p_task_id: taskId,
+      p_additional_balance: additionalBalance,
+      p_user_telegram_id: userData.telegram_id
+    });
+
+    if (error) {
+      throw error;
+    }
+
+    return {
+      success: data.success,
+      message: data.message,
+      newTotalClicks: data.new_total_clicks,
+      newStatus: data.new_status
+    };
+  } catch (error) {
+    console.error('Error adding task balance:', error);
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : 'Failed to add balance'
     };
   }
 }
